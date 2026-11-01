@@ -8,9 +8,13 @@ declare const self: ServiceWorkerGlobalScope;
 self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST);
+const manifest = self.__WB_MANIFEST;
+precacheAndRoute(manifest);
 // SPA: serve the app shell for in-app navigations (works offline once cached).
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+// The dev build precaches nothing, so only do this when index.html is in the manifest.
+if (manifest.some((e) => (typeof e === 'string' ? e : e.url).endsWith('index.html'))) {
+  registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')));
+}
 
 interface PushPayload {
   title: string;

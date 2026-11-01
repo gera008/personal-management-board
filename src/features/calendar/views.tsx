@@ -1,4 +1,4 @@
-import { addDays, endOfMonth, endOfWeek, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, endOfMonth, endOfWeek, isSameDay, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/lib/format';
 import { Empty } from '@/components/ui';
@@ -6,7 +6,7 @@ import { daysBetween, itemsForDay, type CalItem } from './items';
 
 export function monthRange(month: Date, weekStartsOn: 0 | 1) {
   const from = startOfWeek(startOfMonth(month), { weekStartsOn });
-  const to = addDays(endOfWeek(endOfMonth(month), { weekStartsOn }), 1);
+  const to = startOfDay(addDays(endOfWeek(endOfMonth(month), { weekStartsOn }), 1));
   return { from, to };
 }
 

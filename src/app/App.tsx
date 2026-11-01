@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthGate } from '@/features/auth/AuthGate';
 import { ProfileProvider } from '@/lib/profile';
@@ -11,10 +12,12 @@ import { AccountsPage } from '@/features/finance/AccountsPage';
 import { CategoriesPage } from '@/features/finance/CategoriesPage';
 import { BudgetsPage } from '@/features/finance/BudgetsPage';
 import { RecurringPage } from '@/features/finance/RecurringPage';
-import { AnalyticsPage } from '@/features/finance/AnalyticsPage';
 import { ImportExportPage } from '@/features/finance/ImportExportPage';
 import { HabitsPage } from '@/features/habits/HabitsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+
+// Charts (Recharts) are only loaded when Analytics opens.
+const AnalyticsPage = lazy(() => import('@/features/finance/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
 
 export function App() {
   return (
@@ -32,7 +35,7 @@ export function App() {
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="budgets" element={<BudgetsPage />} />
                 <Route path="recurring" element={<RecurringPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="analytics" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-surface" />}><AnalyticsPage /></Suspense>} />
                 <Route path="data" element={<ImportExportPage />} />
               </Route>
               <Route path="habits" element={<HabitsPage />} />
