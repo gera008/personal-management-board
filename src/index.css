@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme tokens as RGB triplets so Tailwind can apply opacity. Grayscale base,
+   module accents only for distinction. */
+:root {
+  --bg: 255 255 255;
+  --surface: 245 245 245;
+  --fg: 10 10 10;
+  --muted: 115 115 115;
+  --border: 229 229 229;
+  --expense: 220 38 38;
+  --income: 22 163 74;
+  --transfer: 115 115 115;
+  --calendar: 37 99 235;
+  --tasks: 234 88 12;
+  --habit: 124 58 237;
+  --slip: 146 64 14;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: 10 10 10;
+    --surface: 23 23 23;
+    --fg: 245 245 245;
+    --muted: 163 163 163;
+    --border: 38 38 38;
+    --expense: 248 113 113;
+    --income: 74 222 128;
+    --transfer: 163 163 163;
+    --calendar: 96 165 250;
+    --tasks: 251 146 60;
+    --habit: 167 139 250;
+    --slip: 180 83 9;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: 10 10 10;
+  --surface: 23 23 23;
+  --fg: 245 245 245;
+  --muted: 163 163 163;
+  --border: 38 38 38;
+  --expense: 248 113 113;
+  --income: 74 222 128;
+  --transfer: 163 163 163;
+  --calendar: 96 165 250;
+  --tasks: 251 146 60;
+  --habit: 167 139 250;
+  --slip: 180 83 9;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'tnum';
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-bg p-4;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-fg text-bg;
+  }
+  .btn-ghost {
+    @apply btn border border-border bg-bg text-fg hover:bg-surface;
+  }
+  .btn-danger {
+    @apply btn border border-expense/40 text-expense hover:bg-expense/10;
+  }
+  .input {
+    @apply w-full rounded-lg border border-border bg-bg px-3 py-2 text-base text-fg outline-none placeholder:text-muted focus:border-fg sm:text-sm;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs;
+  }
+  .section-title {
+    @apply mb-2 text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+}
+
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 4.5rem);
+}
+@media (min-width: 768px) {
+  .pb-safe {
+    padding-bottom: 2rem;
+  }
+}

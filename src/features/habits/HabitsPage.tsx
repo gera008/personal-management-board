@@ -1,0 +1,383 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { subDays } from 'date-fns';
+import { useRemove, useSave } from '@/lib/data';
+import { useProfile } from '@/lib/profile';
+import { Heatmap } from '@/components/Heatmap';
+import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
+import { toDateKey } from '@/domain/dates';
+import { computeStreaks, habitHeatmap, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
+import { num, type Habit, type HabitFrequency } from '@/domain/types';
+import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits } from './shared';
+
+const GOOD_COLORS = ['#7c3aed', '#8b5cf6', '#6d28d9', '#a855f7', '#4c1d95', '#525252'];
+
+export function HabitsPage() {
+  const { t } = useTranslation();
+  const habits = useHabits();
+  const logs = useHabitLogs();
+  const [tab, setTab] = useState<'today' | 'heatmap'>('today');
+  const [tag, setTag] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Habit | null>(null);
+  const [form, setForm] = useState<{ habit?: Habit | null } | null>(null);
+  const today = toDateKey(new Date());
+
+  const active = (habits.data ?? []).filter((h) => !h.archived && (!tag || h.tags.includes(tag)));
+  const allLogs = logs.data ?? [];
+  const due = todaysHabits(active, today);
+  const notDue = active.filter((h) => !due.includes(h));
+  const tags = [...new Set((habits.data ?? []).flatMap((h) => h.tags))].sort();
+  const archived = (habits.data ?? []).filter((h) => h.archived);
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">{t('nav.habits')}</h1>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'today', label: t('habits.today') },
+            { value: 'heatmap', label: t('habits.heatmap') },
+          ]}
+        />
+      </div>
+      {tags.length > 0 && (
+        <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4">
+          {tags.map((x) => (
+            <button key={x} onClick={() => setTag(tag === x ? null : x)} className={`chip shrink-0 ${tag === x ? 'border-habit bg-habit/10 text-habit' : ''}`}>
+              #{x}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {active.length === 0 ? (
+        <Empty action={<button className="btn-primary" onClick={() => setForm({})}>{t('habits.newHabit')}</button>}>{t('habits.empty')}</Empty>
+      ) : tab === 'today' ? (
+        <div className="space-y-4">
+          <section className="card divide-y divide-border py-1">
+            {due.map((h) => (
+              <HabitTodayRow key={h.id} habit={h} logs={allLogs} today={today} onOpen={() => setDetail(h)} />
+            ))}
+            {due.length === 0 && <p className="py-3 text-sm text-muted">{t('habits.nothingToday')}</p>}
+          </section>
+          {notDue.length > 0 && (
+            <section>
+              <h3 className="section-title">{t('habits.notToday')}</h3>
+              <div className="card divide-y divide-border py-1">
+                {notDue.map((h) => (
+                  <button key={h.id} onClick={() => setDetail(h)} className="flex w-full items-center gap-3 py-2.5 text-left text-sm text-muted">
+                    <span className="h-6 w-1 rounded-full" style={{ background: h.color }} />
+                    {h.name}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <section className="card">
+            <h2 className="mb-2 text-sm font-semibold">{t('habits.combined')}</h2>
+            <CombinedHeatmap habits={active} logs={allLogs} />
+          </section>
+          {active.map((h) => (
+            <section key={h.id} className="card">
+              <button className="mb-2 text-sm font-semibold" onClick={() => setDetail(h)}>
+                {h.name}
+              </button>
+              <HabitHeatmap habit={h} />
+            </section>
+          ))}
+        </div>
+      )}
+
+      {archived.length > 0 && (
+        <details className="mt-6 text-sm text-muted">
+          <summary className="cursor-pointer">{t('habits.archivedCount', { count: archived.length })}</summary>
+          <ul className="mt-2 space-y-1">
+            {archived.map((h) => (
+              <li key={h.id}>
+                <button onClick={() => setForm({ habit: h })}>{h.name}</button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      <Fab color="bg-habit" label={t('habits.newHabit')} onClick={() => setForm({})} />
+      <HabitDetail
+        habit={detail}
+        onClose={() => setDetail(null)}
+        onEdit={(h) => {
+          setDetail(null);
+          setForm({ habit: h });
+        }}
+      />
+      <HabitForm open={!!form} habit={form?.habit} onClose={() => setForm(null)} position={(habits.data ?? []).length} />
+    </div>
+  );
+}
+
+function HabitHeatmap({ habit }: { habit: Habit }) {
+  const logs = useHabitLogs();
+  const { weekStartsOn } = useProfile();
+  const today = new Date();
+  const values = habitHeatmap(habit, logMap(logs.data ?? [], habit.id), toDateKey(subDays(today, 371)), toDateKey(today));
+  return <Heatmap values={values} weekStartsOn={weekStartsOn} color={habit.kind === 'bad' ? 'var(--slip)' : 'var(--habit)'} />;
+}
+
+function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose: () => void; onEdit: (h: Habit) => void }) {
+  const { t } = useTranslation();
+  const logs = useHabitLogs();
+  const { weekStartsOn } = useProfile();
+  if (!habit) return null;
+  const today = toDateKey(new Date());
+  const map = logMap(logs.data ?? [], habit.id);
+  const s = computeStreaks(habit, map, today, weekStartsOn);
+  const week = weeklyCompletion(habit, map, today, weekStartsOn);
+  const month = monthlyCompletion(habit, map, today);
+  const recentNotes = [...map.values()].filter((l) => l.note).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  const unit = s.unit === 'weeks' ? t('habits.weeks') : t('habits.days');
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={habit.name}
+      footer={
+        <button className="btn-ghost ml-auto" onClick={() => onEdit(habit)}>
+          {t('common.edit')}
+        </button>
+      }
+    >
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label={habit.kind === 'bad' ? t('habits.currentDaysWithout') : t('habits.current')} value={`${s.current} ${unit}`} />
+        <Stat label={t('habits.best')} value={`${s.best} ${unit}`} />
+        <Stat label={t('habits.thisWeek')} value={`${Math.round(week * 100)}%`} />
+        <Stat label={t('habits.thisMonth')} value={`${Math.round(month * 100)}%`} />
+      </div>
+      {habit.goal_days && (
+        <div className="mb-4">
+          <div className="mb-1 flex justify-between text-xs text-muted">
+            <span>{t('habits.goal')}</span>
+            <span>
+              {Math.min(s.current, habit.goal_days)}/{habit.goal_days} {unit}
+            </span>
+          </div>
+          <Progress ratio={s.current / habit.goal_days} color={habit.kind === 'bad' ? 'bg-slip' : 'bg-habit'} />
+        </div>
+      )}
+      <HabitHeatmap habit={habit} />
+      {recentNotes.length > 0 && (
+        <div className="mt-4">
+          <h3 className="section-title">{t('habits.notes')}</h3>
+          <ul className="space-y-1 text-sm">
+            {recentNotes.map((l) => (
+              <li key={l.id}>
+                <span className="text-muted">{l.date}</span> {l.is_slip && <span className="text-slip">✕</span>} {l.note}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-surface p-2">
+      <div className="text-[11px] text-muted">{label}</div>
+      <div className="font-semibold">{value}</div>
+    </div>
+  );
+}
+
+type FreqType = HabitFrequency['type'];
+
+function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: Habit | null; onClose: () => void; position: number }) {
+  const { t } = useTranslation();
+  const save = useSave('habits');
+  const remove = useRemove('habits');
+  const [f, setF] = useState({
+    name: '',
+    kind: 'good' as Habit['kind'],
+    type: 'boolean' as Habit['type'],
+    unit: '',
+    target_value: '',
+    freq: 'daily' as FreqType,
+    days: [1, 2, 3, 4, 5] as number[],
+    n: '3',
+    goal_days: '',
+    color: GOOD_COLORS[0],
+    tags: [] as string[],
+    reminder_time: '',
+    start_date: toDateKey(new Date()),
+    archived: false,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    save.reset();
+    const fr = habit?.frequency ?? { type: 'daily' };
+    setF({
+      name: habit?.name ?? '',
+      kind: habit?.kind ?? 'good',
+      type: habit?.type ?? 'boolean',
+      unit: habit?.unit ?? '',
+      target_value: habit?.target_value != null ? String(num(habit.target_value)) : '',
+      freq: fr.type,
+      days: fr.type === 'weekdays' ? fr.days : [1, 2, 3, 4, 5],
+      n: fr.type === 'times_per_week' || fr.type === 'every_n_days' ? String(fr.n) : '3',
+      goal_days: habit?.goal_days ? String(habit.goal_days) : '',
+      color: habit?.color ?? GOOD_COLORS[0],
+      tags: habit?.tags ?? [],
+      reminder_time: habit?.reminder_time?.slice(0, 5) ?? '',
+      start_date: habit?.start_date ?? toDateKey(new Date()),
+      archived: habit?.archived ?? false,
+    });
+  }, [open, habit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isBad = f.kind === 'bad';
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const n = Math.max(1, Number(f.n) || 1);
+    const frequency: HabitFrequency = isBad
+      ? { type: 'daily' }
+      : f.freq === 'weekdays'
+        ? { type: 'weekdays', days: [...f.days].sort() }
+        : f.freq === 'times_per_week'
+          ? { type: 'times_per_week', n: Math.min(7, n) }
+          : f.freq === 'every_n_days'
+            ? { type: 'every_n_days', n }
+            : { type: 'daily' };
+    const numeric = !isBad && f.type === 'numeric';
+    await save.mutateAsync({
+      id: habit?.id,
+      name: f.name.trim(),
+      kind: f.kind,
+      type: numeric ? 'numeric' : 'boolean',
+      unit: numeric ? f.unit || null : null,
+      target_value: numeric ? Number(f.target_value) : null,
+      frequency,
+      goal_days: f.goal_days ? Number(f.goal_days) : null,
+      color: f.color,
+      tags: f.tags,
+      reminder_time: f.reminder_time || null,
+      start_date: f.start_date,
+      archived: f.archived,
+      ...(habit ? {} : { position }),
+    } as Partial<Habit>);
+    onClose();
+  };
+
+  const weekdayLabels = Array.from({ length: 7 }, (_, i) => new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={habit ? t('habits.editHabit') : t('habits.newHabit')}
+      footer={<SaveBar onCancel={onClose} saving={save.isPending} onDelete={habit ? () => remove.mutateAsync(habit.id).then(onClose) : undefined} />}
+    >
+      <form id="sheet-form" onSubmit={submit}>
+        <ErrorText error={save.error} />
+        <Field label={t('common.name')}>
+          <input className="input" required autoFocus={!habit} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        </Field>
+        <Segmented
+          className="mb-1 w-full"
+          value={f.kind}
+          onChange={(kind) => setF({ ...f, kind })}
+          options={[
+            { value: 'good', label: t('habits.good') },
+            { value: 'bad', label: t('habits.bad') },
+          ]}
+        />
+        <p className="mb-3 text-xs text-muted">{isBad ? t('habits.badHelp') : t('habits.goodHelp')}</p>
+
+        {!isBad && (
+          <>
+            <Segmented
+              className="mb-3 w-full"
+              value={f.type}
+              onChange={(type) => setF({ ...f, type })}
+              options={[
+                { value: 'boolean', label: t('habits.yesNo') },
+                { value: 'numeric', label: t('habits.numeric') },
+              ]}
+            />
+            {f.type === 'numeric' && (
+              <div className="grid grid-cols-2 gap-2">
+                <Field label={t('habits.target')}>
+                  <input className="input" inputMode="decimal" required value={f.target_value} onChange={(e) => setF({ ...f, target_value: e.target.value })} />
+                </Field>
+                <Field label={t('habits.unit')}>
+                  <input className="input" placeholder={t('habits.unitPlaceholder')} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} />
+                </Field>
+              </div>
+            )}
+            <Field label={t('habits.frequency')}>
+              <select className="input" value={f.freq} onChange={(e) => setF({ ...f, freq: e.target.value as FreqType })}>
+                {(['daily', 'weekdays', 'times_per_week', 'every_n_days'] as FreqType[]).map((x) => (
+                  <option key={x} value={x}>
+                    {t(`habits.freq.${x}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {f.freq === 'weekdays' && (
+              <div className="mb-3 grid grid-cols-7 gap-1">
+                {weekdayLabels.map((label, d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    onClick={() => setF({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d] })}
+                    className={`rounded-lg border py-1.5 text-sm ${f.days.includes(d) ? 'border-habit bg-habit/10 text-habit' : 'border-border'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(f.freq === 'times_per_week' || f.freq === 'every_n_days') && (
+              <Field label={f.freq === 'times_per_week' ? t('habits.timesPerWeek') : t('habits.everyNDays')}>
+                <input type="number" min={1} max={f.freq === 'times_per_week' ? 7 : 365} className="input" value={f.n} onChange={(e) => setF({ ...f, n: e.target.value })} />
+              </Field>
+            )}
+            <Field label={t('common.color')}>
+              <div className="flex gap-2">
+                {GOOD_COLORS.map((c) => (
+                  <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`h-8 w-8 rounded-full ${f.color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-bg' : ''}`} style={{ background: c }} aria-label={c} />
+                ))}
+              </div>
+            </Field>
+          </>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <Field label={t('habits.goalDays')}>
+            <input type="number" min={1} className="input" placeholder="66" value={f.goal_days} onChange={(e) => setF({ ...f, goal_days: e.target.value })} />
+          </Field>
+          <Field label={t('habits.startDate')}>
+            <input type="date" className="input" required value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
+          </Field>
+        </div>
+        <Field label={t('habits.reminder')}>
+          <input type="time" className="input" value={f.reminder_time} onChange={(e) => setF({ ...f, reminder_time: e.target.value })} />
+        </Field>
+        <Field label={t('common.tags')}>
+          <TagInput value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />
+        </Field>
+        {habit && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={f.archived} onChange={(e) => setF({ ...f, archived: e.target.checked })} />
+            {t('common.archived')}
+          </label>
+        )}
+      </form>
+    </Sheet>
+  );
+}

@@ -15,9 +15,16 @@ export type Rates = Partial<Record<Currency, number>>;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Amount in the account's own currency, signed by its effect on the balance. */
-export function signedAmount(tx: Pick<Transaction, 'type' | 'direction' | 'original_amount'>): number {
-  const a = num(tx.original_amount);
+/**
+ * Amount signed by its effect on the balance, in the account's currency. A
+ * transaction in another currency on an MXN account counts at its MXN value.
+ * Mirrors the account_balances view.
+ */
+export function signedAmount(
+  tx: Pick<Transaction, 'type' | 'direction' | 'original_amount'> & Partial<Pick<Transaction, 'currency' | 'base_amount_mxn'>>,
+  accountCurrency?: Currency,
+): number {
+  const a = accountCurrency === 'MXN' && tx.currency && tx.currency !== 'MXN' ? num(tx.base_amount_mxn) : num(tx.original_amount);
   return tx.type === 'income' || tx.direction === 'in' ? a : -a;
 }
 
@@ -85,7 +92,7 @@ export interface Indicators {
 export function accountBalance(account: Account, txs: Transaction[]): number {
   return round2(
     num(account.initial_balance) +
-      txs.filter((t) => t.account_id === account.id && isApplied(t)).reduce((s, t) => s + signedAmount(t), 0),
+      txs.filter((t) => t.account_id === account.id && isApplied(t)).reduce((s, t) => s + signedAmount(t, account.currency), 0),
   );
 }
 

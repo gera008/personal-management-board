@@ -68,6 +68,12 @@ describe('finance totals', () => {
     expect(accountBalance(account({ id: 'acc-cad', currency: 'CAD', initial_balance: 100 }), txs)).toBe(90);
   });
 
+  it('moves an MXN account by the MXN value of a foreign-currency purchase', () => {
+    const card = account({ id: 'mxn-card', type: 'credit_card' });
+    const usd = tx({ type: 'expense', occurred_at: d(10, 4), account_id: 'mxn-card', original_amount: 10, currency: 'USD', exchange_rate: 18, base_amount_mxn: 180 });
+    expect(accountBalance(card, [usd])).toBe(-180);
+  });
+
   it('converts foreign balances at current rates and skips archived/excluded accounts', () => {
     const accs = [
       account({ id: 'a' }),

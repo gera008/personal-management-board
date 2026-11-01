@@ -126,17 +126,17 @@ end $$;
 create trigger transactions_delete_pair after delete on public.transactions
   for each row execute function public.delete_transfer_pair();
 
--- Signed amount in the account's own currency (applied only).
+-- Balance in the account's own currency (applied only). A transaction in another
+-- currency on an MXN account (e.g. a USD purchase on an MXN card) moves the
+-- balance by its MXN value.
 create or replace view public.account_balances with (security_invoker = true) as
 select
   a.id as account_id,
   a.user_id,
   a.currency,
   a.initial_balance + coalesce(sum(
-    case
-      when t.type = 'income' or t.direction = 'in' then t.original_amount
-      else -t.original_amount
-    end
+    (case when t.type = 'income' or t.direction = 'in' then 1 else -1 end)
+    * (case when t.currency <> a.currency and a.currency = 'MXN' then t.base_amount_mxn else t.original_amount end)
   ) filter (where t.status = 'applied'), 0) as balance
 from public.accounts a
 left join public.transactions t on t.account_id = a.id
