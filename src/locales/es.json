@@ -5,7 +5,8 @@
     "tasks": "Tareas",
     "finance": "Finanzas",
     "habits": "Hábitos",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "health": "Salud"
   },
   "common": {
     "add": "Agregar",
@@ -450,6 +451,24 @@
       "this": "Solo este evento",
       "following": "Este y los siguientes",
       "all": "Todos los eventos"
+    }
+  },
+  "health": {
+    "tabs": {
+      "habits": "Hábitos",
+      "garmin": "Garmin"
+    }
+  },
+  "garmin": {
+    "notConnected": "Garmin aún no está conectado",
+    "comingSoon": "Aquí verás tus pasos, sueño, estrés, Body Battery, frecuencia cardiaca y actividades cuando conectes tu cuenta de Garmin.",
+    "metrics": {
+      "steps": "Pasos",
+      "sleep": "Sueño",
+      "stress": "Estrés",
+      "bodyBattery": "Body Battery",
+      "heartRate": "FC en reposo",
+      "activities": "Actividades"
     }
   }
 }

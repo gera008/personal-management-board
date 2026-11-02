@@ -5,7 +5,8 @@
     "tasks": "Tasks",
     "finance": "Finance",
     "habits": "Habits",
-    "settings": "Settings"
+    "settings": "Settings",
+    "health": "Health"
   },
   "common": {
     "add": "Add",
@@ -450,6 +451,24 @@
       "this": "This event only",
       "following": "This and following",
       "all": "All events"
+    }
+  },
+  "health": {
+    "tabs": {
+      "habits": "Habits",
+      "garmin": "Garmin"
+    }
+  },
+  "garmin": {
+    "notConnected": "Garmin not connected yet",
+    "comingSoon": "Your steps, sleep, stress, Body Battery, heart rate and activities will show here once your Garmin account is connected.",
+    "metrics": {
+      "steps": "Steps",
+      "sleep": "Sleep",
+      "stress": "Stress",
+      "bodyBattery": "Body Battery",
+      "heartRate": "Resting heart rate",
+      "activities": "Activities"
     }
   }
 }

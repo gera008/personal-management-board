@@ -37,7 +37,7 @@ export function HabitsPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t('nav.habits')}</h1>
+        <h2 className="text-lg font-semibold">{t('nav.habits')}</h2>
         <Segmented
           value={tab}
           onChange={setTab}

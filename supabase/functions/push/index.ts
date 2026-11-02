@@ -153,7 +153,7 @@ async function runReminders(db: SupabaseClient) {
     for (const h of habits ?? []) {
       if (h.last_reminded_on === local.date || minutes(local.time) < minutes(h.reminder_time)) continue;
       const { data: logged } = await db.from('habit_logs').select('id').eq('habit_id', h.id).eq('date', local.date).maybeSingle();
-      if (!logged || h.kind === 'bad') await sendToUser(db, p.user_id, { title: m.habit, body: h.name, url: '/habits', tag: `habit-${h.id}` });
+      if (!logged || h.kind === 'bad') await sendToUser(db, p.user_id, { title: m.habit, body: h.name, url: '/health/habits', tag: `habit-${h.id}` });
       await db.from('habits').update({ last_reminded_on: local.date }).eq('id', h.id);
       stats.habits++;
     }

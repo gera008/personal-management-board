@@ -182,7 +182,7 @@ function HabitsWidget() {
   const today = toDateKey(new Date());
   const due = todaysHabits(habits.data ?? [], today);
   return (
-    <Card title={t('dashboard.habitsToday')} to="/habits">
+    <Card title={t('dashboard.habitsToday')} to="/health/habits">
       {due.length === 0 ? (
         <p className="py-3 text-sm text-muted">{t('habits.nothingToday')}</p>
       ) : (
@@ -201,7 +201,7 @@ function HeatmapWidget() {
   const habits = useHabits();
   const logs = useHabitLogs();
   return (
-    <Card title={t('dashboard.habitHeatmap')} to="/habits" className="md:col-span-2">
+    <Card title={t('dashboard.habitHeatmap')} to="/health/habits" className="md:col-span-2">
       {(habits.data ?? []).length === 0 ? <p className="text-sm text-muted">{t('habits.empty')}</p> : <CombinedHeatmap habits={habits.data ?? []} logs={logs.data ?? []} />}
     </Card>
   );

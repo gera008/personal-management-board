@@ -8,7 +8,7 @@ const NAV = [
   { to: '/calendar', icon: 'calendar', key: 'nav.calendar', accent: 'text-calendar' },
   { to: '/tasks', icon: 'tasks', key: 'nav.tasks', accent: 'text-tasks' },
   { to: '/finance', icon: 'finance', key: 'nav.finance', accent: 'text-fg' },
-  { to: '/habits', icon: 'habits', key: 'nav.habits', accent: 'text-habit' },
+  { to: '/health', icon: 'habits', key: 'nav.health', accent: 'text-habit' },
 ];
 
 function PrivacyToggle({ className = '', withLabel = false }: { className?: string; withLabel?: boolean }) {

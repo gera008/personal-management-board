@@ -15,6 +15,8 @@ import { BudgetsPage } from '@/features/finance/BudgetsPage';
 import { RecurringPage } from '@/features/finance/RecurringPage';
 import { ImportExportPage } from '@/features/finance/ImportExportPage';
 import { HabitsPage } from '@/features/habits/HabitsPage';
+import { HealthLayout } from '@/features/health/HealthLayout';
+import { GarminPage } from '@/features/health/GarminPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 
 // Charts (Recharts) are only loaded when Analytics opens.
@@ -42,7 +44,13 @@ export function App() {
                 <Route path="analytics" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-surface" />}><AnalyticsPage /></Suspense>} />
                 <Route path="data" element={<ImportExportPage />} />
               </Route>
-              <Route path="habits" element={<HabitsPage />} />
+              <Route path="health" element={<HealthLayout />}>
+                <Route index element={<Navigate to="habits" replace />} />
+                <Route path="habits" element={<HabitsPage />} />
+                <Route path="garmin" element={<GarminPage />} />
+              </Route>
+              {/* Old address (bookmarks, earlier push notifications). */}
+              <Route path="habits" element={<Navigate to="/health/habits" replace />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
