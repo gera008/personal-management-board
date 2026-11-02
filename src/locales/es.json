@@ -505,5 +505,26 @@
       "rem": "REM",
       "awake": "Despierto"
     }
+  },
+  "google": {
+    "title": "Google Calendar",
+    "help": "Sincronización en ambos sentidos: los eventos de los calendarios que elijas aparecen aquí, y lo que crees, edites o borres aquí se copia a Google.",
+    "connect": "Conectar Google Calendar",
+    "lastSync": "Última sincronización",
+    "neverSynced": "Aún no se sincroniza",
+    "calendars": "Calendarios a sincronizar",
+    "readOnlyCalendar": "Solo lectura en Google",
+    "defaultCalendar": "Los eventos nuevos van a",
+    "defaultHelp": "Los eventos que crees en esta app se agregan a este calendario de Google.",
+    "disconnect": "Desconectar",
+    "disconnectConfirm": "¿Desconectar Google Calendar? Los eventos se quedan en la app pero dejan de sincronizarse, y no se borra nada en Google.",
+    "disableConfirm": "¿Dejar de sincronizar \"{{name}}\"? Sus eventos se quitan solo de esta app; no se borra nada en Google.",
+    "eventLinked": "Sincronizado con Google Calendar.",
+    "eventReadOnly": "Viene de Google Calendar y aquí es de solo lectura. Edítalo en Google Calendar.",
+    "result": {
+      "connected": "Google Calendar conectado.",
+      "cancelled": "Se canceló la conexión.",
+      "error": "No se pudo conectar con Google. Intenta de nuevo."
+    }
   }
 }

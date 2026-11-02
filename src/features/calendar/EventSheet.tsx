@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { addHours, endOfDay, format, startOfDay } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate } from '@/lib/data';
+import { syncGoogleSoon } from '@/lib/google';
 import { ErrorText, Field, SaveBar, Sheet } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
@@ -79,6 +80,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
     try {
       await fn();
       invalidate('events');
+      syncGoogleSoon();
       onClose();
     } catch (err) {
       setError(err);
@@ -129,6 +131,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
     m == null ? t('calendar.noReminder') : m === 0 ? t('calendar.atStart') : m < 60 ? t('calendar.minutesBefore', { count: m }) : m < 1440 ? t('calendar.hoursBefore', { count: m / 60 }) : t('calendar.daysBefore', { count: m / 1440 });
 
   const anchor = f.start.slice(0, 10);
+  const readonly = !!event?.google_readonly;
   // A one-off copy of a single occurrence can't repeat on its own.
   const canRepeat = !event?.recurrence_parent_id;
 
@@ -158,6 +161,10 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
               {t('common.cancel')}
             </button>
           </div>
+        ) : readonly ? (
+          <button type="button" className="btn-ghost ml-auto" onClick={onClose}>
+            {t('common.close')}
+          </button>
         ) : (
           <SaveBar onCancel={onClose} saving={busy} onDelete={event ? onDelete : undefined} confirmDelete={!occurrence} />
         )
@@ -165,6 +172,10 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={error} />
+        {event?.google_event_id && (
+          <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted">{readonly ? t('google.eventReadOnly') : t('google.eventLinked')}</p>
+        )}
+        <fieldset disabled={readonly}>
         <Field label={t('calendar.title')}>
           <input className="input" required autoFocus={!event} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
         </Field>
@@ -204,6 +215,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         <Field label={t('common.notes')}>
           <textarea className="input min-h-[5rem]" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         </Field>
+        </fieldset>
       </form>
     </Sheet>
   );

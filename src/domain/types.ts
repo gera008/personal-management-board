@@ -45,6 +45,10 @@ export interface CalendarEvent {
   recurrence: Recurrence | null;
   exdates: string[];
   recurrence_parent_id: string | null;
+  google_calendar_id?: string | null;
+  google_event_id?: string | null;
+  /** From a Google calendar you can't edit, or a series the app can't represent. */
+  google_readonly?: boolean;
 }
 
 export interface TaskList {

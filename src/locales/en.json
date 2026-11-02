@@ -505,5 +505,26 @@
       "rem": "REM",
       "awake": "Awake"
     }
+  },
+  "google": {
+    "title": "Google Calendar",
+    "help": "Two-way sync: events from the calendars you choose show up here, and what you create, edit or delete here is copied to Google.",
+    "connect": "Connect Google Calendar",
+    "lastSync": "Last sync",
+    "neverSynced": "Not synced yet",
+    "calendars": "Calendars to sync",
+    "readOnlyCalendar": "Read-only in Google",
+    "defaultCalendar": "New events go to",
+    "defaultHelp": "Events you create in this app are added to this Google calendar.",
+    "disconnect": "Disconnect",
+    "disconnectConfirm": "Disconnect Google Calendar? Events stay in the app but stop syncing, and nothing is deleted in Google.",
+    "disableConfirm": "Stop syncing \"{{name}}\"? Its events are removed from this app only; nothing is deleted in Google.",
+    "eventLinked": "Synced with Google Calendar.",
+    "eventReadOnly": "From Google Calendar, read-only here. Edit it in Google Calendar.",
+    "result": {
+      "connected": "Google Calendar connected.",
+      "cancelled": "Connection cancelled.",
+      "error": "Couldn’t connect to Google. Try again."
+    }
   }
 }

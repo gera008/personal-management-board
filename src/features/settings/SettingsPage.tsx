@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ErrorText, Icon, PageHeader, Segmented } from '@/components/ui';
 import { currentSubscription, disablePush, enablePush, isIosBrowserTab, pushSupported, sendTestPush } from '@/lib/push';
 import { exportAllJson, exportTransactionsCsv } from '@/lib/exporter';
+import { GoogleCalendarSettings } from './GoogleCalendarSettings';
 import type { Currency, WidgetSetting } from '@/domain/types';
 
 export function SettingsPage() {
@@ -60,6 +61,7 @@ export function SettingsPage() {
       <Rates onError={setError} />
       <Widgets layout={profile.dashboard_layout} onSave={(dashboard_layout) => run(update({ dashboard_layout }))} />
       <Notifications digestTime={profile.digest_time} onDigest={(digest_time) => run(update({ digest_time }))} />
+      <GoogleCalendarSettings />
 
       <section className="card">
         <h2 className="section-title">{t('settings.data')}</h2>
