@@ -270,14 +270,17 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
         ) : active ? (
           <>
             {editing && (
-              <button type="button" className="btn-danger" onClick={cancelSeries}>
-                {t('finance.cancelSeries')}
-              </button>
-            )}
-            {editing && series?.kind === 'installment' && left.count > 0 && (
-              <button type="button" className="btn-ghost" onClick={() => setPayoff({ amount: String(left.total), date: toDateKey(new Date()) })}>
-                {t('finance.payoffButton')}
-              </button>
+              // Series actions get their own row on phones; save/cancel stay on the right.
+              <div className="flex w-full gap-2 sm:w-auto">
+                <button type="button" className="btn-danger flex-1 sm:flex-none" onClick={cancelSeries}>
+                  {t('finance.cancelSeries')}
+                </button>
+                {series?.kind === 'installment' && left.count > 0 && (
+                  <button type="button" className="btn-ghost flex-1 sm:flex-none" onClick={() => setPayoff({ amount: String(left.total), date: toDateKey(new Date()) })}>
+                    {t('finance.payoffButton')}
+                  </button>
+                )}
+              </div>
             )}
             <SaveBar onCancel={onClose} saving={busy} />
           </>

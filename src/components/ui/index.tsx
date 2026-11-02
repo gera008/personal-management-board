@@ -28,7 +28,7 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer && <div className="flex gap-2 border-t border-border px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">{footer}</div>}
+        {footer && <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">{footer}</div>}
       </div>
     </div>
   );
