@@ -240,8 +240,10 @@
   },
   "analytics": {
     "ranges": {
-      "month": "Este mes",
       "week": "Esta semana",
+      "month": "Este mes",
+      "year": "Este año",
+      "all": "Todo",
       "custom": "Personalizado"
     },
     "from": "Desde",
@@ -252,7 +254,7 @@
     "spentSoFar": "Gastado",
     "dailyAverage": "Promedio diario",
     "projected": "Proyección",
-    "trend": "Ingresos vs gastos, últimos 12 meses",
+    "trend": "Ingresos vs gastos por mes",
     "mom": "Mes contra mes por categoría",
     "thisMonth": "Este mes",
     "topNotes": "Principales comercios / notas",
@@ -261,7 +263,7 @@
     "netWorth": "Patrimonio (MXN)",
     "budgets": "Avance de presupuestos",
     "weekday": "Gasto por día de la semana",
-    "weekdayHelp": "Promedio por día, últimos 3 meses.",
+    "weekdayHelp": "Promedio por día en el periodo elegido.",
     "day": "día"
   },
   "import": {

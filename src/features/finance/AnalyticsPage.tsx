@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { addDays, addMonths, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { addDays, addMonths, addYears, differenceInCalendarMonths, startOfDay, startOfMonth, startOfWeek, startOfYear, subMonths } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useProfile } from '@/lib/profile';
 import { useThemeColors } from '@/lib/themeColors';
@@ -11,7 +11,8 @@ import { balanceEvolution, monthlyTrend, monthOverMonth, monthProjection, spendi
 import { categoryName, useAccounts, useCategories, useTransactions } from './hooks';
 import { BudgetList } from './BudgetsPage';
 
-type Range = 'month' | 'week' | 'custom';
+type Range = 'week' | 'month' | 'year' | 'all' | 'custom';
+const RANGES: Range[] = ['week', 'month', 'year', 'all', 'custom'];
 
 export function AnalyticsPage() {
   const { t } = useTranslation();
@@ -25,31 +26,48 @@ export function AnalyticsPage() {
   const [accountId, setAccountId] = useState<string>('net');
 
   const now = new Date();
+  const tomorrow = addDays(startOfDay(now), 1);
+  // Oldest transaction (the list is sorted newest first) anchors "All time".
+  const firstDate = txs.data?.length ? startOfMonth(new Date(txs.data[txs.data.length - 1].occurred_at)) : startOfMonth(now);
   const [from, to] = useMemo(() => {
-    if (range === 'month') return [startOfMonth(now), addMonths(startOfMonth(now), 1)];
-    if (range === 'week') {
-      const s = startOfWeek(now, { weekStartsOn });
-      return [s, addDays(s, 7)];
+    switch (range) {
+      case 'week': {
+        const s = startOfWeek(now, { weekStartsOn });
+        return [s, addDays(s, 7)];
+      }
+      case 'month':
+        return [startOfMonth(now), addMonths(startOfMonth(now), 1)];
+      case 'year':
+        return [startOfYear(now), addYears(startOfYear(now), 1)];
+      case 'all':
+        return [firstDate, tomorrow];
+      case 'custom':
+        return [new Date(`${custom.from}T00:00`), addDays(new Date(`${custom.to}T00:00`), 1)];
     }
-    return [new Date(`${custom.from}T00:00`), addDays(new Date(`${custom.to}T00:00`), 1)];
-  }, [range, custom, weekStartsOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [range, custom, weekStartsOn, firstDate.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (txs.isLoading || !txs.data) return <div className="h-64 animate-pulse rounded-xl bg-surface" />;
   const all = txs.data;
   if (!all.length) return <Empty>{t('analytics.noData')}</Empty>;
 
+  // Monthly charts: the last 12 months for week/month, otherwise every month of the selected period.
+  const lastDay = addDays(to < tomorrow ? to : tomorrow, -1);
+  const monthsEnd = range === 'week' || range === 'month' ? now : lastDay;
+  const months = range === 'week' || range === 'month' ? 12 : Math.max(1, differenceInCalendarMonths(lastDay, from) + 1);
+
   const byCat = spendingByCategory(all, cats.byId, from, to).map((c) => ({ name: categoryName(cats.byId, c.categoryId, t('finance.uncategorized')), amount: c.amount }));
-  const trend = monthlyTrend(all, now).map((p) => ({ ...p, label: formatDate(`${p.month}-01`, 'MMM') }));
+  const trend = monthlyTrend(all, monthsEnd, months).map((p) => ({ ...p, label: formatDate(`${p.month}-01`, months > 12 ? 'MMM yy' : 'MMM') }));
   const mom = monthOverMonth(all, cats.byId, now);
   const proj = monthProjection(all, now);
   const notes = topNotes(all, from, to);
   const accs = accounts.data ?? [];
-  const evolution = balanceEvolution(accs, all, rates, now).map((p) => ({
+  const evolution = balanceEvolution(accs, all, rates, monthsEnd, months).map((p) => ({
     label: formatDate(`${p.month}-01`, 'MMM yy'),
     value: accountId === 'net' ? p.netWorth : p.byAccount[accountId] ?? 0,
   }));
   const selectedAcc = accs.find((a) => a.id === accountId);
-  const weekday = weekdaySpending(all, startOfMonth(subMonths(now, 2)), addDays(now, 1));
+  // Future days have no spending yet, so they'd drag the averages down.
+  const weekday = weekdaySpending(all, from, to < tomorrow ? to : tomorrow);
   const maxWeekday = Math.max(...weekday.map((w) => w.average), 1);
   const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + weekStartsOn) % 7);
 
@@ -60,11 +78,9 @@ export function AnalyticsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented
-          value={range}
-          onChange={setRange}
-          options={(['month', 'week', 'custom'] as Range[]).map((v) => ({ value: v, label: t(`analytics.ranges.${v}`) }))}
-        />
+        <div className="-mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <Segmented value={range} onChange={setRange} options={RANGES.map((v) => ({ value: v, label: t(`analytics.ranges.${v}`) }))} />
+        </div>
         {range === 'custom' && (
           <div className="flex items-center gap-1">
             <input type="date" className="input py-1" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} aria-label={t('analytics.from')} />
@@ -72,6 +88,9 @@ export function AnalyticsPage() {
             <input type="date" className="input py-1" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} aria-label={t('analytics.to')} />
           </div>
         )}
+        <span className="text-xs text-muted">
+          {formatDate(from, 'd MMM yyyy')} – {formatDate(addDays(to, -1), 'd MMM yyyy')}
+        </span>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

@@ -240,8 +240,10 @@
   },
   "analytics": {
     "ranges": {
-      "month": "This month",
       "week": "This week",
+      "month": "This month",
+      "year": "This year",
+      "all": "All time",
       "custom": "Custom"
     },
     "from": "From",
@@ -252,7 +254,7 @@
     "spentSoFar": "Spent so far",
     "dailyAverage": "Daily average",
     "projected": "Projected",
-    "trend": "Income vs expenses, last 12 months",
+    "trend": "Income vs expenses by month",
     "mom": "Month over month by category",
     "thisMonth": "This month",
     "topNotes": "Top merchants / notes",
@@ -261,7 +263,7 @@
     "netWorth": "Net worth (MXN)",
     "budgets": "Budget progress",
     "weekday": "Spending by day of week",
-    "weekdayHelp": "Average per day, last 3 months.",
+    "weekdayHelp": "Average per day in the selected period.",
     "day": "day"
   },
   "import": {
