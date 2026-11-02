@@ -157,7 +157,8 @@
     "seriesStatus": {
       "active": "Activa",
       "ended": "Terminada",
-      "cancelled": "Cancelada"
+      "cancelled": "Cancelada",
+      "liquidated": "Liquidada"
     },
     "indicators": "Indicadores",
     "spentMonth": "Gastado este mes",
@@ -244,7 +245,16 @@
     "finalAmount": "Último pago diferente",
     "optional": "Opcional",
     "finalPayment": "Pago final",
-    "date": "Fecha"
+    "date": "Fecha",
+    "payoffButton": "Liquidar ahora",
+    "payoffTitle": "Liquidar antes de tiempo",
+    "payoffLeft_one": "Queda {{count}} pago, {{amount}} en total.",
+    "payoffLeft_other": "Quedan {{count}} pagos, {{amount}} en total.",
+    "payoffAmount": "Monto pagado",
+    "payoffHelp": "Se borran los pagos futuros y se registra un solo gasto por el monto pagado. Los pagos ya hechos se conservan. El pago de la tarjeta regístralo aparte como transferencia, como siempre.",
+    "payoffConfirm": "Liquidar",
+    "payoffNote": "liquidación",
+    "payoff": "liquidación"
   },
   "analytics": {
     "ranges": {

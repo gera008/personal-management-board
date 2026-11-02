@@ -6,21 +6,31 @@ import { rpc, useInvalidate, useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { formatDate, money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Segmented, Sheet } from '@/components/ui';
-import { installmentProgress, installmentTotal, lastInstallmentDate, scheduleDates } from '@/domain/recurring/schedule';
+import { installmentProgress, installmentTotal, lastInstallmentDate, remainingPayments, scheduleDates } from '@/domain/recurring/schedule';
 import { toDateKey } from '@/domain/dates';
 import { CURRENCIES, num, type Currency, type Frequency, type RecurringSeries } from '@/domain/types';
 import { categoryName, useAccounts, useCategories } from './hooks';
 
 const FREQS: Frequency[] = ['weekly', 'monthly', 'yearly'];
 
-function useAppliedCounts() {
+/** Applied payments per series, plus the payoff amount of series that were liquidated (series_index null). */
+function useSeriesCounts() {
   return useQuery({
     queryKey: ['transactions', 'series-counts'],
     queryFn: async () => {
-      const rows = unwrap(await supabase.from('transactions').select('series_id,status').not('series_id', 'is', null)) as { series_id: string; status: string }[];
-      const m = new Map<string, number>();
-      for (const r of rows) if (r.status === 'applied') m.set(r.series_id, (m.get(r.series_id) ?? 0) + 1);
-      return m;
+      const rows = unwrap(await supabase.from('transactions').select('series_id,status,series_index,original_amount').not('series_id', 'is', null)) as {
+        series_id: string;
+        status: string;
+        series_index: number | null;
+        original_amount: string;
+      }[];
+      const applied = new Map<string, number>();
+      const liquidated = new Map<string, number>();
+      for (const r of rows) {
+        if (r.series_index == null) liquidated.set(r.series_id, Number(r.original_amount));
+        else if (r.status === 'applied') applied.set(r.series_id, (applied.get(r.series_id) ?? 0) + 1);
+      }
+      return { applied, liquidated };
     },
   });
 }
@@ -28,7 +38,7 @@ function useAppliedCounts() {
 export function RecurringPage() {
   const { t } = useTranslation();
   const series = useRows('recurring_series', { filter: (q) => q.order('status').order('next_run_date', { nullsFirst: false }) });
-  const counts = useAppliedCounts();
+  const counts = useSeriesCounts();
   const accounts = useAccounts();
   const cats = useCategories();
   const [sheet, setSheet] = useState<{ series?: RecurringSeries | null } | null>(null);
@@ -51,7 +61,8 @@ export function RecurringPage() {
             <h3 className="section-title">{t(`finance.seriesGroups.${g.key}`)}</h3>
             <div className="card divide-y divide-border px-3 py-0">
               {g.items.map((s) => {
-                const applied = counts.data?.get(s.id) ?? 0;
+                const applied = counts.data?.applied.get(s.id) ?? 0;
+                const payoff = counts.data?.liquidated.get(s.id);
                 const prog = s.total_count ? installmentProgress(applied, s.total_count) : null;
                 return (
                   <button key={s.id} onClick={() => setSheet({ series: s })} className="block w-full py-3 text-left">
@@ -62,7 +73,7 @@ export function RecurringPage() {
                     <div className="mt-0.5 text-xs text-muted">
                       {t(`finance.freq.${s.frequency}`)} · {accName(s.account_id)}
                       {s.status === 'active' && s.next_run_date ? ` · ${t('finance.next')} ${formatDate(s.next_run_date, 'd MMM yyyy')}` : ''}
-                      {s.status !== 'active' ? ` · ${t(`finance.seriesStatus.${s.status}`)}` : ''}
+                      {s.status !== 'active' ? ` · ${payoff != null ? t('finance.seriesStatus.liquidated') : t(`finance.seriesStatus.${s.status}`)}` : ''}
                     </div>
                     {s.total_count && (
                       <div className="text-xs text-muted">
@@ -73,7 +84,10 @@ export function RecurringPage() {
                     {prog && (
                       <div className="mt-2 flex items-center gap-2">
                         <Progress ratio={prog.ratio} />
-                        <span className="shrink-0 text-xs font-medium">{prog.label}</span>
+                        <span className="shrink-0 text-xs font-medium">
+                          {prog.label}
+                          {payoff != null && ` + ${t('finance.payoff')} ${money(payoff, s.currency)}`}
+                        </span>
                       </div>
                     )}
                   </button>
@@ -190,6 +204,42 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
     }
   };
 
+  // "Liquidar ahora": what's left (future pending payments) and the payoff form.
+  const pendingRows = useQuery({
+    queryKey: ['transactions', 'series-pending', series?.id],
+    enabled: open && !!series && series.kind === 'installment' && series.status === 'active',
+    queryFn: async () =>
+      unwrap(await supabase.from('transactions').select('status,occurred_at,original_amount').eq('series_id', series!.id).eq('status', 'pending')) as {
+        status: string;
+        occurred_at: string;
+        original_amount: string;
+      }[],
+  });
+  const left = remainingPayments(pendingRows.data ?? [], new Date());
+  const [payoff, setPayoff] = useState<{ amount: string; date: string } | null>(null);
+  useEffect(() => setPayoff(null), [open, series?.id]);
+
+  const liquidate = async () => {
+    if (!series || !payoff) return;
+    const amount = Number(payoff.amount);
+    if (!(amount > 0)) return setError(new Error(t('finance.amountRequired')));
+    setBusy(true);
+    setError(null);
+    try {
+      // Today keeps the current time; another date is recorded at its local midnight.
+      const at = payoff.date === toDateKey(new Date()) ? new Date() : new Date(`${payoff.date}T00:00`);
+      const label = series.note || categoryName(cats.byId, series.category_id, t('finance.uncategorized'));
+      await rpc('liquidate_series', { p_series: series.id, p_amount: amount, p_at: at.toISOString(), p_note: `${label} (${t('finance.payoffNote')})` });
+      invalidate('recurring_series');
+      invalidate('transactions');
+      onClose();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cancelSeries = async () => {
     if (!series || !confirm(t('finance.cancelSeriesConfirm'))) return;
     try {
@@ -208,11 +258,25 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
       onClose={onClose}
       title={editing ? t('finance.editSeries') : t('finance.newSeries')}
       footer={
-        active ? (
+        payoff ? (
+          <>
+            <button type="button" className="btn-ghost ml-auto" onClick={() => setPayoff(null)} disabled={busy}>
+              {t('common.cancel')}
+            </button>
+            <button type="button" className="btn-primary" onClick={liquidate} disabled={busy}>
+              {busy ? t('common.saving') : t('finance.payoffConfirm')}
+            </button>
+          </>
+        ) : active ? (
           <>
             {editing && (
               <button type="button" className="btn-danger" onClick={cancelSeries}>
                 {t('finance.cancelSeries')}
+              </button>
+            )}
+            {editing && series?.kind === 'installment' && left.count > 0 && (
+              <button type="button" className="btn-ghost" onClick={() => setPayoff({ amount: String(left.total), date: toDateKey(new Date()) })}>
+                {t('finance.payoffButton')}
               </button>
             )}
             <SaveBar onCancel={onClose} saving={busy} />
@@ -224,7 +288,22 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
         )
       }
     >
-      <form id="sheet-form" onSubmit={submit}>
+      {payoff && series && (
+        <div className="mb-4 space-y-3 rounded-lg border border-border p-3">
+          <p className="text-sm font-medium">{t('finance.payoffTitle')}</p>
+          <p className="text-sm text-muted">{t('finance.payoffLeft', { count: left.count, amount: money(left.total, series.currency) })}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label={t('finance.payoffAmount')}>
+              <input className="input" inputMode="decimal" value={payoff.amount} onChange={(e) => setPayoff({ ...payoff, amount: e.target.value.replace(',', '.') })} />
+            </Field>
+            <Field label={t('finance.date')}>
+              <input type="date" className="input" value={payoff.date} onChange={(e) => e.target.value && setPayoff({ ...payoff, date: e.target.value })} />
+            </Field>
+          </div>
+          <p className="text-xs text-muted">{t('finance.payoffHelp')}</p>
+        </div>
+      )}
+      <form id="sheet-form" onSubmit={submit} hidden={!!payoff}>
         <fieldset disabled={!active}>
           <ErrorText error={error} />
           {editing && <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted">{t('finance.editSeriesHelp')}</p>}

@@ -157,7 +157,8 @@
     "seriesStatus": {
       "active": "Active",
       "ended": "Finished",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "liquidated": "Paid off"
     },
     "indicators": "Indicators",
     "spentMonth": "Spent this month",
@@ -244,7 +245,16 @@
     "finalAmount": "Different last payment",
     "optional": "Optional",
     "finalPayment": "Final payment",
-    "date": "Date"
+    "date": "Date",
+    "payoffButton": "Pay off now",
+    "payoffTitle": "Pay off this plan early",
+    "payoffLeft_one": "{{count}} payment left, {{amount}} in total.",
+    "payoffLeft_other": "{{count}} payments left, {{amount}} in total.",
+    "payoffAmount": "Amount paid",
+    "payoffHelp": "Future payments are removed and one expense is recorded for the amount paid. Payments already made stay. Record the card payment itself as a transfer, as usual.",
+    "payoffConfirm": "Pay off",
+    "payoffNote": "payoff",
+    "payoff": "payoff"
   },
   "analytics": {
     "ranges": {

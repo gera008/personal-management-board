@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { installmentProgress, installmentTotal, lastInstallmentDate, occurrenceDate, paymentAmount, scheduleDates } from '../src/domain/recurring/schedule';
+import { installmentProgress, installmentTotal, lastInstallmentDate, occurrenceDate, paymentAmount, remainingPayments, scheduleDates } from '../src/domain/recurring/schedule';
 
 describe('recurring schedule', () => {
   it('keeps month-end anchors stable', () => {
@@ -53,5 +53,18 @@ describe('recurring schedule', () => {
     expect(installmentTotal(1029, 21, 9419)).toBe(29999);
     expect(installmentTotal(1029, 20)).toBe(20580);
     expect(installmentTotal(500, 1, 800)).toBe(800);
+  });
+
+  it('sums what is left to pay for an early payoff', () => {
+    const now = new Date('2026-11-02T12:00:00Z');
+    const rows = [
+      { status: 'applied', occurred_at: '2026-10-17T06:00:00Z', original_amount: 1029 },
+      { status: 'pending', occurred_at: '2026-11-17T06:00:00Z', original_amount: '1029.00' },
+      { status: 'pending', occurred_at: '2026-12-17T06:00:00Z', original_amount: 1029 },
+      { status: 'pending', occurred_at: '2028-06-17T06:00:00Z', original_amount: 9419 },
+      // Due already but not applied yet by the job: not part of the payoff.
+      { status: 'pending', occurred_at: '2026-11-02T06:00:00Z', original_amount: 1029 },
+    ];
+    expect(remainingPayments(rows, now)).toEqual({ count: 3, total: 11477 });
   });
 });

@@ -52,3 +52,9 @@ export function installmentTotal(amount: number, totalCount: number, finalAmount
   if (totalCount <= 0) return 0;
   return Math.round((amount * (totalCount - (finalAmount != null ? 1 : 0)) + (finalAmount ?? 0)) * 100) / 100;
 }
+
+/** What's left to pay on a plan: its pending payments dated after `now`. */
+export function remainingPayments(rows: { status: string; occurred_at: string; original_amount: number | string }[], now: Date): { count: number; total: number } {
+  const left = rows.filter((r) => r.status === 'pending' && new Date(r.occurred_at) > now);
+  return { count: left.length, total: Math.round(left.reduce((s, r) => s + Number(r.original_amount), 0) * 100) / 100 };
+}
