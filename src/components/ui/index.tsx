@@ -151,7 +151,7 @@ export function SaveBar({
   return (
     <>
       {onDelete && (
-        <button type="button" className="btn-danger" onClick={() => (!confirmDelete || confirm(t('common.confirmDelete'))) && onDelete()}>
+        <button type="button" className="btn-danger" aria-label={t('common.delete')} title={t('common.delete')} onClick={() => (!confirmDelete || confirm(t('common.confirmDelete'))) && onDelete()}>
           <Icon name="trash" size={16} />
         </button>
       )}
