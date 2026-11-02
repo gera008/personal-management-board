@@ -263,7 +263,7 @@
     "netWorth": "Patrimonio (MXN)",
     "budgets": "Avance de presupuestos",
     "weekday": "Gasto por día de la semana",
-    "weekdayHelp": "Promedio por día en el periodo elegido.",
+    "weekdayHelp": "Promedio por día de los últimos 3 meses (no cambia con el filtro).",
     "day": "día"
   },
   "import": {

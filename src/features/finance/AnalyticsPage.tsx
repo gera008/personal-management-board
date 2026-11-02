@@ -66,8 +66,11 @@ export function AnalyticsPage() {
     value: accountId === 'net' ? p.netWorth : p.byAccount[accountId] ?? 0,
   }));
   const selectedAcc = accs.find((a) => a.id === accountId);
-  // Future days have no spending yet, so they'd drag the averages down.
-  const weekday = weekdaySpending(all, from, to < tomorrow ? to : tomorrow);
+  // Fixed window, independent of the filter: the 3 months up to the latest applied
+  // transaction (today at most), so future pending rows never shift it.
+  const lastApplied = all.find((x) => x.status === 'applied' && new Date(x.occurred_at) < tomorrow);
+  const weekdayEnd = lastApplied ? addDays(startOfDay(new Date(lastApplied.occurred_at)), 1) : tomorrow;
+  const weekday = weekdaySpending(all, subMonths(weekdayEnd, 3), weekdayEnd);
   const maxWeekday = Math.max(...weekday.map((w) => w.average), 1);
   const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + weekStartsOn) % 7);
 
