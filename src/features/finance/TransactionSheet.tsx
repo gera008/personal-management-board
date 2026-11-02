@@ -11,6 +11,18 @@ import { useAccounts, useCategories } from './hooks';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/**
+ * Only the date is entered. Today keeps the current time (so it lists above
+ * earlier entries of the day), an edit on the same date keeps its original
+ * time, and any other date is stored at local midnight. A future date is
+ * therefore pending and gets applied as soon as that day starts.
+ */
+function timestampFor(date: string, original?: string): Date {
+  if (original && format(new Date(original), 'yyyy-MM-dd') === date) return new Date(original);
+  if (date === format(new Date(), 'yyyy-MM-dd')) return new Date();
+  return new Date(`${date}T00:00`);
+}
+
 interface Form {
   type: TxType;
   occurred_at: string;
@@ -41,7 +53,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
   function blank(): Form {
     return {
       type: 'expense',
-      occurred_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      occurred_at: format(new Date(), 'yyyy-MM-dd'),
       account_id: '',
       to_account_id: '',
       amount: '',
@@ -67,7 +79,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
     }
     const base: Form = {
       type: tx.type,
-      occurred_at: format(new Date(tx.occurred_at), "yyyy-MM-dd'T'HH:mm"),
+      occurred_at: format(new Date(tx.occurred_at), 'yyyy-MM-dd'),
       account_id: tx.account_id,
       to_account_id: '',
       amount: String(num(tx.original_amount)),
@@ -123,7 +135,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
     setBusy(true);
     setError(null);
     try {
-      const when = new Date(f.occurred_at);
+      const when = timestampFor(f.occurred_at, tx?.occurred_at);
       const status = when > new Date() ? 'pending' : 'applied';
       const amount = Number(f.amount);
       if (!(amount > 0)) throw new Error(t('finance.amountRequired'));
@@ -238,8 +250,8 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
           </Field>
         )}
 
-        <Field label={t('finance.dateTime')}>
-          <input type="datetime-local" className="input" required value={f.occurred_at} onChange={(e) => setF({ ...f, occurred_at: e.target.value })} />
+        <Field label={t('finance.date')}>
+          <input type="date" className="input" required value={f.occurred_at} onChange={(e) => setF({ ...f, occurred_at: e.target.value })} />
         </Field>
 
         {f.type === 'transfer' ? (
@@ -331,7 +343,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
         <Field label={t('finance.description')}>
           <textarea className="input min-h-[4rem]" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         </Field>
-        {new Date(f.occurred_at) > new Date() && <p className="text-xs text-muted">{t('finance.willBePending')}</p>}
+        {f.occurred_at > format(new Date(), 'yyyy-MM-dd') && <p className="text-xs text-muted">{t('finance.willBePending')}</p>}
       </form>
     </Sheet>
   );

@@ -176,7 +176,6 @@
     "amountReceived": "Amount received",
     "currency": "Currency",
     "rateTo": "Rate (MXN per 1 {{currency}})",
-    "dateTime": "Date and time",
     "account": "Account",
     "from": "From",
     "to": "To",
@@ -239,7 +238,8 @@
     "paidForOthersHelp": "An expense you covered for someone else (partner, family…).",
     "finalAmount": "Different last payment",
     "optional": "Optional",
-    "finalPayment": "Final payment"
+    "finalPayment": "Final payment",
+    "date": "Date"
   },
   "analytics": {
     "ranges": {

@@ -176,7 +176,6 @@
     "amountReceived": "Monto recibido",
     "currency": "Moneda",
     "rateTo": "Tipo de cambio (MXN por 1 {{currency}})",
-    "dateTime": "Fecha y hora",
     "account": "Cuenta",
     "from": "Desde",
     "to": "Hacia",
@@ -239,7 +238,8 @@
     "paidForOthersHelp": "Un gasto que cubriste por alguien más (pareja, familia…).",
     "finalAmount": "Último pago diferente",
     "optional": "Opcional",
-    "finalPayment": "Pago final"
+    "finalPayment": "Pago final",
+    "date": "Fecha"
   },
   "analytics": {
     "ranges": {
