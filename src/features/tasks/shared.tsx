@@ -80,7 +80,7 @@ export function TaskRow({ task, list, onOpen }: { task: Task; list?: TaskList; o
       <button
         onClick={() => toggle.mutate(task)}
         aria-label={task.completed_at ? t('tasks.markIncomplete') : t('tasks.markComplete')}
-        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${task.completed_at ? 'border-tasks bg-tasks text-white' : 'border-muted'}`}
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${task.completed_at ? 'border-tasks bg-tasks text-bg' : 'border-muted'}`}
         style={!task.completed_at && list ? { borderColor: list.color } : undefined}
       >
         {task.completed_at && <Icon name="check" size={12} />}

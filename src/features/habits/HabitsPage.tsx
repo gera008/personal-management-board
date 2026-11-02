@@ -10,7 +10,7 @@ import { computeStreaks, habitHeatmap, logMap, monthlyCompletion, weeklyCompleti
 import { num, type Habit, type HabitFrequency } from '@/domain/types';
 import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits } from './shared';
 
-const GOOD_COLORS = ['#7c3aed', '#8b5cf6', '#6d28d9', '#a855f7', '#4c1d95', '#525252'];
+const GOOD_COLORS = ['#75639F', '#8573B0', '#5E4F86', '#9A8CC4', '#4E7299', '#6B7280'];
 
 export function HabitsPage() {
   const { t } = useTranslation();
@@ -106,7 +106,7 @@ export function HabitsPage() {
         </details>
       )}
 
-      <Fab color="bg-habit" label={t('habits.newHabit')} onClick={() => setForm({})} />
+      <Fab accent="ring-habit" label={t('habits.newHabit')} onClick={() => setForm({})} />
       <HabitDetail
         habit={detail}
         onClose={() => setDetail(null)}

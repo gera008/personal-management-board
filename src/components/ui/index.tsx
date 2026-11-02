@@ -121,12 +121,13 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
   );
 }
 
-export function Fab({ onClick, label, color = 'bg-fg' }: { onClick: () => void; label: string; color?: string }) {
+/** Floating "+" button: neutral ink fill; `accent` adds a thin ring in the module's color. */
+export function Fab({ onClick, label, accent = 'ring-transparent' }: { onClick: () => void; label: string; accent?: string }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className={`fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full text-bg shadow-lg md:bottom-8 md:right-8 ${color}`}
+      className={`fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-fg text-bg shadow-md ring-2 ring-offset-2 ring-offset-bg md:bottom-8 md:right-8 ${accent}`}
     >
       <Icon name="plus" size={26} />
     </button>

@@ -86,7 +86,7 @@ export function CalendarPage() {
       {view === 'day' && <DayView day={cursor} items={items} onItem={openItem} onHour={(h) => setSheet({ defaultStart: setHours(cursor, h) })} />}
       {view === 'agenda' && <AgendaView from={range.from} to={range.to} items={items} onItem={openItem} />}
 
-      <Fab color="bg-calendar" label={t('calendar.newEvent')} onClick={() => setSheet({ defaultStart: view === 'agenda' ? undefined : setHours(cursor, Math.max(9, new Date().getHours() + 1)) })} />
+      <Fab accent="ring-calendar" label={t('calendar.newEvent')} onClick={() => setSheet({ defaultStart: view === 'agenda' ? undefined : setHours(cursor, Math.max(9, new Date().getHours() + 1)) })} />
       <EventSheet open={!!sheet} onClose={() => setSheet(null)} target={sheet} />
     </div>
   );

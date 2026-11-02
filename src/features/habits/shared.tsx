@@ -82,7 +82,7 @@ export function HabitTodayRow({ habit, logs, today, onOpen }: { habit: Habit; lo
       {isBad ? (
         <button
           onClick={() => (slipped ? log.mutate({ habit, date: today, remove: true }) : log.mutate({ habit, date: today, isSlip: true }))}
-          className={`btn border text-xs ${slipped ? 'border-slip bg-slip text-white' : 'border-slip/50 text-slip'}`}
+          className={`btn border text-xs ${slipped ? 'border-slip bg-slip text-bg' : 'border-slip/50 text-slip'}`}
         >
           {slipped ? t('habits.slipped') : t('habits.slip')}
         </button>

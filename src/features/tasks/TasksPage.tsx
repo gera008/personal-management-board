@@ -9,7 +9,7 @@ import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
 import { TaskSheet } from './TaskSheet';
 
 const LIST_ICONS = ['list', 'user', 'book', 'briefcase', 'cart', 'heart', 'star', 'flag', 'home'];
-const LIST_COLORS = ['#f97316', '#ea580c', '#f59e0b', '#dc2626', '#2563eb', '#16a34a', '#7c3aed', '#525252'];
+const LIST_COLORS = ['#9C6534', '#C08552', '#B0564E', '#96644F', '#4E7299', '#467659', '#75639F', '#6B7280'];
 
 export function TasksPage() {
   const { t } = useTranslation();
@@ -128,7 +128,7 @@ export function TasksPage() {
         )}
       </section>
 
-      <Fab color="bg-tasks" label={t('tasks.newTask')} onClick={() => setTaskSheet({})} />
+      <Fab accent="ring-tasks" label={t('tasks.newTask')} onClick={() => setTaskSheet({})} />
       <TaskSheet
         open={!!taskSheet}
         onClose={() => setTaskSheet(null)}

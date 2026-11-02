@@ -23,8 +23,8 @@ export default defineConfig({
         name: 'Personal Hub',
         short_name: 'Hub',
         description: 'Calendar, tasks, finance and habits in one place.',
-        theme_color: '#000000',
-        background_color: '#ffffff',
+        theme_color: '#F8F9FA',
+        background_color: '#F8F9FA',
         display: 'standalone',
         start_url: '/',
         icons: [

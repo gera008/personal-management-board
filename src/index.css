@@ -2,55 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Theme tokens as RGB triplets so Tailwind can apply opacity. Grayscale base,
-   module accents only for distinction. */
+/* Theme tokens as RGB triplets so Tailwind can apply opacity. "Neutro sereno":
+   cool off-white / near-black base, muted module accents only for distinction.
+   Light-mode accents are a step darker so small text keeps >= 4.5:1 contrast. */
 :root {
-  --bg: 255 255 255;
-  --surface: 245 245 245;
-  --fg: 10 10 10;
-  --muted: 115 115 115;
-  --border: 229 229 229;
-  --expense: 220 38 38;
-  --income: 22 163 74;
-  --transfer: 115 115 115;
-  --calendar: 37 99 235;
-  --tasks: 234 88 12;
-  --habit: 124 58 237;
-  --slip: 146 64 14;
+  --bg: 248 249 250;
+  --surface: 240 242 244;
+  --fg: 27 30 34;
+  --muted: 107 114 128;
+  --border: 226 229 233;
+  --expense: 176 86 78;
+  --income: 70 118 89;
+  --transfer: 107 114 128;
+  --calendar: 78 114 153;
+  --tasks: 156 101 52;
+  --habit: 117 99 159;
+  --slip: 150 100 79;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: 10 10 10;
-    --surface: 23 23 23;
-    --fg: 245 245 245;
-    --muted: 163 163 163;
-    --border: 38 38 38;
-    --expense: 248 113 113;
-    --income: 74 222 128;
-    --transfer: 163 163 163;
-    --calendar: 96 165 250;
-    --tasks: 251 146 60;
-    --habit: 167 139 250;
-    --slip: 180 83 9;
+    --bg: 18 20 23;
+    --surface: 27 30 34;
+    --fg: 232 234 237;
+    --muted: 154 161 171;
+    --border: 44 48 54;
+    --expense: 217 146 138;
+    --income: 147 191 163;
+    --transfer: 154 161 171;
+    --calendar: 147 175 208;
+    --tasks: 221 170 124;
+    --habit: 179 166 219;
+    --slip: 192 146 124;
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: 10 10 10;
-  --surface: 23 23 23;
-  --fg: 245 245 245;
-  --muted: 163 163 163;
-  --border: 38 38 38;
-  --expense: 248 113 113;
-  --income: 74 222 128;
-  --transfer: 163 163 163;
-  --calendar: 96 165 250;
-  --tasks: 251 146 60;
-  --habit: 167 139 250;
-  --slip: 180 83 9;
+  --bg: 18 20 23;
+  --surface: 27 30 34;
+  --fg: 232 234 237;
+  --muted: 154 161 171;
+  --border: 44 48 54;
+  --expense: 217 146 138;
+  --income: 147 191 163;
+  --transfer: 154 161 171;
+  --calendar: 147 175 208;
+  --tasks: 221 170 124;
+  --habit: 179 166 219;
+  --slip: 192 146 124;
   color-scheme: dark;
 }
 

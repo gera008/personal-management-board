@@ -72,7 +72,7 @@ export function MonthGrid({
               onClick={() => onSelect?.(d)}
               className={`min-w-0 cursor-pointer bg-bg p-1 ${compact ? 'h-12' : 'min-h-[4.5rem] sm:min-h-[6rem]'} ${isSameMonth(d, month) ? '' : 'text-muted/60'} ${sel ? 'ring-2 ring-inset ring-fg' : ''}`}
             >
-              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${isToday(d) ? 'bg-calendar font-semibold text-white' : ''}`}>{formatDate(d, 'd')}</div>
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${isToday(d) ? 'bg-calendar font-semibold text-bg' : ''}`}>{formatDate(d, 'd')}</div>
               {compact ? (
                 <div className="flex flex-wrap gap-0.5 px-0.5">
                   {dayItems.slice(0, 4).map((i) => (
