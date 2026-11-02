@@ -30,7 +30,8 @@
     "save": "Save",
     "saving": "Saving…",
     "showArchived": "Show archived",
-    "tags": "Tags"
+    "tags": "Tags",
+    "done": "Done"
   },
   "auth": {
     "signin": "Sign in",
@@ -55,13 +56,17 @@
   "dashboard": {
     "title": "Overview",
     "customize": "Customize",
-    "allHidden": "All widgets are hidden. Turn some on in Settings.",
+    "allHidden": "All widgets are hidden. Tap Customize to turn some on.",
     "events": "Events",
     "tasksDue": "Tasks due",
     "thisWeek": "This week",
     "finance": "Finance",
     "habitsToday": "Habits of today",
-    "habitHeatmap": "Habits this year"
+    "habitHeatmap": "Habits this year",
+    "editHelp": "Drag the handle to reorder. Tap the eye to show or hide a widget.",
+    "dragHandle": "Move {{name}}",
+    "hideWidget": "Hide widget",
+    "showWidget": "Show widget"
   },
   "calendar": {
     "views": {
@@ -393,5 +398,39 @@
   "privacy": {
     "hide": "Hide amounts",
     "show": "Show amounts"
+  },
+  "recurrence": {
+    "repeat": "Repeat",
+    "never": "Does not repeat",
+    "freq": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "every": "Every",
+    "unit": {
+      "daily_one": "day",
+      "daily_other": "days",
+      "weekly_one": "week",
+      "weekly_other": "weeks",
+      "monthly_one": "month",
+      "monthly_other": "months",
+      "yearly_one": "year",
+      "yearly_other": "years"
+    },
+    "ends": "Ends",
+    "endsNever": "Never",
+    "endsOn": "On date",
+    "endsAfter": "After",
+    "times": "times",
+    "repeats": "Repeats",
+    "saveWhich": "This is a repeating event. Apply the change to:",
+    "deleteWhich": "This is a repeating event. Delete:",
+    "scope": {
+      "this": "This event only",
+      "following": "This and following",
+      "all": "All events"
+    }
   }
 }

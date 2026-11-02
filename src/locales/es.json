@@ -30,7 +30,8 @@
     "save": "Guardar",
     "saving": "Guardando…",
     "showArchived": "Mostrar archivados",
-    "tags": "Etiquetas"
+    "tags": "Etiquetas",
+    "done": "Listo"
   },
   "auth": {
     "signin": "Iniciar sesión",
@@ -55,13 +56,17 @@
   "dashboard": {
     "title": "Resumen",
     "customize": "Personalizar",
-    "allHidden": "Todos los widgets están ocultos. Actívalos en Ajustes.",
+    "allHidden": "Todos los widgets están ocultos. Toca Personalizar para activar algunos.",
     "events": "Eventos",
     "tasksDue": "Tareas con fecha",
     "thisWeek": "Esta semana",
     "finance": "Finanzas",
     "habitsToday": "Hábitos de hoy",
-    "habitHeatmap": "Hábitos este año"
+    "habitHeatmap": "Hábitos este año",
+    "editHelp": "Arrastra el control para reordenar. Toca el ojo para mostrar u ocultar un widget.",
+    "dragHandle": "Mover {{name}}",
+    "hideWidget": "Ocultar widget",
+    "showWidget": "Mostrar widget"
   },
   "calendar": {
     "views": {
@@ -393,5 +398,39 @@
   "privacy": {
     "hide": "Ocultar montos",
     "show": "Mostrar montos"
+  },
+  "recurrence": {
+    "repeat": "Repetir",
+    "never": "No se repite",
+    "freq": {
+      "daily": "Cada día",
+      "weekly": "Cada semana",
+      "monthly": "Cada mes",
+      "yearly": "Cada año"
+    },
+    "every": "Cada",
+    "unit": {
+      "daily_one": "día",
+      "daily_other": "días",
+      "weekly_one": "semana",
+      "weekly_other": "semanas",
+      "monthly_one": "mes",
+      "monthly_other": "meses",
+      "yearly_one": "año",
+      "yearly_other": "años"
+    },
+    "ends": "Termina",
+    "endsNever": "Nunca",
+    "endsOn": "En fecha",
+    "endsAfter": "Después de",
+    "times": "veces",
+    "repeats": "Se repite",
+    "saveWhich": "Es un evento que se repite. Aplicar el cambio a:",
+    "deleteWhich": "Es un evento que se repite. Eliminar:",
+    "scope": {
+      "this": "Solo este evento",
+      "following": "Este y los siguientes",
+      "all": "Todos los eventos"
+    }
   }
 }

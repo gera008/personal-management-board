@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { supabase, unwrap } from '@/lib/supabase';
 import { ErrorText, Field, Icon, SaveBar, Sheet, TagInput } from '@/components/ui';
+import { RecurrencePicker } from '@/components/RecurrencePicker';
+import { cleanRule, type Recurrence } from '@shared/recurrence';
 import type { Task, TaskList } from '@/domain/types';
 import { PRIORITY_FLAGS } from './shared';
 
@@ -19,6 +21,7 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
   const [error, setError] = useState<unknown>(null);
   const [f, setF] = useState({ title: '', notes: '', list_id: '', due_date: '', due_time: '', priority: 0, tags: [] as string[], remind: false });
   const [subs, setSubs] = useState<SubDraft[]>([]);
+  const [rule, setRule] = useState<Recurrence | null>(null);
   const [newSub, setNewSub] = useState('');
 
   useEffect(() => {
@@ -35,6 +38,7 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
       tags: task?.tags ?? [],
       remind: !!task?.reminder_at,
     });
+    setRule(task?.recurrence ?? null);
     setSubs((task?.subtasks ?? []).sort((a, b) => a.position - b.position).map((s) => ({ id: s.id, title: s.title, completed_at: s.completed_at })));
   }, [open, task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -43,6 +47,11 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
     try {
       // Reminder fires at the due time (09:00 when the task has a date but no time).
       const reminder_at = f.remind && f.due_date ? new Date(`${f.due_date}T${f.due_time || '09:00'}`).toISOString() : null;
+      // Repeating needs a due date. The anchor (first due date) is reset whenever
+      // the date or the rule changes, so the count restarts from this task.
+      const cleaned = f.due_date ? cleanRule(rule) : null;
+      const sameAnchor = !!task?.recurrence && task.due_date === f.due_date && JSON.stringify(cleanRule(task.recurrence)) === JSON.stringify(cleaned);
+      const recurrence = cleaned ? { ...cleaned, anchor: sameAnchor ? task!.recurrence!.anchor ?? task!.due_date! : f.due_date } : null;
       const saved = await save.mutateAsync({
         id: task?.id,
         title: f.title.trim(),
@@ -53,6 +62,8 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
         priority: f.priority as Task['priority'],
         tags: f.tags,
         reminder_at,
+        recurrence,
+        ...(sameAnchor ? {} : { recurrence_index: 1 }),
         ...(reminder_at !== task?.reminder_at ? { reminder_sent_at: null } : {}),
       } as Partial<Task>);
       await syncSubtasks(saved.id);
@@ -108,6 +119,7 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
             <input type="time" className="input" disabled={!f.due_date} value={f.due_time} onChange={(e) => setF({ ...f, due_time: e.target.value })} />
           </Field>
         </div>
+        {f.due_date && <RecurrencePicker value={rule} onChange={setRule} anchor={f.due_date} accent="tasks" />}
         <label className="mb-3 flex items-center gap-2 text-sm">
           <input type="checkbox" disabled={!f.due_date} checked={f.remind && !!f.due_date} onChange={(e) => setF({ ...f, remind: e.target.checked })} />
           {t('tasks.remindAtDue')}

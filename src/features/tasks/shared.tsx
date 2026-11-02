@@ -4,6 +4,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate, useRows } from '@/lib/data';
 import { formatDate } from '@/lib/format';
 import { toDateKey } from '@/domain/dates';
+import { nextTaskInstance } from '@/domain/tasks';
 import { Icon } from '@/components/ui';
 import type { Task, TaskList } from '@/domain/types';
 
@@ -25,10 +26,44 @@ export function useToggleTask() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (task: Task) => {
-      unwrap(await supabase.from('tasks').update({ completed_at: task.completed_at ? null : new Date().toISOString() }).eq('id', task.id));
+      const completing = !task.completed_at;
+      unwrap(await supabase.from('tasks').update({ completed_at: completing ? new Date().toISOString() : null }).eq('id', task.id));
+      if (completing) await createNextInstance(task);
     },
     onSuccess: () => invalidate('tasks'),
   });
+}
+
+/**
+ * Completing a repeating task creates its next instance with fresh subtasks.
+ * A unique index on recurrence_parent_id means completing it again (after
+ * un-checking) never creates a second copy.
+ */
+async function createNextInstance(task: Task) {
+  const next = nextTaskInstance(task);
+  if (!next) return;
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({
+      list_id: task.list_id,
+      title: task.title,
+      notes: task.notes,
+      due_time: task.due_time,
+      priority: task.priority,
+      tags: task.tags,
+      position: task.position,
+      recurrence: task.recurrence,
+      recurrence_parent_id: task.id,
+      ...next,
+    })
+    .select('id')
+    .single();
+  if (error) {
+    if (error.code === '23505') return; // successor already exists
+    throw new Error(error.message);
+  }
+  const subs = (task.subtasks ?? []).map((s) => ({ task_id: data.id, title: s.title, position: s.position }));
+  if (subs.length) unwrap(await supabase.from('subtasks').insert(subs));
 }
 
 /** Due today or overdue, not completed. */
@@ -63,6 +98,11 @@ export function TaskRow({ task, list, onOpen }: { task: Task; list?: TaskList; o
             </span>
           )}
           {task.reminder_at && <Icon name="bell" size={12} />}
+          {task.recurrence && (
+            <span title={t('recurrence.repeats')} aria-label={t('recurrence.repeats')}>
+              <Icon name="repeat" size={12} />
+            </span>
+          )}
           {subs.length > 0 && (
             <span>
               {subs.filter((s) => s.completed_at).length}/{subs.length}

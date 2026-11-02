@@ -4,7 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
 export default defineConfig({
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  resolve: {
+    alias: {
+      '@shared': path.resolve(__dirname, 'supabase/functions/_shared'),
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
   plugins: [
     react(),
     VitePWA({

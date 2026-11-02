@@ -133,12 +133,25 @@ export function Fab({ onClick, label, color = 'bg-fg' }: { onClick: () => void; 
   );
 }
 
-export function SaveBar({ onCancel, onDelete, saving, disabled }: { onCancel: () => void; onDelete?: () => void; saving?: boolean; disabled?: boolean }) {
+export function SaveBar({
+  onCancel,
+  onDelete,
+  saving,
+  disabled,
+  confirmDelete = true,
+}: {
+  onCancel: () => void;
+  onDelete?: () => void;
+  saving?: boolean;
+  disabled?: boolean;
+  /** Set to false when onDelete asks its own question (e.g. which occurrences). */
+  confirmDelete?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <>
       {onDelete && (
-        <button type="button" className="btn-danger" onClick={() => confirm(t('common.confirmDelete')) && onDelete()}>
+        <button type="button" className="btn-danger" onClick={() => (!confirmDelete || confirm(t('common.confirmDelete'))) && onDelete()}>
           <Icon name="trash" size={16} />
         </button>
       )}

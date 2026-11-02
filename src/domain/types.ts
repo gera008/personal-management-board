@@ -1,3 +1,7 @@
+import type { Recurrence } from '@shared/recurrence';
+
+export type { Recurrence } from '@shared/recurrence';
+
 // Row shapes as stored in Supabase. Numeric columns arrive as strings from
 // PostgREST, so money fields are typed `number | string` and parsed with num().
 
@@ -38,6 +42,9 @@ export interface CalendarEvent {
   end_at: string;
   all_day: boolean;
   reminder_minutes: number | null;
+  recurrence: Recurrence | null;
+  exdates: string[];
+  recurrence_parent_id: string | null;
 }
 
 export interface TaskList {
@@ -68,6 +75,10 @@ export interface Task {
   position: number;
   completed_at: string | null;
   reminder_at: string | null;
+  /** Rule plus `anchor`, the first due date, so monthly days don't drift. */
+  recurrence: (Recurrence & { anchor?: string }) | null;
+  recurrence_index: number;
+  recurrence_parent_id: string | null;
   subtasks?: Subtask[];
 }
 

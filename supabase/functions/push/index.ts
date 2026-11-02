@@ -6,6 +6,7 @@
 // Secrets (supabase secrets set ...): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:...)
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4';
 import webpush from 'npm:web-push@3.6.7';
+import { addDaysKey, occurrencesBetween, type Recurrence } from '../_shared/recurrence.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -52,6 +53,22 @@ function localNow(tz: string, now: Date) {
   return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour').replace('24', '00')}:${get('minute')}` };
 }
 
+/** UTC instant of a local date + HH:MM in a time zone (handles DST by re-checking the offset). */
+function zonedInstant(dateKey: string, hhmm: string, tz: string): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const [h, mi] = hhmm.split(':').map(Number);
+  const asUtc = Date.UTC(y, m - 1, d, h, mi);
+  const offsetAt = (ms: number) => {
+    const l = localNow(tz, new Date(ms));
+    const [ly, lm, ld] = l.date.split('-').map(Number);
+    const [lh, lmi] = l.time.split(':').map(Number);
+    return Date.UTC(ly, lm - 1, ld, lh, lmi) - ms;
+  };
+  let t = asUtc - offsetAt(asUtc);
+  t = asUtc - offsetAt(t);
+  return new Date(t);
+}
+
 const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 async function runReminders(db: SupabaseClient) {
@@ -72,6 +89,7 @@ async function runReminders(db: SupabaseClient) {
       .from('events')
       .select('id,title,start_at,reminder_minutes,all_day')
       .eq('user_id', p.user_id)
+      .is('recurrence', null)
       .not('reminder_minutes', 'is', null)
       .is('reminder_sent_at', null)
       .gte('start_at', new Date(now.getTime() - 3600_000).toISOString())
@@ -80,6 +98,28 @@ async function runReminders(db: SupabaseClient) {
       if (new Date(e.start_at).getTime() - e.reminder_minutes * 60_000 > now.getTime()) continue;
       await sendToUser(db, p.user_id, { title: e.title, body: e.all_day ? m.event : `${m.event} ${m.at} ${fmtTime(e.start_at)}`, url: '/calendar', tag: `event-${e.id}` });
       await db.from('events').update({ reminder_sent_at: now.toISOString() }).eq('id', e.id);
+      stats.events++;
+    }
+
+    // Recurring events: the occurrence whose reminder time has just passed (once per occurrence).
+    const { data: series } = await db
+      .from('events')
+      .select('id,title,start_at,reminder_minutes,all_day,recurrence,exdates,reminder_sent_for')
+      .eq('user_id', p.user_id)
+      .not('recurrence', 'is', null)
+      .not('reminder_minutes', 'is', null)
+      .lte('start_at', new Date(now.getTime() + 8 * 86400_000).toISOString());
+    for (const e of series ?? []) {
+      const start = localNow(p.timezone, new Date(e.start_at));
+      const keys = occurrencesBetween(start.date, e.recurrence as Recurrence, addDaysKey(local.date, -1), addDaysKey(local.date, 8), e.exdates ?? []);
+      const due = keys
+        .map((k) => zonedInstant(k, start.time, p.timezone))
+        .filter((at) => at.getTime() - e.reminder_minutes * 60_000 <= now.getTime() && at.getTime() >= now.getTime() - 3600_000)
+        .filter((at) => !e.reminder_sent_for || new Date(e.reminder_sent_for) < at)
+        .pop();
+      if (!due) continue;
+      await sendToUser(db, p.user_id, { title: e.title, body: e.all_day ? m.event : `${m.event} ${m.at} ${fmtTime(due.toISOString())}`, url: '/calendar', tag: `event-${e.id}-${due.getTime()}` });
+      await db.from('events').update({ reminder_sent_for: due.toISOString() }).eq('id', e.id);
       stats.events++;
     }
 

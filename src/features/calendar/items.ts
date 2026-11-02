@@ -1,6 +1,7 @@
 import { addDays, endOfDay, startOfDay } from 'date-fns';
 import { useRows } from '@/lib/data';
 import { toDateKey } from '@/domain/dates';
+import { expandEvents } from '@/domain/events';
 import type { CalendarEvent, Task } from '@/domain/types';
 
 export interface CalItem {
@@ -12,6 +13,8 @@ export interface CalItem {
   end: Date;
   done?: boolean;
   event?: CalendarEvent;
+  /** Date key of the occurrence when the event repeats. */
+  occurrence?: string | null;
   task?: Task;
 }
 
@@ -19,9 +22,14 @@ export interface CalItem {
 export function useCalendarItems(from: Date, to: Date) {
   const fromIso = from.toISOString();
   const toIso = to.toISOString();
-  const events = useRows('events', {
+  const oneOff = useRows('events', {
     key: [fromIso, toIso],
-    filter: (q) => q.lt('start_at', toIso).gte('end_at', fromIso).order('start_at'),
+    filter: (q) => q.is('recurrence', null).lt('start_at', toIso).gte('end_at', fromIso).order('start_at'),
+  });
+  // Recurring series that started before the window ends; expanded below.
+  const recurring = useRows('events', {
+    key: ['recurring', toIso],
+    filter: (q) => q.not('recurrence', 'is', null).lt('start_at', toIso),
   });
   const tasks = useRows('tasks', {
     key: ['due', toDateKey(from), toDateKey(to)],
@@ -29,21 +37,22 @@ export function useCalendarItems(from: Date, to: Date) {
   });
 
   const items: CalItem[] = [
-    ...(events.data ?? []).map((e) => ({
+    ...expandEvents([...(oneOff.data ?? []), ...(recurring.data ?? [])], from, to).map((i) => ({
       kind: 'event' as const,
-      id: e.id,
-      title: e.title,
-      allDay: e.all_day,
-      start: new Date(e.start_at),
-      end: new Date(e.end_at),
-      event: e,
+      id: i.occurrence ? `${i.event.id}:${i.occurrence}` : i.event.id,
+      title: i.event.title,
+      allDay: i.event.all_day,
+      start: i.start,
+      end: i.end,
+      event: i.event,
+      occurrence: i.occurrence,
     })),
     ...(tasks.data ?? []).map((t) => {
       const start = new Date(`${t.due_date}T${t.due_time ?? '00:00'}`);
       return { kind: 'task' as const, id: t.id, title: t.title, allDay: !t.due_time, start, end: start, done: !!t.completed_at, task: t };
     }),
   ];
-  return { items, isLoading: events.isLoading || tasks.isLoading };
+  return { items, isLoading: oneOff.isLoading || recurring.isLoading || tasks.isLoading };
 }
 
 /** Items touching a given day, all-day first then by start time. */

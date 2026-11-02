@@ -11,12 +11,24 @@ import { useCalendarItems, type CalItem } from '../calendar/items';
 import { MonthGrid, WeekList, monthRange, weekRange } from '../calendar/views';
 import { TaskRow, isTodayTask, useLists, useTasks } from '../tasks/shared';
 import { Indicators } from '../finance/Indicators';
+import { LayoutEditor } from './LayoutEditor';
 import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits } from '../habits/shared';
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const { profile } = useProfile();
+  const { profile, update } = useProfile();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const widgets = profile.dashboard_layout.filter((w) => w.visible);
+  const saveLayout = async (dashboard_layout: typeof profile.dashboard_layout) => {
+    setSaving(true);
+    try {
+      await update({ dashboard_layout });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <div>
       <div className="mb-4 flex items-end justify-between gap-2">
@@ -24,11 +36,15 @@ export function DashboardPage() {
           <p className="text-sm capitalize text-muted">{formatDate(new Date(), 'EEEE d MMMM')}</p>
           <h1 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h1>
         </div>
-        <Link to="/settings" className="text-xs text-muted underline-offset-2 hover:underline">
-          {t('dashboard.customize')}
-        </Link>
+        {!editing && (
+          <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setEditing(true)}>
+            <Icon name="edit" size={14} /> {t('dashboard.customize')}
+          </button>
+        )}
       </div>
-      {widgets.length === 0 ? (
+      {editing ? (
+        <LayoutEditor layout={profile.dashboard_layout} onSave={saveLayout} onCancel={() => setEditing(false)} saving={saving} />
+      ) : widgets.length === 0 ? (
         <Empty>{t('dashboard.allHidden')}</Empty>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

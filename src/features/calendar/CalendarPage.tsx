@@ -7,8 +7,7 @@ import { formatDate } from '@/lib/format';
 import { Fab, Icon, PageHeader, Segmented } from '@/components/ui';
 import { useCalendarItems, itemsForDay, type CalItem } from './items';
 import { AgendaView, DayView, ItemChip, MonthGrid, WeekList, monthRange, weekRange } from './views';
-import { EventSheet } from './EventSheet';
-import type { CalendarEvent } from '@/domain/types';
+import { EventSheet, type EventTarget } from './EventSheet';
 
 type View = 'month' | 'week' | 'day' | 'agenda';
 const AGENDA_DAYS = 60;
@@ -19,7 +18,7 @@ export function CalendarPage() {
   const { weekStartsOn } = useProfile();
   const [view, setView] = useState<View>('month');
   const [cursor, setCursor] = useState(() => startOfDay(new Date()));
-  const [sheet, setSheet] = useState<{ event?: CalendarEvent | null; start?: Date } | null>(null);
+  const [sheet, setSheet] = useState<EventTarget | null>(null);
 
   const range =
     view === 'month' ? monthRange(cursor, weekStartsOn) : view === 'week' ? weekRange(cursor, weekStartsOn) : view === 'day' ? { from: cursor, to: addDays(cursor, 1) } : { from: cursor, to: addDays(cursor, AGENDA_DAYS) };
@@ -28,7 +27,8 @@ export function CalendarPage() {
   const step = (dir: 1 | -1) =>
     setCursor((c) => (view === 'month' ? addMonths(c, dir) : view === 'week' ? addWeeks(c, dir) : view === 'day' ? addDays(c, dir) : addDays(c, dir * AGENDA_DAYS)));
 
-  const openItem = (i: CalItem) => (i.kind === 'event' ? setSheet({ event: i.event }) : navigate(`/tasks?task=${i.id}`));
+  const openItem = (i: CalItem) =>
+    i.kind === 'event' ? setSheet({ event: i.event, occurrence: i.occurrence, instanceStart: i.start, instanceEnd: i.end }) : navigate(`/tasks?task=${i.id}`);
 
   const title =
     view === 'month' ? formatDate(cursor, 'MMMM yyyy') : view === 'week' ? `${formatDate(range.from, 'd MMM')} – ${formatDate(addDays(range.to, -1), 'd MMM')}` : view === 'day' ? formatDate(cursor, 'EEEE d MMMM') : t('calendar.upcoming');
@@ -83,11 +83,11 @@ export function CalendarPage() {
           }}
         />
       )}
-      {view === 'day' && <DayView day={cursor} items={items} onItem={openItem} onHour={(h) => setSheet({ start: setHours(cursor, h) })} />}
+      {view === 'day' && <DayView day={cursor} items={items} onItem={openItem} onHour={(h) => setSheet({ defaultStart: setHours(cursor, h) })} />}
       {view === 'agenda' && <AgendaView from={range.from} to={range.to} items={items} onItem={openItem} />}
 
-      <Fab color="bg-calendar" label={t('calendar.newEvent')} onClick={() => setSheet({ start: view === 'agenda' ? undefined : setHours(cursor, Math.max(9, new Date().getHours() + 1)) })} />
-      <EventSheet open={!!sheet} onClose={() => setSheet(null)} event={sheet?.event} defaultStart={sheet?.start} />
+      <Fab color="bg-calendar" label={t('calendar.newEvent')} onClick={() => setSheet({ defaultStart: view === 'agenda' ? undefined : setHours(cursor, Math.max(9, new Date().getHours() + 1)) })} />
+      <EventSheet open={!!sheet} onClose={() => setSheet(null)} target={sheet} />
     </div>
   );
 }

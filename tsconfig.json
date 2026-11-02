@@ -25,13 +25,17 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@shared/*": [
+        "supabase/functions/_shared/*"
       ]
     }
   },
   "include": [
     "src",
     "tests",
-    "vite.config.ts"
+    "vite.config.ts",
+    "supabase/functions/_shared"
   ],
   "exclude": [
     "src/sw.ts"
