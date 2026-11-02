@@ -461,13 +461,30 @@
   },
   "garmin": {
     "notConnected": "Garmin not connected yet",
-    "comingSoon": "Your steps, sleep, stress, Body Battery, heart rate and activities will show here once your Garmin account is connected.",
+    "comingSoon": "Once your API key is saved in Supabase, press Sync now. After that it syncs on its own every 6 hours.",
     "metrics": {
       "steps": "Steps",
       "sleep": "Sleep",
       "stress": "Stress",
       "bodyBattery": "Body Battery",
       "heartRate": "Resting heart rate",
+      "activities": "Activities"
+    },
+    "connected": "Garmin connected",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "lastSync": "Last sync",
+    "endpoints": "Data sources",
+    "received": "What Garmin sent",
+    "endpointNames": {
+      "daily_summaries": "Daily summaries",
+      "steps": "Steps",
+      "stress": "Stress",
+      "sleep_summaries": "Sleep (range)",
+      "body_battery": "Body Battery",
+      "hrv": "HRV",
+      "sleep": "Last night’s sleep",
+      "heart_rate": "Heart rate (today)",
       "activities": "Activities"
     }
   }

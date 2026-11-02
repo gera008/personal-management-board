@@ -461,13 +461,30 @@
   },
   "garmin": {
     "notConnected": "Garmin aún no está conectado",
-    "comingSoon": "Aquí verás tus pasos, sueño, estrés, Body Battery, frecuencia cardiaca y actividades cuando conectes tu cuenta de Garmin.",
+    "comingSoon": "Cuando tu llave esté guardada en Supabase, presiona Sincronizar. Después se sincroniza sola cada 6 horas.",
     "metrics": {
       "steps": "Pasos",
       "sleep": "Sueño",
       "stress": "Estrés",
       "bodyBattery": "Body Battery",
       "heartRate": "FC en reposo",
+      "activities": "Actividades"
+    },
+    "connected": "Garmin conectado",
+    "syncNow": "Sincronizar",
+    "syncing": "Sincronizando…",
+    "lastSync": "Última sincronización",
+    "endpoints": "Fuentes de datos",
+    "received": "Lo que envió Garmin",
+    "endpointNames": {
+      "daily_summaries": "Resúmenes diarios",
+      "steps": "Pasos",
+      "stress": "Estrés",
+      "sleep_summaries": "Sueño (rango)",
+      "body_battery": "Body Battery",
+      "hrv": "VFC (HRV)",
+      "sleep": "Sueño de anoche",
+      "heart_rate": "Frecuencia cardiaca (hoy)",
       "activities": "Actividades"
     }
   }
