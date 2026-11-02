@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui';
+import { useAmountsHidden } from '@/lib/privacy';
 
 const NAV = [
   { to: '/', icon: 'home', key: 'nav.home', accent: 'text-fg' },
@@ -10,8 +11,22 @@ const NAV = [
   { to: '/habits', icon: 'habits', key: 'nav.habits', accent: 'text-habit' },
 ];
 
+function PrivacyToggle({ className = '', withLabel = false }: { className?: string; withLabel?: boolean }) {
+  const { t } = useTranslation();
+  const [hidden, toggle] = useAmountsHidden();
+  const label = hidden ? t('privacy.show') : t('privacy.hide');
+  return (
+    <button onClick={toggle} className={className} aria-label={label} aria-pressed={hidden} title={label}>
+      <Icon name={hidden ? 'eyeOff' : 'eye'} />
+      {withLabel && label}
+    </button>
+  );
+}
+
 export function Layout() {
   const { t } = useTranslation();
+  // Subscribing here re-renders the whole page when amounts are hidden or shown.
+  useAmountsHidden();
   return (
     <div className="min-h-dvh md:flex">
       {/* Sidebar (tablet/desktop) */}
@@ -37,15 +52,19 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <PrivacyToggle withLabel className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface" />
       </aside>
 
       <div className="min-w-0 flex-1">
         {/* Top bar (phone) */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-bg/90 px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] backdrop-blur md:hidden">
           <span className="font-bold">Personal Hub</span>
-          <NavLink to="/settings" className="rounded-lg p-1.5 text-muted" aria-label={t('nav.settings')}>
-            <Icon name="settings" />
-          </NavLink>
+          <div className="flex items-center gap-1">
+            <PrivacyToggle className="rounded-lg p-1.5 text-muted" />
+            <NavLink to="/settings" className="rounded-lg p-1.5 text-muted" aria-label={t('nav.settings')}>
+              <Icon name="settings" />
+            </NavLink>
+          </div>
         </header>
         <main className="pb-safe mx-auto w-full max-w-5xl px-4 pt-4 md:px-8 md:pt-8">
           <Outlet />

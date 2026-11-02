@@ -236,7 +236,10 @@
     "liabilities": "Pasivos",
     "today": "Hoy",
     "paidForOthers": "Pagué por otros",
-    "paidForOthersHelp": "Un gasto que cubriste por alguien más (pareja, familia…)."
+    "paidForOthersHelp": "Un gasto que cubriste por alguien más (pareja, familia…).",
+    "finalAmount": "Último pago diferente",
+    "optional": "Opcional",
+    "finalPayment": "Pago final"
   },
   "analytics": {
     "ranges": {
@@ -386,5 +389,9 @@
     "exportJson": "Exportar todo (JSON)",
     "signedIn": "Sesión iniciada",
     "signOut": "Cerrar sesión"
+  },
+  "privacy": {
+    "hide": "Ocultar montos",
+    "show": "Mostrar montos"
   }
 }

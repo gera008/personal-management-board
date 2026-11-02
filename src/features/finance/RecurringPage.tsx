@@ -6,7 +6,7 @@ import { rpc, useInvalidate, useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { formatDate, money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Segmented, Sheet } from '@/components/ui';
-import { installmentProgress, lastInstallmentDate, scheduleDates } from '@/domain/recurring/schedule';
+import { installmentProgress, installmentTotal, lastInstallmentDate, scheduleDates } from '@/domain/recurring/schedule';
 import { toDateKey } from '@/domain/dates';
 import { CURRENCIES, num, type Currency, type Frequency, type RecurringSeries } from '@/domain/types';
 import { categoryName, useAccounts, useCategories } from './hooks';
@@ -64,6 +64,12 @@ export function RecurringPage() {
                       {s.status === 'active' && s.next_run_date ? ` · ${t('finance.next')} ${formatDate(s.next_run_date, 'd MMM yyyy')}` : ''}
                       {s.status !== 'active' ? ` · ${t(`finance.seriesStatus.${s.status}`)}` : ''}
                     </div>
+                    {s.total_count && (
+                      <div className="text-xs text-muted">
+                        {s.final_amount != null && `${t('finance.finalPayment')} ${money(num(s.final_amount), s.currency)} · `}
+                        {t('finance.total')} {money(installmentTotal(num(s.amount), s.total_count, s.final_amount != null ? num(s.final_amount) : null), s.currency)}
+                      </div>
+                    )}
                     {prog && (
                       <div className="mt-2 flex items-center gap-2">
                         <Progress ratio={prog.ratio} />
@@ -103,6 +109,7 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
     frequency: 'monthly' as Frequency,
     start_date: toDateKey(new Date()),
     total_count: '12',
+    final_amount: '',
     end_date: '',
   });
 
@@ -123,11 +130,12 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
         frequency: series.frequency,
         start_date: series.start_date,
         total_count: String(series.total_count ?? ''),
+        final_amount: series.final_amount != null ? String(num(series.final_amount)) : '',
         end_date: series.end_date ?? '',
       });
     } else {
       const a = accounts[0];
-      setF((x) => ({ ...x, amount: '', note: '', category_id: '', subcategory_id: '', account_id: a?.id ?? '', currency: a?.currency ?? 'MXN', rate: String(a && a.currency !== 'MXN' ? rates[a.currency] ?? '' : 1), start_date: toDateKey(new Date()), end_date: '' }));
+      setF((x) => ({ ...x, amount: '', note: '', category_id: '', subcategory_id: '', account_id: a?.id ?? '', final_amount: '', currency: a?.currency ?? 'MXN', rate: String(a && a.currency !== 'MXN' ? rates[a.currency] ?? '' : 1), start_date: toDateKey(new Date()), end_date: '' }));
     }
   }, [open, series?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -160,6 +168,7 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
         subcategory_id: f.subcategory_id || null,
         note: f.note || null,
         total_count: f.kind === 'installment' ? Number(f.total_count) : null,
+        final_amount: f.kind === 'installment' && Number(f.final_amount) > 0 ? Number(f.final_amount) : null,
         end_date: f.kind === 'subscription' && f.end_date ? f.end_date : null,
       };
       if (series) {
@@ -305,9 +314,14 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
             </Field>
           </div>
           {f.kind === 'installment' ? (
-            <Field label={t('finance.totalPayments')}>
-              <input type="number" min={1} max={600} className="input" required value={f.total_count} onChange={(e) => setF({ ...f, total_count: e.target.value })} />
-            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={t('finance.totalPayments')}>
+                <input type="number" min={1} max={600} className="input" required value={f.total_count} onChange={(e) => setF({ ...f, total_count: e.target.value })} />
+              </Field>
+              <Field label={t('finance.finalAmount')}>
+                <input className="input" inputMode="decimal" placeholder={t('finance.optional')} value={f.final_amount} onChange={(e) => setF({ ...f, final_amount: e.target.value.replace(',', '.') })} />
+              </Field>
+            </div>
           ) : (
             <Field label={t('finance.endDateOptional')}>
               <input type="date" className="input" value={f.end_date} min={f.start_date} onChange={(e) => setF({ ...f, end_date: e.target.value })} />
@@ -318,8 +332,9 @@ function SeriesSheet({ open, series, onClose }: { open: boolean; series?: Recurr
             {f.kind === 'installment' && Number(f.total_count) > 0 && (
               <>
                 <br />
-                {t('finance.lastPayment')}: {formatDate(lastInstallmentDate(f.start_date, f.frequency, Number(f.total_count)), 'd MMM yyyy')} · {t('finance.total')}:{' '}
-                {money(Number(f.amount || 0) * Number(f.total_count), f.currency)}
+                {t('finance.lastPayment')}: {formatDate(lastInstallmentDate(f.start_date, f.frequency, Number(f.total_count)), 'd MMM yyyy')}
+                {Number(f.final_amount) > 0 && ` (${money(Number(f.final_amount), f.currency)})`} · {t('finance.total')}:{' '}
+                {money(installmentTotal(Number(f.amount || 0), Number(f.total_count), Number(f.final_amount) > 0 ? Number(f.final_amount) : null), f.currency)}
               </>
             )}
           </div>

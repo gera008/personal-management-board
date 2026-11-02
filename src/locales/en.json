@@ -236,7 +236,10 @@
     "liabilities": "Liabilities",
     "today": "Today",
     "paidForOthers": "Paid for others",
-    "paidForOthersHelp": "An expense you covered for someone else (partner, family…)."
+    "paidForOthersHelp": "An expense you covered for someone else (partner, family…).",
+    "finalAmount": "Different last payment",
+    "optional": "Optional",
+    "finalPayment": "Final payment"
   },
   "analytics": {
     "ranges": {
@@ -386,5 +389,9 @@
     "exportJson": "Export everything (JSON)",
     "signedIn": "Signed in",
     "signOut": "Sign out"
+  },
+  "privacy": {
+    "hide": "Hide amounts",
+    "show": "Show amounts"
   }
 }

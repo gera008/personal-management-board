@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthGate } from '@/features/auth/AuthGate';
 import { ProfileProvider } from '@/lib/profile';
+import { useAmountsHidden } from '@/lib/privacy';
 import { Layout } from './Layout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { CalendarPage } from '@/features/calendar/CalendarPage';
@@ -20,6 +21,9 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 const AnalyticsPage = lazy(() => import('@/features/finance/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
 
 export function App() {
+  // Route elements are created here, so re-rendering App on the "hide amounts"
+  // switch redraws every page (money() reads the switch while rendering).
+  useAmountsHidden();
   return (
     <AuthGate>
       {(session) => (

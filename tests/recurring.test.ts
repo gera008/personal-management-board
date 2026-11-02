@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { installmentProgress, lastInstallmentDate, occurrenceDate, scheduleDates } from '../src/domain/recurring/schedule';
+import { installmentProgress, installmentTotal, lastInstallmentDate, occurrenceDate, paymentAmount, scheduleDates } from '../src/domain/recurring/schedule';
 
 describe('recurring schedule', () => {
   it('keeps month-end anchors stable', () => {
@@ -38,5 +38,20 @@ describe('recurring schedule', () => {
   it('reports installment progress', () => {
     expect(installmentProgress(2, 20)).toEqual({ paid: 2, total: 20, ratio: 0.1, label: '2/20' });
     expect(installmentProgress(25, 20).label).toBe('20/20');
+  });
+
+  it('uses the final amount only for the last payment', () => {
+    // iPhone: 20 × 1,029 + final 9,419 = 21 payments
+    expect(paymentAmount(1029, 0, 21, 9419)).toBe(1029);
+    expect(paymentAmount(1029, 19, 21, 9419)).toBe(1029);
+    expect(paymentAmount(1029, 20, 21, 9419)).toBe(9419);
+    expect(paymentAmount(1029, 20, 21, null)).toBe(1029);
+    expect(lastInstallmentDate('2026-10-17', 'monthly', 21)).toBe('2028-06-17');
+  });
+
+  it('totals an installment plan with and without a final payment', () => {
+    expect(installmentTotal(1029, 21, 9419)).toBe(29999);
+    expect(installmentTotal(1029, 20)).toBe(20580);
+    expect(installmentTotal(500, 1, 800)).toBe(800);
   });
 });

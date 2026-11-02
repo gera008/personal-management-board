@@ -135,6 +135,7 @@ export interface RecurringSeries {
   frequency: Frequency;
   start_date: string;
   total_count: number | null;
+  final_amount: Numeric | null;
   end_date: string | null;
   occurrences_created: number;
   next_run_date: string | null;

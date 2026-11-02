@@ -41,3 +41,14 @@ export function installmentProgress(appliedCount: number, totalCount: number): {
   const paid = Math.min(appliedCount, totalCount);
   return { paid, total: totalCount, ratio: totalCount ? paid / totalCount : 0, label: `${paid}/${totalCount}` };
 }
+
+/** Amount of payment n (0-based): the last installment may differ (balloon / final payment). */
+export function paymentAmount(amount: number, n: number, totalCount?: number | null, finalAmount?: number | null): number {
+  return finalAmount != null && totalCount != null && n === totalCount - 1 ? finalAmount : amount;
+}
+
+/** Sum of every payment of an installment plan. */
+export function installmentTotal(amount: number, totalCount: number, finalAmount?: number | null): number {
+  if (totalCount <= 0) return 0;
+  return Math.round((amount * (totalCount - (finalAmount != null ? 1 : 0)) + (finalAmount ?? 0)) * 100) / 100;
+}

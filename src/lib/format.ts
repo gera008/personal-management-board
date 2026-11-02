@@ -1,13 +1,17 @@
 import { format as fmt } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import i18n from './i18n';
+import { amountsHidden } from './privacy';
 
 export const dateLocale = () => (i18n.language === 'es' ? es : enUS);
 
 export const formatDate = (d: Date | string, pattern: string) =>
   fmt(typeof d === 'string' ? new Date(d.length === 10 ? `${d}T00:00:00` : d) : d, pattern, { locale: dateLocale() });
 
+export const HIDDEN_AMOUNT = '•••••';
+
 export function money(value: number, currency = 'MXN', opts: { sign?: boolean; compact?: boolean } = {}) {
+  if (amountsHidden()) return HIDDEN_AMOUNT;
   const f = new Intl.NumberFormat(i18n.language === 'es' ? 'es-MX' : 'en-US', {
     style: 'currency',
     currency,
