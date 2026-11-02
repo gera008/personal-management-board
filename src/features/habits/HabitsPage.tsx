@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { subDays } from 'date-fns';
+import { addDaysKey } from '@shared/recurrence';
+import { formatDate } from '@/lib/format';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { Heatmap } from '@/components/Heatmap';
-import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
+import { Empty, ErrorText, Fab, Field, Icon, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
-import { computeStreaks, habitHeatmap, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
+import { canLogOn, computeStreaks, habitHeatmap, isSuccess, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
 import { num, type Habit, type HabitFrequency } from '@/domain/types';
-import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits } from './shared';
+import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits, useLogHabit } from './shared';
 
 const GOOD_COLORS = ['#75639F', '#8573B0', '#5E4F86', '#9A8CC4', '#4E7299', '#6B7280'];
 
@@ -21,10 +23,13 @@ export function HabitsPage() {
   const [detail, setDetail] = useState<Habit | null>(null);
   const [form, setForm] = useState<{ habit?: Habit | null } | null>(null);
   const today = toDateKey(new Date());
+  // Day shown in the "Today" tab; arrows move it back to log a forgotten day.
+  const [day, setDay] = useState(today);
+  const viewDay = day > today ? today : day;
 
   const active = (habits.data ?? []).filter((h) => !h.archived && (!tag || h.tags.includes(tag)));
   const allLogs = logs.data ?? [];
-  const due = todaysHabits(active, today);
+  const due = todaysHabits(active, viewDay);
   const notDue = active.filter((h) => !due.includes(h));
   const tags = [...new Set((habits.data ?? []).flatMap((h) => h.tags))].sort();
   const archived = (habits.data ?? []).filter((h) => h.archived);
@@ -56,15 +61,16 @@ export function HabitsPage() {
         <Empty action={<button className="btn-primary" onClick={() => setForm({})}>{t('habits.newHabit')}</button>}>{t('habits.empty')}</Empty>
       ) : tab === 'today' ? (
         <div className="space-y-4">
+          <DayNav day={viewDay} today={today} onChange={setDay} />
           <section className="card divide-y divide-border py-1">
             {due.map((h) => (
-              <HabitTodayRow key={h.id} habit={h} logs={allLogs} today={today} onOpen={() => setDetail(h)} />
+              <HabitTodayRow key={h.id} habit={h} logs={allLogs} date={viewDay} onOpen={() => setDetail(h)} />
             ))}
-            {due.length === 0 && <p className="py-3 text-sm text-muted">{t('habits.nothingToday')}</p>}
+            {due.length === 0 && <p className="py-3 text-sm text-muted">{viewDay === today ? t('habits.nothingToday') : t('habits.nothingOnDay')}</p>}
           </section>
           {notDue.length > 0 && (
             <section>
-              <h3 className="section-title">{t('habits.notToday')}</h3>
+              <h3 className="section-title">{viewDay === today ? t('habits.notToday') : t('habits.notOnDay')}</h3>
               <div className="card divide-y divide-border py-1">
                 {notDue.map((h) => (
                   <button key={h.id} onClick={() => setDetail(h)} className="flex w-full items-center gap-3 py-2.5 text-left text-sm text-muted">
@@ -87,9 +93,10 @@ export function HabitsPage() {
               <button className="mb-2 text-sm font-semibold" onClick={() => setDetail(h)}>
                 {h.name}
               </button>
-              <HabitHeatmap habit={h} />
+              <HabitHeatmap habit={h} interactive />
             </section>
           ))}
+          <p className="text-xs text-muted">{t('habits.tapDayHint')}</p>
         </div>
       )}
 
@@ -120,12 +127,58 @@ export function HabitsPage() {
   );
 }
 
-function HabitHeatmap({ habit }: { habit: Habit }) {
+function DayNav({ day, today, onChange }: { day: string; today: string; onChange: (d: string) => void }) {
+  const { t } = useTranslation();
+  const label = day === today ? t('habits.today') : day === addDaysKey(today, -1) ? t('habits.yesterday') : formatDate(day, 'EEEE');
+  return (
+    <div className="flex items-center gap-2">
+      <button className="btn-ghost px-2" onClick={() => onChange(addDaysKey(day, -1))} aria-label={t('habits.prevDay')}>
+        <Icon name="chevronLeft" size={18} />
+      </button>
+      <div className="flex-1 text-center">
+        <div className={`text-sm font-semibold capitalize ${day === today ? '' : 'text-habit'}`}>{label}</div>
+        <div className="text-xs capitalize text-muted">{formatDate(day, 'd MMMM yyyy')}</div>
+      </div>
+      <button className="btn-ghost px-2" disabled={day >= today} onClick={() => onChange(addDaysKey(day, 1))} aria-label={t('habits.nextDay')}>
+        <Icon name="chevronRight" size={18} />
+      </button>
+      {day !== today && (
+        <button className="btn-ghost px-3 text-xs" onClick={() => onChange(today)}>
+          {t('habits.backToToday')}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Year heatmap of one habit. When interactive, tapping a day logs or undoes it:
+ * done/undone for yes-no, asks the amount for numeric, slip/clean for bad habits.
+ */
+function HabitHeatmap({ habit, interactive }: { habit: Habit; interactive?: boolean }) {
+  const { t } = useTranslation();
   const logs = useHabitLogs();
+  const log = useLogHabit();
   const { weekStartsOn } = useProfile();
-  const today = new Date();
-  const values = habitHeatmap(habit, logMap(logs.data ?? [], habit.id), toDateKey(subDays(today, 371)), toDateKey(today));
-  return <Heatmap values={values} weekStartsOn={weekStartsOn} color={habit.kind === 'bad' ? 'var(--slip)' : 'var(--habit)'} />;
+  const now = new Date();
+  const today = toDateKey(now);
+  const map = logMap(logs.data ?? [], habit.id);
+  const values = habitHeatmap(habit, map, toDateKey(subDays(now, 371)), today);
+
+  const toggle = (date: string) => {
+    if (!canLogOn(habit, date, today)) return;
+    const entry = map.get(date);
+    if (habit.kind === 'bad') return log.mutate(entry?.is_slip ? { habit, date, remove: true } : { habit, date, isSlip: true });
+    if (habit.type === 'numeric') {
+      const answer = prompt(t('habits.valuePrompt', { unit: habit.unit ?? '', date: formatDate(date, 'd MMM') }), entry ? String(num(entry.value)) : '');
+      if (answer === null) return;
+      const value = Number(answer.replace(',', '.'));
+      return log.mutate(answer.trim() === '' || !(value > 0) ? { habit, date, remove: true } : { habit, date, value });
+    }
+    log.mutate(isSuccess(habit, map, date) ? { habit, date, remove: true } : { habit, date, value: 1 });
+  };
+
+  return <Heatmap values={values} weekStartsOn={weekStartsOn} color={habit.kind === 'bad' ? 'var(--slip)' : 'var(--habit)'} onSelect={interactive ? toggle : undefined} />;
 }
 
 function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose: () => void; onEdit: (h: Habit) => void }) {
@@ -169,7 +222,8 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
           <Progress ratio={s.current / habit.goal_days} color={habit.kind === 'bad' ? 'bg-slip' : 'bg-habit'} />
         </div>
       )}
-      <HabitHeatmap habit={habit} />
+      <HabitHeatmap habit={habit} interactive />
+      <p className="mt-1 text-xs text-muted">{t('habits.tapDayHint')}</p>
       {recentNotes.length > 0 && (
         <div className="mt-4">
           <h3 className="section-title">{t('habits.notes')}</h3>

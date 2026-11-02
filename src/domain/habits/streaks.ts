@@ -10,6 +10,11 @@ export const logMap = (logs: HabitLog[], habitId: string): LogMap =>
 
 const target = (h: Habit) => (h.type === 'numeric' ? num(h.target_value) || 1 : 1);
 
+/** A day can be logged (or fixed) from the habit's start date up to today; never in the future. */
+export function canLogOn(h: Habit, date: string, today: string): boolean {
+  return date >= h.start_date && date <= today;
+}
+
 /** Whether a good habit is due on a date. "X times per week" habits can be done any day. */
 export function isScheduled(h: Habit, date: string): boolean {
   if (date < h.start_date) return false;

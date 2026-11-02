@@ -362,7 +362,16 @@
     "goal": "Goal",
     "notes": "Recent notes",
     "days": "days",
-    "weeks": "weeks"
+    "weeks": "weeks",
+    "yesterday": "Yesterday",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "backToToday": "Today",
+    "nothingOnDay": "No habits were due this day.",
+    "notOnDay": "Not due this day",
+    "notePromptDay": "Note for {{date}}",
+    "valuePrompt": "How many {{unit}} on {{date}}? Leave empty to clear.",
+    "tapDayHint": "Tap a day to log or undo it."
   },
   "settings": {
     "title": "Settings",

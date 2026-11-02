@@ -188,7 +188,7 @@ function HabitsWidget() {
       ) : (
         <div className="divide-y divide-border">
           {due.map((h) => (
-            <HabitTodayRow key={h.id} habit={h} logs={logs.data ?? []} today={today} />
+            <HabitTodayRow key={h.id} habit={h} logs={logs.data ?? []} />
           ))}
         </div>
       )}

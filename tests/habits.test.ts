@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canLogOn,
   combinedHeatmap,
   computeStreaks,
   habitHeatmap,
@@ -106,5 +107,23 @@ describe('combined heatmap', () => {
     const m = combinedHeatmap([good, bad], all, '2026-10-01', '2026-10-02');
     expect(m.get('2026-10-01')).toBe(1);
     expect(m.get('2026-10-02')).toBe(0);
+  });
+});
+
+describe('logging past days', () => {
+  const h = habit({ start_date: '2026-10-01' });
+
+  it('allows days from the start date up to today, never the future', () => {
+    expect(canLogOn(h, '2026-09-30', '2026-11-02')).toBe(false);
+    expect(canLogOn(h, '2026-10-01', '2026-11-02')).toBe(true);
+    expect(canLogOn(h, '2026-11-02', '2026-11-02')).toBe(true);
+    expect(canLogOn(h, '2026-11-03', '2026-11-02')).toBe(false);
+  });
+
+  it('restores the streak when a forgotten day is filled in', () => {
+    const missed = logMap(logs('h1', ['2026-10-01', '2026-10-02', '2026-10-04']), 'h1');
+    expect(computeStreaks(h, missed, '2026-10-04').current).toBe(1);
+    const fixed = logMap(logs('h1', ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']), 'h1');
+    expect(computeStreaks(h, fixed, '2026-10-04')).toEqual({ current: 4, best: 4, unit: 'days' });
   });
 });

@@ -362,7 +362,16 @@
     "goal": "Meta",
     "notes": "Notas recientes",
     "days": "días",
-    "weeks": "semanas"
+    "weeks": "semanas",
+    "yesterday": "Ayer",
+    "prevDay": "Día anterior",
+    "nextDay": "Día siguiente",
+    "backToToday": "Hoy",
+    "nothingOnDay": "Ese día no tocaba ningún hábito.",
+    "notOnDay": "No tocaban ese día",
+    "notePromptDay": "Nota del {{date}}",
+    "valuePrompt": "¿Cuántos {{unit}} el {{date}}? Déjalo vacío para borrar.",
+    "tapDayHint": "Toca un día para registrarlo o quitarlo."
   },
   "settings": {
     "title": "Ajustes",

@@ -12,12 +12,15 @@ export function Heatmap({
   weekStartsOn = 0,
   color = 'var(--habit)',
   weeks = 53,
+  onSelect,
 }: {
   values: Map<string, number | null>;
   end?: Date;
   weekStartsOn?: 0 | 1;
   color?: string;
   weeks?: number;
+  /** Called with a day's key when a loggable cell (not future, not "not due") is tapped. */
+  onSelect?: (date: string) => void;
 }) {
   const first = startOfWeek(subDays(end, (weeks - 1) * 7), { weekStartsOn });
   const cell = 11;
@@ -55,7 +58,16 @@ export function Heatmap({
                 </text>
               )}
               {col.map((c, d) => (
-                <rect key={c.key} y={d * (cell + gap)} width={cell} height={cell} rx={2} fill={fill(c.v, c.future)}>
+                <rect
+                  key={c.key}
+                  y={d * (cell + gap)}
+                  width={cell}
+                  height={cell}
+                  rx={2}
+                  fill={fill(c.v, c.future)}
+                  onClick={onSelect && !c.future && c.v != null ? () => onSelect(c.key) : undefined}
+                  style={onSelect && !c.future && c.v != null ? { cursor: 'pointer' } : undefined}
+                >
                   <title>{`${c.key}${c.v == null ? '' : c.v < 0 ? ' ✕' : ` ${Math.round(c.v * 100)}%`}`}</title>
                 </rect>
               ))}
