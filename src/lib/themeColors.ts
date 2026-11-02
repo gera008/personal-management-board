@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const TOKENS = ['fg', 'muted', 'border', 'surface', 'bg', 'expense', 'income', 'transfer', 'habit', 'calendar', 'tasks'] as const;
+const TOKENS = ['fg', 'muted', 'border', 'surface', 'bg', 'expense', 'income', 'transfer', 'habit', 'calendar', 'tasks', 'slip'] as const;
 type Token = (typeof TOKENS)[number];
 
 function read(): Record<Token, string> {

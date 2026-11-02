@@ -468,7 +468,8 @@
       "stress": "Stress",
       "bodyBattery": "Body Battery",
       "heartRate": "Resting heart rate",
-      "activities": "Activities"
+      "activities": "Activities",
+      "intensity": "Intensity minutes (7 days)"
     },
     "connected": "Garmin connected",
     "syncNow": "Sync now",
@@ -486,6 +487,23 @@
       "sleep": "Last night’s sleep",
       "heart_rate": "Heart rate (today)",
       "activities": "Activities"
+    },
+    "goal": "Goal",
+    "max": "Max",
+    "range": "Range",
+    "avg7": "7-day avg",
+    "weekGoal": "Weekly goal",
+    "todayNote": "Today’s figures are for {{date}} and keep updating as your watch syncs. Sleep is from your last recorded night.",
+    "trends": "Trends",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "sleepStages": "Sleep stages",
+    "stressAvg": "Average stress",
+    "stages": {
+      "deep": "Deep",
+      "light": "Light",
+      "rem": "REM",
+      "awake": "Awake"
     }
   }
 }

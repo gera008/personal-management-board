@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { supabase, unwrap } from '@/lib/supabase';
 import { formatDate } from '@/lib/format';
-import { ErrorText, Icon } from '@/components/ui';
+import { useThemeColors } from '@/lib/themeColors';
+import { ErrorText, Icon, Progress, Segmented } from '@/components/ui';
+import { avg, localClock, parseGarminDays, type GarminRawRow } from '@/domain/garmin';
 
 interface SyncStatus {
   last_attempt_at: string | null;
@@ -13,25 +16,18 @@ interface SyncStatus {
   endpoints_failed: number;
 }
 
-interface RawRow {
-  endpoint: string;
-  window_key: string;
-  status: number;
-  fetched_at: string;
-}
+const hours = (s: number | null) => (s == null ? null : Math.round((s / 3600) * 10) / 10);
+const hm = (s: number) => `${Math.floor(s / 3600)}h ${String(Math.round((s % 3600) / 60)).padStart(2, '0')}m`;
+const fmtInt = (v: number | null) => (v == null ? '—' : Math.round(v).toLocaleString());
 
-const METRICS = ['steps', 'sleep', 'stress', 'bodyBattery', 'heartRate', 'activities'] as const;
-
-/**
- * Garmin stats sub-module. Stage 1: connection status, manual sync and what
- * each endpoint returned. The metric cards get filled once the real response
- * format is known.
- */
+/** Health › Garmin: today's numbers, last night's sleep and 7/28-day trends. */
 export function GarminPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const colors = useThemeColors();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const [range, setRange] = useState<'7' | '28'>('7');
 
   const status = useQuery({
     queryKey: ['garmin', 'status'],
@@ -39,8 +35,9 @@ export function GarminPage() {
   });
   const raw = useQuery({
     queryKey: ['garmin', 'raw'],
-    queryFn: async () => unwrap(await supabase.from('garmin_raw').select('endpoint,window_key,status,fetched_at').order('endpoint')) as RawRow[],
+    queryFn: async () => unwrap(await supabase.from('garmin_raw').select('endpoint,window_key,status,fetched_at,data')) as GarminRawRow[],
   });
+  const days = useMemo(() => parseGarminDays(raw.data ?? []), [raw.data]);
 
   const syncNow = async () => {
     setBusy(true);
@@ -58,62 +55,154 @@ export function GarminPage() {
   };
 
   const s = status.data;
-  const connected = !!s?.last_success_at;
+  const today = days.at(-1);
+  const lastSleep = [...days].reverse().find((d) => d.sleepSeconds != null);
+  const shown = days.slice(-Number(range));
+  const chartData = shown.map((d) => ({
+    label: formatDate(d.date, 'd MMM'),
+    steps: d.steps,
+    goal: d.stepGoal,
+    deep: hours(d.deepSeconds),
+    light: hours(d.lightSeconds),
+    rem: hours(d.remSeconds),
+    awake: hours(d.awakeSeconds),
+    stress: d.stressAvg,
+    rhr: d.restingHr,
+  }));
+  // Garmin's intensity goal is weekly; count the last 7 days.
+  const weekIntensity = days.slice(-7).reduce((a, d) => a + (d.intensityMinutes ?? 0), 0);
+  const intensityGoal = today?.intensityGoal ?? 150;
+
+  const axis = { stroke: colors.muted, fontSize: 11, tickLine: false, axisLine: false };
+  const tooltipStyle = { background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 8, fontSize: 12, color: colors.fg };
 
   return (
     <div className="space-y-4">
-      <section className="card">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="target" className="text-habit" />
-            <h2 className="text-sm font-semibold">{connected ? t('garmin.connected') : t('garmin.notConnected')}</h2>
+      <section className="card flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Icon name="target" size={16} className="text-habit" />
+            {s?.last_success_at ? t('garmin.connected') : t('garmin.notConnected')}
           </div>
-          <button className="btn-ghost" onClick={syncNow} disabled={busy}>
-            <Icon name="repeat" size={16} /> {busy ? t('garmin.syncing') : t('garmin.syncNow')}
-          </button>
+          <div className="text-xs text-muted">
+            {s?.last_success_at ? `${t('garmin.lastSync')}: ${formatDate(s.last_success_at, 'd MMM HH:mm')}` : t('garmin.comingSoon')}
+            {s?.last_error && <span className="text-expense"> · {s.last_error}</span>}
+          </div>
         </div>
-        <ErrorText error={error} />
-        {s ? (
-          <dl className="space-y-1 text-sm">
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted">{t('garmin.lastSync')}</dt>
-              <dd>{s.last_success_at ? formatDate(s.last_success_at, 'd MMM HH:mm') : '—'}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted">{t('garmin.endpoints')}</dt>
-              <dd>
-                {s.endpoints_ok} ✓ {s.endpoints_failed > 0 && <span className="text-expense">· {s.endpoints_failed} ✕</span>}
-              </dd>
-            </div>
-            {s.last_error && <p className="text-xs text-expense">{s.last_error}</p>}
-          </dl>
-        ) : (
-          <p className="text-sm text-muted">{t('garmin.comingSoon')}</p>
-        )}
+        <button className="btn-ghost" onClick={syncNow} disabled={busy}>
+          <Icon name="repeat" size={16} /> {busy ? t('garmin.syncing') : t('garmin.syncNow')}
+        </button>
+        <div className="w-full">
+          <ErrorText error={error} />
+        </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {METRICS.map((m) => (
-          <div key={m} className="rounded-xl border border-dashed border-border p-3">
-            <div className="text-xs text-muted">{t(`garmin.metrics.${m}`)}</div>
-            <div className="mt-1 text-lg font-semibold text-muted">—</div>
+      {today && (
+        <>
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <Metric label={t('garmin.metrics.steps')} value={fmtInt(today.steps)} sub={today.stepGoal ? `${t('garmin.goal')} ${fmtInt(today.stepGoal)}` : undefined}>
+              {today.stepGoal && today.steps != null && <Progress ratio={today.steps / today.stepGoal} color="bg-habit" className="mt-2 h-1.5" />}
+            </Metric>
+            <Metric
+              label={t('garmin.metrics.sleep')}
+              value={lastSleep?.sleepSeconds != null ? hm(lastSleep.sleepSeconds) : '—'}
+              sub={lastSleep?.sleepStart != null && lastSleep.sleepEnd != null ? `${localClock(lastSleep.sleepStart)} – ${localClock(lastSleep.sleepEnd)}` : undefined}
+            />
+            <Metric label={t('garmin.metrics.stress')} value={fmtInt(today.stressAvg)} sub={today.stressMax != null ? `${t('garmin.max')} ${today.stressMax}` : undefined} />
+            <Metric
+              label={t('garmin.metrics.bodyBattery')}
+              value={fmtInt(today.bodyBatteryLatest)}
+              sub={today.bodyBatteryMax != null ? `${t('garmin.range')} ${today.bodyBatteryMin}–${today.bodyBatteryMax}` : undefined}
+            />
+            <Metric label={t('garmin.metrics.heartRate')} value={today.restingHr != null ? `${today.restingHr} lpm` : '—'} sub={`${t('garmin.avg7')} ${fmtInt(avg(days.slice(-7).map((d) => d.restingHr)))}`} />
+            <Metric label={t('garmin.metrics.intensity')} value={`${weekIntensity}`} sub={`${t('garmin.weekGoal')} ${intensityGoal}`}>
+              <Progress ratio={weekIntensity / intensityGoal} color="bg-habit" className="mt-2 h-1.5" />
+            </Metric>
+          </section>
+          <p className="text-xs text-muted">{t('garmin.todayNote', { date: formatDate(today.date, 'd MMM') })}</p>
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">{t('garmin.trends')}</h2>
+            <Segmented
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: '7', label: t('garmin.days', { count: 7 }) },
+                { value: '28', label: t('garmin.days', { count: 28 }) },
+              ]}
+            />
           </div>
-        ))}
-      </section>
 
-      {(raw.data ?? []).length > 0 && (
-        <details className="card text-sm">
-          <summary className="cursor-pointer font-medium">{t('garmin.received')}</summary>
-          <ul className="mt-2 divide-y divide-border">
-            {(raw.data ?? []).map((r) => (
-              <li key={r.endpoint + r.window_key} className="flex justify-between gap-2 py-1.5">
-                <span className="truncate">{t(`garmin.endpointNames.${r.endpoint}`, { defaultValue: r.endpoint })}</span>
-                <span className={r.status >= 200 && r.status < 300 ? 'text-income' : 'text-expense'}>{r.status}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Chart title={t('garmin.metrics.steps')}>
+              <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
+                <CartesianGrid vertical={false} stroke={colors.border} />
+                <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
+                <YAxis {...axis} width={44} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} formatter={(v: number) => Math.round(v).toLocaleString()} />
+                <Bar dataKey="steps" name={t('garmin.metrics.steps')} fill={colors.habit} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </Chart>
+
+            <Chart title={t('garmin.sleepStages')}>
+              <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
+                <CartesianGrid vertical={false} stroke={colors.border} />
+                <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
+                <YAxis {...axis} width={32} unit="h" />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} formatter={(v: number) => `${v} h`} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: colors.muted }} />
+                <Bar dataKey="deep" stackId="s" name={t('garmin.stages.deep')} fill={colors.habit} />
+                <Bar dataKey="light" stackId="s" name={t('garmin.stages.light')} fill={colors.calendar} />
+                <Bar dataKey="rem" stackId="s" name={t('garmin.stages.rem')} fill={colors.tasks} />
+                <Bar dataKey="awake" stackId="s" name={t('garmin.stages.awake')} fill={colors.muted} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </Chart>
+
+            <Chart title={t('garmin.stressAvg')}>
+              <LineChart data={chartData} margin={{ left: 0, right: 8, top: 8 }}>
+                <CartesianGrid vertical={false} stroke={colors.border} />
+                <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
+                <YAxis {...axis} width={32} domain={[0, 100]} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="stress" name={t('garmin.metrics.stress')} stroke={colors.slip} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: colors.slip }} connectNulls />
+              </LineChart>
+            </Chart>
+
+            <Chart title={t('garmin.metrics.heartRate')}>
+              <LineChart data={chartData} margin={{ left: 0, right: 8, top: 8 }}>
+                <CartesianGrid vertical={false} stroke={colors.border} />
+                <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
+                <YAxis {...axis} width={32} domain={['dataMin - 3', 'dataMax + 3']} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v} lpm`} />
+                <Line type="monotone" dataKey="rhr" name={t('garmin.metrics.heartRate')} stroke={colors.expense} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: colors.expense }} connectNulls />
+              </LineChart>
+            </Chart>
+          </div>
+        </>
       )}
     </div>
   );
 }
+
+function Metric({ label, value, sub, children }: { label: string; value: string; sub?: string; children?: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border bg-bg p-3">
+      <div className="text-xs text-muted">{label}</div>
+      <div className="mt-0.5 truncate text-lg font-semibold">{value}</div>
+      {sub && <div className="truncate text-[11px] text-muted">{sub}</div>}
+      {children}
+    </div>
+  );
+}
+
+function Chart({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="card min-w-0">
+      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
+      <ResponsiveContainer width="100%" height={200}>
+        {children as React.ReactElement}
+      </ResponsiveContainer>
+    </section>
+  );
+}
+
