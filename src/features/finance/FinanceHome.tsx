@@ -127,6 +127,11 @@ export function TxRow({ tx, accById, cats, onOpen, showDate, other }: { tx: Tran
         <div className="truncate text-sm font-medium">
           {title}
           {tx.series_index != null && <span className="ml-1 text-xs text-muted">#{tx.series_index}</span>}
+          {tx.paid_for_others && (
+            <span className="ml-1.5 inline-flex translate-y-0.5 text-muted" title={t('finance.paidForOthers')} aria-label={t('finance.paidForOthers')}>
+              <Icon name="users" size={14} />
+            </span>
+          )}
         </div>
         <div className="truncate text-xs text-muted">
           {showDate && `${formatDate(tx.occurred_at, 'd MMM')} · `}

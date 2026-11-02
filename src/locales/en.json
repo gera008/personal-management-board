@@ -232,8 +232,11 @@
     "next": "next",
     "cancelSeries": "Cancel series",
     "cancelSeriesConfirm": "Cancel this series? Future pending payments are removed; paid ones stay.",
-    "withPending": "Total debt incl. pending",
-    "totalWithPending": "Incl. pending"
+    "assets": "Assets",
+    "liabilities": "Liabilities",
+    "today": "Today",
+    "paidForOthers": "Paid for others",
+    "paidForOthersHelp": "An expense you covered for someone else (partner, family…)."
   },
   "analytics": {
     "ranges": {

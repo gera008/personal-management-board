@@ -67,7 +67,8 @@ export async function exportTransactionsCsv() {
     amount_mxn: t.base_amount_mxn,
     status: t.status,
     transfer_id: t.transfer_pair_id,
+    paid_for_others: t.paid_for_others,
   }));
-  const cols = ['date', 'type', 'direction', 'account', 'category', 'subcategory', 'note', 'description', 'amount', 'currency', 'exchange_rate', 'amount_mxn', 'status', 'transfer_id'];
+  const cols = ['date', 'type', 'direction', 'account', 'category', 'subcategory', 'note', 'description', 'amount', 'currency', 'exchange_rate', 'amount_mxn', 'status', 'transfer_id', 'paid_for_others'];
   download(`transactions-${stamp()}.csv`, toCsv(rows, cols), 'text/csv');
 }

@@ -116,6 +116,7 @@ export interface Transaction {
   series_id: string | null;
   series_index: number | null;
   transfer_pair_id: string | null;
+  paid_for_others: boolean;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';

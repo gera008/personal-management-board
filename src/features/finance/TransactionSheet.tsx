@@ -24,6 +24,7 @@ interface Form {
   subcategory_id: string;
   note: string;
   description: string;
+  paid_for_others: boolean;
 }
 
 export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose: () => void; tx?: Transaction | null }) {
@@ -51,6 +52,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
       subcategory_id: '',
       note: '',
       description: '',
+      paid_for_others: false,
     };
   }
 
@@ -76,6 +78,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
       subcategory_id: tx.subcategory_id ?? '',
       note: tx.note ?? '',
       description: tx.description ?? '',
+      paid_for_others: tx.paid_for_others ?? false,
     };
     setF(base);
     if (tx.type === 'transfer' && tx.transfer_pair_id) {
@@ -162,6 +165,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
           exchange_rate: rate,
           base_amount_mxn: round2(amount * rate),
           status,
+          paid_for_others: f.type === 'expense' && f.paid_for_others,
         };
         if (tx?.type === 'transfer') {
           // Converting a transfer into income/expense: drop both sides first.
@@ -312,6 +316,15 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
           </>
         )}
 
+        {f.type === 'expense' && (
+          <label className="mb-3 flex items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+            <input type="checkbox" className="mt-0.5" checked={f.paid_for_others} onChange={(e) => setF({ ...f, paid_for_others: e.target.checked })} />
+            <span>
+              <span className="font-medium">{t('finance.paidForOthers')}</span>
+              <span className="block text-xs text-muted">{t('finance.paidForOthersHelp')}</span>
+            </span>
+          </label>
+        )}
         <Field label={t('finance.note')}>
           <input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={t('finance.notePlaceholder')} />
         </Field>

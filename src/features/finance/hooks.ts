@@ -84,7 +84,10 @@ export function useIndicators() {
   const accounts = useAccounts();
   const categories = useCategories();
   const balances = useBalances();
-  const ready = txs.data && accounts.data && balances.data && categories.data;
+  const pending = usePendingByAccount();
+  const ready = txs.data && accounts.data && balances.data && categories.data && pending.data;
+  // Total balance counts every debt, including pending installments.
+  const withPending = ready ? new Map([...balances.data!].map(([id, b]) => [id, b + (pending.data!.get(id) ?? 0)])) : new Map<string, number>();
   return {
     isLoading: !ready,
     categories,
@@ -95,7 +98,7 @@ export function useIndicators() {
           txs: txs.data!,
           categories: categories.byId,
           accounts: accounts.data as Account[],
-          balances: balances.data!,
+          balances: withPending,
           rates,
           now: new Date(),
           weekStartsOn,

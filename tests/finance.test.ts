@@ -8,6 +8,7 @@ import {
   monthProjection,
   signedAmount,
   topNotes,
+  balanceSummary,
   totalBalanceMXN,
   totalExpenses,
   weekdaySpending,
@@ -83,6 +84,19 @@ describe('finance totals', () => {
     ];
     const bal = new Map([['a', 1000], ['b', 100], ['c', 5000], ['d', 5000]]);
     expect(totalBalanceMXN(accs, bal, { CAD: 14 })).toBe(2400);
+  });
+
+  it('splits balances into assets, liabilities and total like Money Manager', () => {
+    const accs = [
+      account({ id: 'debit' }),
+      account({ id: 'oro', type: 'credit_card' }),
+      account({ id: 'azul', type: 'credit_card' }),
+      account({ id: 'td', currency: 'CAD', include_in_total: false }),
+      account({ id: 'old', archived: true }),
+      account({ id: 'cad', currency: 'CAD' }),
+    ];
+    const bal = new Map([['debit', 103091.96], ['oro', -48722.03], ['azul', -5197.75], ['td', 1.3], ['old', -999], ['cad', 10]]);
+    expect(balanceSummary(accs, bal, { CAD: 13.84 })).toEqual({ assets: 103230.36, liabilities: -53919.78, total: 49310.58 });
   });
 
   it('builds the main-screen indicators', () => {

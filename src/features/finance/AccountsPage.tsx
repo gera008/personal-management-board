@@ -5,7 +5,7 @@ import { useProfile } from '@/lib/profile';
 import { money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Field, SaveBar, Sheet } from '@/components/ui';
 import { ACCOUNT_TYPES, CURRENCIES, num, type Account, type AccountType, type Currency } from '@/domain/types';
-import { totalBalanceMXN } from '@/domain/finance/totals';
+import { balanceSummary } from '@/domain/finance/totals';
 import { useAccounts, useBalances, usePendingByAccount } from './hooks';
 
 export function AccountsPage() {
@@ -19,22 +19,25 @@ export function AccountsPage() {
 
   const list = (accounts.data ?? []).filter((a) => showArchived || !a.archived);
   const bal = balances.data ?? new Map();
-  const total = totalBalanceMXN(accounts.data ?? [], bal, rates);
+  // Totals include every debt, also installments that are still pending (like Money Manager).
   const withPending = new Map([...bal].map(([id, b]) => [id, b + (pending.get(id) ?? 0)]));
-  const totalWithPending = totalBalanceMXN(accounts.data ?? [], withPending, rates);
+  const summary = balanceSummary(accounts.data ?? [], withPending, rates);
   const byType = ACCOUNT_TYPES.map((type) => ({ type, items: list.filter((a) => a.type === type) })).filter((g) => g.items.length);
 
   return (
     <div className="space-y-4">
-      <div className="card flex items-center justify-between">
-        <span className="text-sm text-muted">{t('finance.totalBalance')}</span>
-        <div className="text-right">
-          <div className={`text-xl font-bold ${total < 0 ? 'text-expense' : ''}`}>{money(total)}</div>
-          {Math.abs(totalWithPending - total) >= 0.005 && (
-            <div className="text-xs text-muted">
-              {t('finance.totalWithPending')}: {money(totalWithPending)}
-            </div>
-          )}
+      <div className="card grid grid-cols-3 gap-2 text-center">
+        <div className="min-w-0">
+          <div className="label">{t('finance.assets')}</div>
+          <div className="truncate text-base font-semibold text-income sm:text-lg">{money(summary.assets)}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="label">{t('finance.liabilities')}</div>
+          <div className="truncate text-base font-semibold text-expense sm:text-lg">{money(summary.liabilities)}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="label">{t('finance.total')}</div>
+          <div className={`truncate text-base font-bold sm:text-lg ${summary.total < 0 ? 'text-expense' : ''}`}>{money(summary.total)}</div>
         </div>
       </div>
       {list.length === 0 ? (
@@ -59,11 +62,11 @@ export function AccountsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-sm font-semibold ${b < 0 ? 'text-expense' : ''}`}>{money(b, a.currency)}</div>
-                      {a.currency !== 'MXN' && <div className="text-[11px] text-muted">{money(b * (rates[a.currency] ?? 0))}</div>}
-                      {a.type === 'credit_card' && Math.abs(p) >= 0.005 && (
+                      <div className={`text-sm font-semibold ${b + p < 0 ? 'text-expense' : ''}`}>{money(b + p, a.currency)}</div>
+                      {a.currency !== 'MXN' && <div className="text-[11px] text-muted">{money((b + p) * (rates[a.currency] ?? 0))}</div>}
+                      {Math.abs(p) >= 0.005 && (
                         <div className="text-[11px] text-muted">
-                          {t('finance.withPending')}: <span className={b + p < 0 ? 'text-expense' : ''}>{money(b + p, a.currency)}</span>
+                          {t('finance.today')}: {money(b, a.currency)}
                         </div>
                       )}
                     </div>

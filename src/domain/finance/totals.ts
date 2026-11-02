@@ -105,6 +105,29 @@ export function totalBalanceMXN(accounts: Account[], balances: Map<string, numbe
   );
 }
 
+export interface BalanceSummary {
+  assets: number;
+  liabilities: number;
+  total: number;
+}
+
+/**
+ * Money Manager style summary in MXN: accounts with a positive balance add to
+ * assets, negative ones (credit cards, overdrafts) to liabilities. Only
+ * active accounts included in totals count.
+ */
+export function balanceSummary(accounts: Account[], balances: Map<string, number>, rates: Rates): BalanceSummary {
+  let assets = 0;
+  let liabilities = 0;
+  for (const a of accounts) {
+    if (a.archived || !a.include_in_total) continue;
+    const mxn = (balances.get(a.id) ?? 0) * (a.currency === 'MXN' ? 1 : rates[a.currency] ?? 0);
+    if (mxn >= 0) assets += mxn;
+    else liabilities += mxn;
+  }
+  return { assets: round2(assets), liabilities: round2(liabilities), total: round2(assets + liabilities) };
+}
+
 export function computeIndicators(opts: {
   txs: Transaction[];
   categories: Map<string, Category>;

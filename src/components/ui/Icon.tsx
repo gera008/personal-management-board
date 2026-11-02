@@ -17,6 +17,7 @@ const paths: Record<string, string> = {
   edit: 'M4 20h4L19 9l-4-4L4 16v4z',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   user: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',
+  users: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21a7 7 0 0114 0M16 3.5a4 4 0 010 7M18 14a7 7 0 014 7',
   book: 'M4 4h10a4 4 0 014 4v12H8a4 4 0 01-4-4zM4 16a4 4 0 014-4h10',
   briefcase: 'M3 7h18v13H3zM8 7V4h8v3M3 12h18',
   star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',

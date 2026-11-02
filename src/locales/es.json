@@ -232,8 +232,11 @@
     "next": "próximo",
     "cancelSeries": "Cancelar serie",
     "cancelSeriesConfirm": "¿Cancelar esta serie? Se eliminan los pagos pendientes futuros; los pagados se conservan.",
-    "withPending": "Deuda total con pendientes",
-    "totalWithPending": "Con pendientes"
+    "assets": "Activos",
+    "liabilities": "Pasivos",
+    "today": "Hoy",
+    "paidForOthers": "Pagué por otros",
+    "paidForOthersHelp": "Un gasto que cubriste por alguien más (pareja, familia…)."
   },
   "analytics": {
     "ranges": {

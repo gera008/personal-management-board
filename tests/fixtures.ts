@@ -21,6 +21,7 @@ export function tx(p: Partial<Transaction> & Pick<Transaction, 'type' | 'occurre
     series_id: null,
     series_index: null,
     transfer_pair_id: null,
+    paid_for_others: false,
     ...p,
   };
 }
