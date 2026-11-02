@@ -3,7 +3,7 @@ import { startOfMonth, subMonths } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
-import { computeIndicators } from '@/domain/finance/totals';
+import { computeIndicators, signedAmount } from '@/domain/finance/totals';
 import type { Account, Category, Transaction } from '@/domain/types';
 
 const PAGE = 1000; // PostgREST max rows per request
@@ -51,6 +51,28 @@ export function useBalances() {
     queryFn: async () => {
       const rows = unwrap(await supabase.from('account_balances').select('account_id,balance')) as { account_id: string; balance: string }[];
       return new Map(rows.map((r) => [r.account_id, Number(r.balance)]));
+    },
+  });
+}
+
+/**
+ * Net effect of pending (future) transactions per account, in the account's currency.
+ * Balance + this = what the account will be once everything scheduled is applied
+ * (e.g. a credit card's total debt including future installments).
+ */
+export function usePendingByAccount() {
+  const accounts = useAccounts();
+  return useQuery({
+    queryKey: ['transactions', 'pending-by-account'],
+    enabled: !!accounts.data,
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase.from('transactions').select('account_id,type,direction,original_amount,currency,base_amount_mxn').eq('status', 'pending'),
+      ) as Pick<Transaction, 'account_id' | 'type' | 'direction' | 'original_amount' | 'currency' | 'base_amount_mxn'>[];
+      const currency = new Map((accounts.data ?? []).map((a) => [a.id, a.currency]));
+      const m = new Map<string, number>();
+      for (const r of rows) m.set(r.account_id, (m.get(r.account_id) ?? 0) + signedAmount(r, currency.get(r.account_id)));
+      return m;
     },
   });
 }

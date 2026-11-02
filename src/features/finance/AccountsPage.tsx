@@ -6,26 +6,36 @@ import { money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Field, SaveBar, Sheet } from '@/components/ui';
 import { ACCOUNT_TYPES, CURRENCIES, num, type Account, type AccountType, type Currency } from '@/domain/types';
 import { totalBalanceMXN } from '@/domain/finance/totals';
-import { useAccounts, useBalances } from './hooks';
+import { useAccounts, useBalances, usePendingByAccount } from './hooks';
 
 export function AccountsPage() {
   const { t } = useTranslation();
   const { rates } = useProfile();
   const accounts = useAccounts();
   const balances = useBalances();
+  const pending = usePendingByAccount().data ?? new Map<string, number>();
   const [sheet, setSheet] = useState<{ account?: Account | null } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   const list = (accounts.data ?? []).filter((a) => showArchived || !a.archived);
   const bal = balances.data ?? new Map();
   const total = totalBalanceMXN(accounts.data ?? [], bal, rates);
+  const withPending = new Map([...bal].map(([id, b]) => [id, b + (pending.get(id) ?? 0)]));
+  const totalWithPending = totalBalanceMXN(accounts.data ?? [], withPending, rates);
   const byType = ACCOUNT_TYPES.map((type) => ({ type, items: list.filter((a) => a.type === type) })).filter((g) => g.items.length);
 
   return (
     <div className="space-y-4">
       <div className="card flex items-center justify-between">
         <span className="text-sm text-muted">{t('finance.totalBalance')}</span>
-        <span className={`text-xl font-bold ${total < 0 ? 'text-expense' : ''}`}>{money(total)}</span>
+        <div className="text-right">
+          <div className={`text-xl font-bold ${total < 0 ? 'text-expense' : ''}`}>{money(total)}</div>
+          {Math.abs(totalWithPending - total) >= 0.005 && (
+            <div className="text-xs text-muted">
+              {t('finance.totalWithPending')}: {money(totalWithPending)}
+            </div>
+          )}
+        </div>
       </div>
       {list.length === 0 ? (
         <Empty action={<button className="btn-primary" onClick={() => setSheet({})}>{t('finance.newAccount')}</button>}>{t('finance.noAccounts')}</Empty>
@@ -36,6 +46,7 @@ export function AccountsPage() {
             <div className="card divide-y divide-border px-3 py-0">
               {g.items.map((a) => {
                 const b = bal.get(a.id) ?? num(a.initial_balance);
+                const p = pending.get(a.id) ?? 0;
                 return (
                   <button key={a.id} onClick={() => setSheet({ account: a })} className="flex w-full items-center gap-3 py-3 text-left">
                     <div className="min-w-0 flex-1">
@@ -50,6 +61,11 @@ export function AccountsPage() {
                     <div className="text-right">
                       <div className={`text-sm font-semibold ${b < 0 ? 'text-expense' : ''}`}>{money(b, a.currency)}</div>
                       {a.currency !== 'MXN' && <div className="text-[11px] text-muted">{money(b * (rates[a.currency] ?? 0))}</div>}
+                      {a.type === 'credit_card' && Math.abs(p) >= 0.005 && (
+                        <div className="text-[11px] text-muted">
+                          {t('finance.withPending')}: <span className={b + p < 0 ? 'text-expense' : ''}>{money(b + p, a.currency)}</span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );

@@ -237,6 +237,14 @@ export function buildImportPlan(table: unknown[][], now: Date = new Date()): Imp
   const rowKey = (r: SourceRow) =>
     [r.occurredAt.toISOString(), r.kind, r.account, r.category, r.subcategory ?? '', r.note ?? '', r.amount, r.currency, r.mxn].join('|');
 
+  // A row labelled MXN whose Amount equals the MXN column really is in pesos. On a
+  // CAD/USD account it is converted to the account's currency at the file's typical rate.
+  const isPesoRow = (r: SourceRow) => r.currency === 'MXN' && Math.abs(r.mxn - r.amount) <= 0.01;
+  const toAccountCurrency = (mxn: number, currency: Currency) => {
+    const rate = typicalRate.get(currency)!;
+    return { amount: round2(mxn / rate), rate: round2(rate * 10000) / 10000 };
+  };
+
   const transactions: PlannedTx[] = [];
   const categories = new Map<string, { type: 'expense' | 'income'; name: string; subs: Set<string> }>();
 
@@ -266,9 +274,22 @@ export function buildImportPlan(table: unknown[][], now: Date = new Date()): Imp
       pending: r.occurredAt > now,
       rows: [r.row],
     };
+    const accCur = accountCurrency(r.account);
+    if (accCur !== 'MXN' && isPesoRow(r)) {
+      Object.assign(tx, { currency: accCur, mxn: r.mxn, ...toAccountCurrency(r.mxn, accCur) });
+      issues.push({
+        id: `currency-${r.row}`,
+        kind: 'currency_account_mismatch',
+        rows: [r.row],
+        detail: { accounts: r.account, mxn: r.mxn, converted: `${tx.amount} ${accCur}` },
+        options: ['import', 'skip'],
+        defaultResolution: 'import',
+        target: tx.hash,
+      });
+    }
     transactions.push(tx);
 
-    if (r.currency === 'MXN' && Math.abs(r.mxn - r.amount) > 0.01) {
+    if (tx.currency === 'MXN' && Math.abs(r.mxn - r.amount) > 0.01) {
       issues.push({
         id: `mismatch-${r.row}`,
         kind: 'amount_mismatch',
@@ -279,7 +300,7 @@ export function buildImportPlan(table: unknown[][], now: Date = new Date()): Imp
         target: tx.hash,
         fixed: { ...tx, amount: r.mxn, mxn: r.mxn },
       });
-    } else if (r.currency !== 'MXN') {
+    } else if (tx.currency !== 'MXN' && r.currency !== 'MXN') {
       const typical = typicalRate.get(r.currency)!;
       if (Math.abs(rate - typical) / typical > 0.005) {
         issues.push({
@@ -311,7 +332,9 @@ export function buildImportPlan(table: unknown[][], now: Date = new Date()): Imp
     const s: TransferSide =
       accCur === 'MXN'
         ? { account, amount: r.mxn, currency: 'MXN', rate: 1, mxn: r.mxn }
-        : { account, amount: r.amount, currency: accCur, rate: r.mxn / r.amount, mxn: r.mxn };
+        : isPesoRow(r)
+          ? { account, currency: accCur, mxn: r.mxn, ...toAccountCurrency(r.mxn, accCur) }
+          : { account, amount: r.amount, currency: accCur, rate: r.mxn / r.amount, mxn: r.mxn };
     if (mislabelled) flag(s);
     return s;
   };

@@ -107,3 +107,38 @@ describe('Money Manager import', () => {
     expect(() => buildImportPlan([['Date', 'Amount']], NOW)).toThrow(/Missing columns/);
   });
 });
+
+describe('peso rows on a CAD account', () => {
+  // TD is a CAD account; some of its rows are labelled MXN with Amount = MXN, i.e. really pesos.
+  const t3 = new Date(2025, 7, 2);
+  const cadTable = [
+    HEADER,
+    row(new Date(2025, 6, 5), 'TD', 'Disfrutar', null, null, 2815.58, 'Exp.', 203.5, 'CAD'),
+    row(new Date(2025, 6, 7), 'TD', 'Trabajo', null, null, 21168.73, 'Income', 1530, 'CAD'),
+    row(new Date(2025, 6, 30), 'TD', 'Otros', null, null, 2.55, 'Exp.', 2.55, 'MXN'),
+    row(t3, 'Credit Card (Azul)', 'TD', null, null, 5000, 'Transfer-In', 5000, 'MXN'),
+    row(t3, 'TD', 'Credit Card (Azul)', null, null, 5000, 'Transfer-Out', 5000, 'MXN'),
+    row(new Date(2025, 7, 3), 'Credit Card (Azul)', 'Comida', null, null, 100, 'Exp.', 100),
+  ];
+  const plan = buildImportPlan(cadTable, NOW);
+  const rate = 21168.73 / 1530; // median of the file's CAD rates (two rows -> their average)
+  const typical = (2815.58 / 203.5 + rate) / 2;
+
+  it('converts a peso transfer out of a CAD account at the typical rate', () => {
+    const tr = plan.transfers[0];
+    expect(tr.out).toMatchObject({ account: 'TD', currency: 'CAD', mxn: 5000 });
+    expect(tr.out.amount).toBeCloseTo(5000 / typical, 2);
+    expect(tr.in).toMatchObject({ account: 'Credit Card (Azul)', currency: 'MXN', amount: 5000 });
+  });
+
+  it('converts a peso expense on a CAD account', () => {
+    const tx = plan.transactions.find((x) => x.mxn === 2.55)!;
+    expect(tx.currency).toBe('CAD');
+    expect(tx.amount).toBeCloseTo(2.55 / typical, 2);
+  });
+
+  it('flags both for review and leaves CAD rows untouched', () => {
+    expect(plan.issues.filter((i) => i.kind === 'currency_account_mismatch')).toHaveLength(2);
+    expect(plan.transactions.find((x) => x.mxn === 21168.73)).toMatchObject({ currency: 'CAD', amount: 1530 });
+  });
+});
