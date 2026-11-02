@@ -1,20 +1,23 @@
 // Web Push sender.
-//   {"mode":"reminders"}  called by pg_cron every 5 minutes with the service-role key:
+//   {"mode":"reminders"}  called by pg_cron every 5 minutes with the x-cron-secret header:
 //                         event reminders, task reminders, habit reminders, daily digest.
 //   {"mode":"test"}       called by the signed-in user from Settings: sends a test push.
 //
 // Secrets (supabase secrets set ...): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:...)
+// and CRON_SECRET (the same value as the `cron_secret` Vault secret used by pg_cron).
+// Deploy with --no-verify-jwt: callers are checked here (cron secret or the user's session).
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4';
 import webpush from 'npm:web-push@3.6.7';
 import { addDaysKey, occurrencesBetween, type Recurrence } from '../_shared/recurrence.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
 webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT') ?? 'mailto:admin@example.com', Deno.env.get('VAPID_PUBLIC_KEY')!, Deno.env.get('VAPID_PRIVATE_KEY')!);
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 interface Message {
@@ -183,7 +186,7 @@ Deno.serve(async (req) => {
     return Response.json({ sent }, { headers: cors });
   }
 
-  // Reminder runs are only allowed with the service-role key (pg_cron).
-  if (auth !== `Bearer ${SERVICE_KEY}`) return new Response('Forbidden', { status: 403, headers: cors });
+  // Reminder runs are only allowed for pg_cron, which sends the shared secret.
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) return new Response('Forbidden', { status: 403, headers: cors });
   return Response.json(await runReminders(db), { headers: cors });
 });

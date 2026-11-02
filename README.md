@@ -30,10 +30,10 @@ npm run build                # typecheck + production build
    npx supabase link --project-ref <ref>
    npx supabase db push
    ```
-4. Store two Vault secrets so the cron job can call the push function (SQL editor):
+4. Store two Vault secrets so the cron job can call the push function (SQL editor). `cron_secret` is any long random value; the same value goes into the `CRON_SECRET` function secret below:
    ```sql
    select vault.create_secret('https://<ref>.supabase.co', 'project_url');
-   select vault.create_secret('<service_role key>', 'service_role_key');
+   select vault.create_secret('<random value>', 'cron_secret');
    ```
 5. **Authentication › URL configuration**: set the Site URL to your deployed URL (and add `http://localhost:5173` to redirect URLs).
 
@@ -41,12 +41,15 @@ npm run build                # typecheck + production build
 
 1. Generate VAPID keys: `npx web-push generate-vapid-keys`
 2. Put the public key in `.env.local` (and in Vercel) as `VITE_VAPID_PUBLIC_KEY`.
-3. Set the function secrets and deploy:
+3. Put the function secrets in `supabase/.env` (git-ignored): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:<your email>`, `CRON_SECRET=<same value as the cron_secret Vault secret>`.
+4. Upload them and deploy the function (no Docker needed with `--use-api`):
    ```bash
-   npx supabase secrets set VAPID_PUBLIC_KEY=<public> VAPID_PRIVATE_KEY=<private> VAPID_SUBJECT=mailto:<your email>
-   npx supabase functions deploy push
+   npx supabase login
+   npx supabase secrets set --env-file supabase/.env --project-ref <ref>
+   npx supabase functions deploy push --no-verify-jwt --use-api --project-ref <ref>
    ```
-4. In the app: **Settings › Notifications › Enable**, then **Send test**.
+   `--no-verify-jwt` is intentional: the function checks callers itself (the cron secret, or the signed-in user's session for test pushes).
+5. In the app: **Settings › Notifications › Enable**, then **Send test**.
 
 Android Chrome and desktop Chrome work directly. On iOS 16.4+ the app must be added to the Home Screen first.
 
@@ -55,7 +58,7 @@ Android Chrome and desktop Chrome work directly. On iOS 16.4+ the app must be ad
 | Job | Schedule | What it does |
 |---|---|---|
 | `finance-jobs` | every 15 min | `run_finance_jobs()`: applies pending transactions whose date has arrived, tops up subscriptions (12 months ahead), closes finished series |
-| `send-reminders` | every 5 min | calls the `push` Edge Function: event reminders, task reminders, habit reminders, daily digest of tasks due (Settings › digest time, in the profile time zone) |
+| `send-reminders` | every 5 min | calls the `push` Edge Function (authenticated with the `cron_secret` header): event reminders, task reminders, habit reminders, daily digest of tasks due (Settings › digest time, in the profile time zone) |
 
 ## Deploy (Vercel)
 
