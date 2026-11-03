@@ -69,3 +69,51 @@ export function daysBetween(from: Date, to: Date): Date[] {
   for (let d = startOfDay(from); d < to; d = addDays(d, 1)) out.push(d);
   return out;
 }
+
+export interface DaySlot {
+  item: CalItem;
+  /** Minutes from midnight, clipped to the day. */
+  top: number;
+  bottom: number;
+  col: number;
+  cols: number;
+}
+
+/** Shortest block drawn, so tasks and quick events stay tappable. */
+export const MIN_SLOT_MINUTES = 30;
+
+/**
+ * Places timed items on a day's time grid: each spans its start–end minutes,
+ * and items that overlap share the width in side-by-side columns.
+ */
+export function layoutDay(items: CalItem[], day: Date): DaySlot[] {
+  const dayStart = startOfDay(day).getTime();
+  const minutes = (d: Date) => Math.min(1440, Math.max(0, (d.getTime() - dayStart) / 60000));
+  const slots = items
+    .map((item) => {
+      const top = minutes(item.start);
+      return { item, top, bottom: Math.min(1440, Math.max(minutes(item.end), top + MIN_SLOT_MINUTES)), col: 0, cols: 1 };
+    })
+    .sort((a, b) => a.top - b.top || b.bottom - a.bottom);
+
+  // Walk clusters of transitively overlapping items; each takes the first free column.
+  let cluster: DaySlot[] = [];
+  let colEnds: number[] = [];
+  let clusterEnd = -1;
+  const close = () => cluster.forEach((s) => (s.cols = colEnds.length));
+  for (const s of slots) {
+    if (s.top >= clusterEnd) {
+      close();
+      cluster = [];
+      colEnds = [];
+    }
+    let col = colEnds.findIndex((end) => end <= s.top);
+    if (col === -1) col = colEnds.push(s.bottom) - 1;
+    else colEnds[col] = s.bottom;
+    s.col = col;
+    cluster.push(s);
+    clusterEnd = Math.max(clusterEnd, s.bottom);
+  }
+  close();
+  return slots;
+}

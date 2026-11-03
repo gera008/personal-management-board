@@ -2,7 +2,7 @@ import { addDays, endOfMonth, endOfWeek, isSameDay, isSameMonth, isToday, startO
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/lib/format';
 import { Empty } from '@/components/ui';
-import { daysBetween, itemsForDay, type CalItem } from './items';
+import { daysBetween, itemsForDay, layoutDay, type CalItem } from './items';
 
 export function monthRange(month: Date, weekStartsOn: 0 | 1) {
   const from = startOfWeek(startOfMonth(month), { weekStartsOn });
@@ -125,11 +125,38 @@ export function WeekList({ start, items, onItem, onDay }: { start: Date; items: 
   );
 }
 
+const HOUR_PX = 44;
+
+/** An item on the day's time grid, filling the height of its time span. */
+function TimedBlock({ item, short, onClick }: { item: CalItem; short: boolean; onClick: () => void }) {
+  const isTask = item.kind === 'task';
+  const time = isTask ? timeLabel(item.start) : `${timeLabel(item.start)} – ${timeLabel(item.end)}`;
+  return (
+    <button
+      onClick={onClick}
+      className={`flex h-full w-full min-w-0 overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${
+        isTask ? 'border-tasks bg-tasks/15' : 'border-calendar bg-calendar/15'
+      } ${short ? 'items-center gap-1.5' : 'flex-col'} ${item.done ? 'text-muted line-through' : ''}`}
+    >
+      <span className="flex min-w-0 items-center gap-1.5">
+        {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
+        <span className="truncate font-medium">{item.title}</span>
+      </span>
+      <span className="shrink-0 truncate text-muted">{time}</span>
+      {!short && item.event?.location && <span className="truncate text-muted">{item.event.location}</span>}
+    </button>
+  );
+}
+
 export function DayView({ day, items, onItem, onHour }: { day: Date; items: CalItem[]; onItem: (i: CalItem) => void; onHour: (h: number) => void }) {
   const { t } = useTranslation();
   const dayItems = itemsForDay(items, day);
-  const allDay = dayItems.filter((i) => i.allDay || !isSameDay(i.start, day));
-  const timed = dayItems.filter((i) => !i.allDay && isSameDay(i.start, day));
+  const allDay = dayItems.filter((i) => i.allDay);
+  const slots = layoutDay(
+    dayItems.filter((i) => !i.allDay),
+    day,
+  );
+  const px = (minutes: number) => (minutes / 60) * HOUR_PX;
   return (
     <div>
       {allDay.length > 0 && (
@@ -140,20 +167,31 @@ export function DayView({ day, items, onItem, onHour }: { day: Date; items: CalI
           ))}
         </div>
       )}
-      <div className="divide-y divide-border border-y border-border">
-        {Array.from({ length: 24 }, (_, h) => {
-          const inHour = timed.filter((i) => i.start.getHours() === h);
-          return (
-            <div key={h} className="flex min-h-[2.75rem] gap-2" onClick={(e) => e.target === e.currentTarget && onHour(h)}>
-              <div className="w-12 shrink-0 pt-1 text-right text-[11px] text-muted">{String(h).padStart(2, '0')}:00</div>
-              <div className="min-w-0 flex-1 space-y-1 py-1" onClick={(e) => e.target === e.currentTarget && onHour(h)}>
-                {inHour.map((i) => (
-                  <ItemChip key={i.kind + i.id} item={i} onClick={() => onItem(i)} />
-                ))}
+      <div className="flex gap-2 border-t border-border">
+        <div className="w-12 shrink-0">
+          {Array.from({ length: 24 }, (_, h) => (
+            <div key={h} className="pt-1 text-right text-[11px] text-muted" style={{ height: HOUR_PX }}>
+              {String(h).padStart(2, '0')}:00
+            </div>
+          ))}
+        </div>
+        <div className="relative min-w-0 flex-1" style={{ height: 24 * HOUR_PX }}>
+          {Array.from({ length: 24 }, (_, h) => (
+            <div key={h} className="border-b border-border" style={{ height: HOUR_PX }} onClick={() => onHour(h)} />
+          ))}
+          {slots.map(({ item, top, bottom, col, cols }) => (
+            <div
+              key={item.kind + item.id}
+              className="absolute px-px pb-px"
+              style={{ top: px(top), height: px(bottom - top), left: `${(col / cols) * 100}%`, width: `${100 / cols}%` }}
+            >
+              {/* Solid backing so the hour lines don't show through the tinted block. */}
+              <div className="h-full rounded-md bg-bg">
+                <TimedBlock item={item} short={bottom - top < 45} onClick={() => onItem(item)} />
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
