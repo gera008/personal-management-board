@@ -5,8 +5,8 @@ import { addDays, addMonths, addWeeks, setHours, startOfDay } from 'date-fns';
 import { useProfile } from '@/lib/profile';
 import { formatDate } from '@/lib/format';
 import { Fab, Icon, PageHeader, Segmented } from '@/components/ui';
-import { useCalendarItems, itemsForDay, type CalItem } from './items';
-import { AgendaView, DayView, ItemChip, MonthGrid, WeekList, monthRange, weekRange } from './views';
+import { daysBetween, useCalendarItems, itemsForDay, type CalItem } from './items';
+import { AgendaView, ItemChip, MonthGrid, TimeGrid, monthRange, weekRange } from './views';
 import { EventSheet, type EventTarget } from './EventSheet';
 
 type View = 'month' | 'week' | 'day' | 'agenda';
@@ -72,18 +72,18 @@ export function CalendarPage() {
           </section>
         </>
       )}
-      {view === 'week' && (
-        <WeekList
-          start={range.from}
+      {(view === 'week' || view === 'day') && (
+        <TimeGrid
+          days={view === 'week' ? daysBetween(range.from, range.to) : [cursor]}
           items={items}
           onItem={openItem}
+          onSlot={(d, h) => setSheet({ defaultStart: setHours(d, h) })}
           onDay={(d) => {
             setCursor(d);
             setView('day');
           }}
         />
       )}
-      {view === 'day' && <DayView day={cursor} items={items} onItem={openItem} onHour={(h) => setSheet({ defaultStart: setHours(cursor, h) })} />}
       {view === 'agenda' && <AgendaView from={range.from} to={range.to} items={items} onItem={openItem} />}
 
       <Fab accent="ring-calendar" label={t('calendar.newEvent')} onClick={() => setSheet({ defaultStart: view === 'agenda' ? undefined : setHours(cursor, Math.max(9, new Date().getHours() + 1)) })} />
