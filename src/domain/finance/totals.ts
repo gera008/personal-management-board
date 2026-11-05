@@ -85,6 +85,8 @@ export interface Indicators {
   lastMonth: number;
   monthChangePct: number | null;
   thisWeek: number;
+  /** The month's spending spread evenly over its weeks (for past months, where "this week" means nothing). */
+  weekAverage: number;
   top3: CategoryAmount[];
   totalBalance: number;
 }
@@ -149,6 +151,7 @@ export function computeIndicators(opts: {
     lastMonth,
     monthChangePct: pctChange(thisMonth, lastMonth),
     thisWeek: totalExpenses(txs, wStart, new Date(wStart.getTime() + 7 * 86400000)),
+    weekAverage: round2(thisMonth / (getDaysInMonth(mStart) / 7)),
     top3: spendingByCategory(txs, categories, mStart, mEnd).slice(0, 3),
     totalBalance: totalBalanceMXN(opts.accounts, opts.balances, opts.rates),
   };

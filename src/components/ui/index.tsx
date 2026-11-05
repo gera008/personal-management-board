@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { addMonths, isSameMonth, startOfMonth } from 'date-fns';
+import { formatDate } from '@/lib/format';
 import { Icon } from './Icon';
 
 export { Icon } from './Icon';
@@ -202,6 +204,35 @@ export function TagInput({ value, onChange, placeholder }: { value: string[]; on
         }}
         onBlur={add}
       />
+    </div>
+  );
+}
+
+/**
+ * Compact "‹ November 2026 ›" month switcher. Tapping the month name jumps
+ * back to the current month when another one is showing.
+ */
+export function MonthPicker({ month, onChange, className = '' }: { month: Date; onChange: (m: Date) => void; className?: string }) {
+  const { t } = useTranslation();
+  const isCurrent = isSameMonth(month, new Date());
+  const arrow = 'flex h-7 w-7 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-current';
+  return (
+    <div className={`flex justify-center ${className}`}>
+      <div className="inline-flex items-center gap-1 rounded-full border border-border p-0.5">
+        <button className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, -1)))} aria-label={t('common.previous')}>
+          <Icon name="chevronLeft" size={16} />
+        </button>
+        <button
+          className={`min-w-[8.5rem] px-1 text-center text-sm font-semibold capitalize ${isCurrent ? 'cursor-default' : 'hover:underline'}`}
+          onClick={() => !isCurrent && onChange(startOfMonth(new Date()))}
+          title={isCurrent ? undefined : t('finance.thisMonth')}
+        >
+          {formatDate(month, 'MMMM yyyy')}
+        </button>
+        <button className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, 1)))} aria-label={t('common.next')}>
+          <Icon name="chevronRight" size={16} />
+        </button>
+      </div>
     </div>
   );
 }

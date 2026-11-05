@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { startOfMonth, subMonths } from 'date-fns';
+import { addMonths, isSameMonth, startOfMonth, subMonths } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
@@ -9,22 +9,23 @@ import type { Account, Category, Transaction } from '@/domain/types';
 const PAGE = 1000; // PostgREST max rows per request
 
 /** Fetches every matching transaction, paging past the 1000-row limit. */
-export async function fetchTransactions(from?: Date): Promise<Transaction[]> {
+export async function fetchTransactions(from?: Date, to?: Date): Promise<Transaction[]> {
   const out: Transaction[] = [];
   for (let page = 0; ; page++) {
     let q = supabase.from('transactions').select('*').order('occurred_at', { ascending: false }).order('id');
     if (from) q = q.gte('occurred_at', from.toISOString());
+    if (to) q = q.lt('occurred_at', to.toISOString());
     const rows = unwrap(await q.range(page * PAGE, page * PAGE + PAGE - 1)) as Transaction[];
     out.push(...rows);
     if (rows.length < PAGE) return out;
   }
 }
 
-/** Transactions since a date (or all of them), cached under the transactions key. */
-export function useTransactions(from?: Date) {
+/** Transactions since a date (or all of them), optionally before another; cached under the transactions key. */
+export function useTransactions(from?: Date, to?: Date) {
   return useQuery({
-    queryKey: ['transactions', from?.toISOString() ?? 'all'],
-    queryFn: () => fetchTransactions(from),
+    queryKey: ['transactions', from?.toISOString() ?? 'all', to?.toISOString() ?? 'open'],
+    queryFn: () => fetchTransactions(from, to),
   });
 }
 
@@ -77,10 +78,14 @@ export function usePendingByAccount() {
   });
 }
 
-export function useIndicators() {
+/** Spending indicators for a month (the current one by default) and the month before it. */
+export function useIndicators(month?: Date) {
   const { rates, weekStartsOn } = useProfile();
-  const from = startOfMonth(subMonths(new Date(), 1));
-  const txs = useTransactions(from);
+  const current = !month || isSameMonth(month, new Date());
+  const mStart = startOfMonth(month ?? new Date());
+  const from = subMonths(mStart, 1);
+  // The current month stays open-ended so this week's spending is complete across a month change.
+  const txs = useTransactions(from, current ? undefined : addMonths(mStart, 1));
   const accounts = useAccounts();
   const categories = useCategories();
   const balances = useBalances();
@@ -90,6 +95,7 @@ export function useIndicators() {
   const withPending = ready ? new Map([...balances.data!].map(([id, b]) => [id, b + (pending.data!.get(id) ?? 0)])) : new Map<string, number>();
   return {
     isLoading: !ready,
+    current,
     categories,
     accounts: accounts.data ?? [],
     balances: balances.data ?? new Map<string, number>(),
@@ -100,7 +106,7 @@ export function useIndicators() {
           accounts: accounts.data as Account[],
           balances: withPending,
           rates,
-          now: new Date(),
+          now: current ? new Date() : mStart,
           weekStartsOn,
         })
       : null,

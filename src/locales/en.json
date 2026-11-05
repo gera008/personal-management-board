@@ -272,7 +272,10 @@
     "paymentsCount_other": "{{count}} payments",
     "upcomingPayments": "Upcoming payments",
     "paidPayments": "Paid",
-    "noPaymentsYet": "No payments yet."
+    "noPaymentsYet": "No payments yet.",
+    "weekAverage": "Weekly average",
+    "spentIn": "Spent in {{month}}",
+    "topCategoriesIn": "Top categories in {{month}}"
   },
   "analytics": {
     "ranges": {

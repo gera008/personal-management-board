@@ -119,6 +119,12 @@ describe('finance totals', () => {
     expect(ind.thisWeek).toBe(400); // Mon Nov 9 – Sun Nov 15
   });
 
+  it('reports a past month with its weekly average', () => {
+    const ind = computeIndicators({ txs, categories: cats, accounts: [], balances: new Map(), rates: {}, now: new Date(2026, 9, 1), weekStartsOn: 0 });
+    expect(ind.thisMonth).toBe(500);
+    expect(ind.weekAverage).toBe(112.9); // 500 over October's 31/7 weeks
+  });
+
   it('builds a 12-month trend', () => {
     const t = monthlyTrend(txs, NOW);
     expect(t).toHaveLength(12);
@@ -163,3 +169,4 @@ describe('finance totals', () => {
     expect(w[2].total).toBe(288.4); // Tuesdays Nov 3, 10
   });
 });
+

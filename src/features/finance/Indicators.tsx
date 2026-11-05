@@ -1,22 +1,27 @@
 import { useTranslation } from 'react-i18next';
-import { money, pct } from '@/lib/format';
+import { formatDate, money, pct } from '@/lib/format';
 import { Collapsible } from '@/components/ui';
 import { categoryName, useIndicators } from './hooks';
 
-/** Week and month spending, and the top categories. Collapsible so it stays out of the way. */
-export function Indicators({ storageKey = 'finance-indicators', title }: { storageKey?: string; title?: string }) {
+/**
+ * Week and month spending, and the top categories, for the current month or
+ * the one picked (past months show the weekly average instead of "this week").
+ * Collapsible so it stays out of the way.
+ */
+export function Indicators({ storageKey = 'finance-indicators', title, month }: { storageKey?: string; title?: string; month?: Date }) {
   const { t } = useTranslation();
-  const { indicators: ind, categories } = useIndicators();
+  const { indicators: ind, categories, current } = useIndicators(month);
+  const monthName = month ? formatDate(month, 'MMMM yyyy') : '';
   return (
     <Collapsible title={title ?? t('finance.indicators')} storageKey={storageKey}>
       {!ind ? (
         <div className="h-24 animate-pulse rounded-lg bg-surface" />
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <Stat label={t('finance.spentWeek')} value={money(ind.thisWeek)} />
-          <Stat label={t('finance.spentMonth')} value={money(ind.thisMonth)} sub={`${pct(ind.monthChangePct)} ${t('finance.vsLastMonth')}`} subTone={ind.monthChangePct != null && ind.monthChangePct > 0 ? 'text-expense' : 'text-income'} />
+          {current ? <Stat label={t('finance.spentWeek')} value={money(ind.thisWeek)} /> : <Stat label={t('finance.weekAverage')} value={money(ind.weekAverage)} />}
+          <Stat label={current ? t('finance.spentMonth') : t('finance.spentIn', { month: monthName })} value={money(ind.thisMonth)} sub={`${pct(ind.monthChangePct)} ${t('finance.vsLastMonth')}`} subTone={ind.monthChangePct != null && ind.monthChangePct > 0 ? 'text-expense' : 'text-income'} />
           <div className="col-span-2">
-            <div className="label">{t('finance.topCategories')}</div>
+            <div className="label">{current ? t('finance.topCategories') : t('finance.topCategoriesIn', { month: monthName })}</div>
             {ind.top3.length === 0 ? (
               <p className="text-sm text-muted">{t('finance.noSpending')}</p>
             ) : (

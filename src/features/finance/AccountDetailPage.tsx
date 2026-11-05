@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { addMonths, endOfMonth, isSameMonth, startOfMonth } from 'date-fns';
+import { endOfMonth, startOfMonth } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useProfile } from '@/lib/profile';
 import { formatDate, money } from '@/lib/format';
-import { Empty, Fab, Icon } from '@/components/ui';
+import { Empty, Fab, Icon, MonthPicker } from '@/components/ui';
 import { isoToDateKey } from '@/domain/dates';
 import { num, type Transaction } from '@/domain/types';
 import { useAccounts, useBalances, useCategories, usePendingByAccount } from './hooks';
@@ -103,20 +103,7 @@ export function AccountDetailPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <button className="btn-ghost px-2" onClick={() => setMonth(addMonths(month, -1))} aria-label={t('common.previous')}>
-          <Icon name="chevronLeft" size={18} />
-        </button>
-        <h3 className="flex-1 text-center font-semibold capitalize">{formatDate(month, 'MMMM yyyy')}</h3>
-        <button className="btn-ghost px-2" onClick={() => setMonth(addMonths(month, 1))} aria-label={t('common.next')}>
-          <Icon name="chevronRight" size={18} />
-        </button>
-      </div>
-      {!isSameMonth(month, new Date()) && (
-        <button className="mx-auto -mt-2 block text-xs text-muted underline" onClick={() => setMonth(startOfMonth(new Date()))}>
-          {t('finance.thisMonth')}
-        </button>
-      )}
+      <MonthPicker month={month} onChange={setMonth} />
 
       <div className="card grid grid-cols-3 gap-2 text-center">
         <div className="min-w-0">

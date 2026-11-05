@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { startOfMonth, subMonths } from 'date-fns';
+import { addMonths, startOfMonth } from 'date-fns';
 import { money, formatDate } from '@/lib/format';
-import { Empty, Fab, Icon } from '@/components/ui';
+import { Empty, Fab, Icon, MonthPicker } from '@/components/ui';
 import { isoToDateKey } from '@/domain/dates';
 import { num, type Account, type Category, type Transaction } from '@/domain/types';
 import { categoryName, useAccounts, useCategories, useTransactions } from './hooks';
@@ -11,10 +11,9 @@ import { TransactionSheet } from './TransactionSheet';
 
 export function FinanceHome() {
   const { t } = useTranslation();
-  const [monthsBack, setMonthsBack] = useState(0);
+  const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [sheet, setSheet] = useState<{ tx?: Transaction | null } | null>(null);
-  const from = useMemo(() => startOfMonth(subMonths(new Date(), monthsBack)), [monthsBack]);
-  const txs = useTransactions(from);
+  const txs = useTransactions(month, addMonths(month, 1));
   const accounts = useAccounts();
   const cats = useCategories();
   const accById = new Map((accounts.data ?? []).map((a) => [a.id, a]));
@@ -32,12 +31,13 @@ export function FinanceHome() {
 
   return (
     <div className="space-y-4">
-      <Indicators />
+      <Indicators month={month} />
+      <MonthPicker month={month} onChange={setMonth} />
 
       {txs.isLoading ? (
         <div className="h-40 animate-pulse rounded-xl bg-surface" />
       ) : groups.length === 0 ? (
-        <Empty>{(accounts.data ?? []).length === 0 ? t('finance.startWithAccount') : t('finance.noTransactions')}</Empty>
+        <Empty>{(accounts.data ?? []).length === 0 ? t('finance.startWithAccount') : t('finance.noTransactionsMonth')}</Empty>
       ) : (
         groups.map(([day, list]) => {
           const net = list.reduce((s, x) => s + (x.type === 'expense' ? -num(x.base_amount_mxn) : x.type === 'income' ? num(x.base_amount_mxn) : 0), 0);
@@ -56,10 +56,6 @@ export function FinanceHome() {
           );
         })
       )}
-
-      <button className="btn-ghost w-full" onClick={() => setMonthsBack(monthsBack + 1)} disabled={txs.isFetching}>
-        {t('finance.loadEarlier', { month: formatDate(subMonths(from, 1), 'MMMM yyyy') })}
-      </button>
 
       <Fab label={t('finance.newTransaction')} onClick={() => setSheet({})} />
       <TransactionSheet open={!!sheet} onClose={() => setSheet(null)} tx={sheet?.tx} />
