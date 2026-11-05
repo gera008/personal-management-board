@@ -303,7 +303,16 @@
     "budgets": "Budget progress",
     "weekday": "Spending by day of week",
     "weekdayHelp": "Average per day over the last 3 months (not affected by the filter).",
-    "day": "day"
+    "day": "day",
+    "bySubcategory": "Spending by subcategory",
+    "weekly": "Spending per week",
+    "weeklyAverage": "Weekly average",
+    "highestWeek": "Highest week",
+    "weekOf": "Week of {{date}}",
+    "thisWeek": "This week",
+    "vsAverage": "vs average",
+    "weeksCount": "Weeks",
+    "weeklyHelp": "Last 12 weeks for This week / This month; otherwise every week of the period. The dashed line is the average of full weeks."
   },
   "import": {
     "title": "Import from Money Manager",

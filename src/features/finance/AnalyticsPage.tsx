@@ -1,13 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { addDays, addMonths, addYears, differenceInCalendarMonths, startOfDay, startOfMonth, startOfWeek, startOfYear, subMonths } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { addDays, addMonths, addWeeks, addYears, differenceInCalendarMonths, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, subMonths } from 'date-fns';
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useProfile } from '@/lib/profile';
 import { useThemeColors } from '@/lib/themeColors';
 import { formatDate, money, pct } from '@/lib/format';
 import { Empty, Segmented } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
-import { balanceEvolution, monthlyTrend, monthOverMonth, monthProjection, spendingByCategory, topNotes, weekdaySpending } from '@/domain/finance/totals';
+import { balanceEvolution, monthlyTrend, monthOverMonth, monthProjection, spendingByCategory, spendingBySubcategory, weekdaySpending, weeklySpending } from '@/domain/finance/totals';
 import { categoryName, useAccounts, useCategories, useTransactions } from './hooks';
 import { BudgetList } from './BudgetsPage';
 
@@ -59,7 +59,24 @@ export function AnalyticsPage() {
   const trend = monthlyTrend(all, monthsEnd, months).map((p) => ({ ...p, label: formatDate(`${p.month}-01`, months > 12 ? 'MMM yy' : 'MMM') }));
   const mom = monthOverMonth(all, cats.byId, now);
   const proj = monthProjection(all, now);
-  const notes = topNotes(all, from, to);
+  const subs = spendingBySubcategory(all, from, to);
+  const maxSub = Math.max(...subs.map((x) => x.amount), 1);
+  const subLabel = (id: string | null) => {
+    const c = id ? cats.byId.get(id) : undefined;
+    if (!c) return t('finance.uncategorized');
+    return c.parent_id ? `${categoryName(cats.byId, c.parent_id, '')} › ${c.name}` : c.name;
+  };
+
+  // Weekly spending: the last 12 weeks for week/month, otherwise every week of the period (2 years at most).
+  const thisWeek = startOfWeek(now, { weekStartsOn });
+  const weeksTo = range === 'week' || range === 'month' ? addWeeks(thisWeek, 1) : to < tomorrow ? to : tomorrow;
+  const weeksFrom = range === 'week' || range === 'month' ? addWeeks(thisWeek, -11) : from > addWeeks(weeksTo, -104) ? from : addWeeks(weeksTo, -104);
+  const weeks = weeklySpending(all, weeksFrom, weeksTo, weekStartsOn).map((w) => ({ ...w, label: formatDate(w.start, 'd MMM') }));
+  // The running week is still filling up, so it stays out of the average and the record.
+  const fullWeeks = weeks.filter((w) => !isSameDay(w.start, thisWeek));
+  const weekAvg = fullWeeks.length ? fullWeeks.reduce((sum, w) => sum + w.total, 0) / fullWeeks.length : 0;
+  const topWeek = fullWeeks.reduce<(typeof weeks)[number] | null>((best, w) => (!best || w.total > best.total ? w : best), null);
+  const current = weeks.find((w) => isSameDay(w.start, thisWeek));
   const accs = accounts.data ?? [];
   const evolution = balanceEvolution(accs, all, rates, monthsEnd, months).map((p) => ({
     label: formatDate(`${p.month}-01`, 'MMM yy'),
@@ -134,6 +151,34 @@ export function AnalyticsPage() {
           </ResponsiveContainer>
         </ChartCard>
 
+        <ChartCard title={t('analytics.weekly')} className="md:col-span-2">
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            <Tile label={t('analytics.weeklyAverage')} value={money(weekAvg)} />
+            <Tile label={t('analytics.highestWeek')} value={topWeek ? money(topWeek.total) : '—'} sub={topWeek ? t('analytics.weekOf', { date: formatDate(topWeek.start, 'd MMM yy') }) : undefined} />
+            {current ? (
+              <Tile
+                label={t('analytics.thisWeek')}
+                value={money(current.total)}
+                sub={weekAvg ? `${pct(((current.total - weekAvg) / weekAvg) * 100)} ${t('analytics.vsAverage')}` : undefined}
+                subTone={weekAvg && current.total > weekAvg ? 'text-expense' : 'text-income'}
+              />
+            ) : (
+              <Tile label={t('analytics.weeksCount')} value={String(weeks.length)} />
+            )}
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={weeks} margin={{ left: 0, right: 8 }}>
+              <CartesianGrid vertical={false} stroke={colors.border} />
+              <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
+              <YAxis {...axis} tickFormatter={compact} width={52} />
+              <Tooltip formatter={(v: number) => money(v)} labelFormatter={(l: string) => t('analytics.weekOf', { date: l })} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
+              {weekAvg > 0 && <ReferenceLine y={weekAvg} stroke={colors.muted} strokeDasharray="4 4" />}
+              <Bar dataKey="total" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="mt-1 text-xs text-muted">{t('analytics.weeklyHelp')}</p>
+        </ChartCard>
+
         <ChartCard title={t('analytics.mom')}>
           {mom.length === 0 ? (
             <p className="text-sm text-muted">{t('finance.noSpending')}</p>
@@ -161,17 +206,22 @@ export function AnalyticsPage() {
           )}
         </ChartCard>
 
-        <ChartCard title={t('analytics.topNotes')}>
-          {notes.length === 0 ? (
-            <p className="text-sm text-muted">{t('analytics.noNotes')}</p>
+        <ChartCard title={t('analytics.bySubcategory')}>
+          {subs.length === 0 ? (
+            <p className="text-sm text-muted">{t('finance.noSpending')}</p>
           ) : (
-            <ol className="space-y-1.5 text-sm">
-              {notes.map((n, i) => (
-                <li key={n.note} className="flex items-center gap-2">
-                  <span className="w-5 text-xs text-muted">{i + 1}</span>
-                  <span className="flex-1 truncate">{n.note}</span>
-                  <span className="text-xs text-muted">×{n.count}</span>
-                  <span className="w-24 text-right font-medium">{money(n.amount)}</span>
+            <ol className="space-y-2 text-sm">
+              {subs.map((x, i) => (
+                <li key={x.categoryId ?? 'none'}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 text-xs text-muted">{i + 1}</span>
+                    <span className="flex-1 truncate">{subLabel(x.categoryId)}</span>
+                    <span className="text-xs text-muted">×{x.count}</span>
+                    <span className="w-24 text-right font-medium">{money(x.amount)}</span>
+                  </div>
+                  <div className="ml-7 mt-1 h-1 rounded-full bg-surface">
+                    <div className="h-full rounded-full bg-expense" style={{ width: `${(x.amount / maxSub) * 100}%` }} />
+                  </div>
                 </li>
               ))}
             </ol>
@@ -240,11 +290,12 @@ function ChartCard({ title, children, className = '', right }: { title: string; 
   );
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
+function Tile({ label, value, sub, subTone = 'text-muted' }: { label: string; value: string; sub?: string; subTone?: string }) {
   return (
     <div className="min-w-0 rounded-lg bg-surface p-2">
       <div className="text-[11px] text-muted">{label}</div>
       <div className="truncate text-base font-semibold">{value}</div>
+      {sub && <div className={`truncate text-[11px] ${subTone}`}>{sub}</div>}
     </div>
   );
 }

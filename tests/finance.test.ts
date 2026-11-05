@@ -12,6 +12,8 @@ import {
   totalBalanceMXN,
   totalExpenses,
   weekdaySpending,
+  weeklySpending,
+  spendingBySubcategory,
 } from '../src/domain/finance/totals';
 import { account, category, tx } from './fixtures';
 
@@ -170,3 +172,35 @@ describe('finance totals', () => {
   });
 });
 
+
+describe('weekly and subcategory spending', () => {
+  const at = (m: number, day: number) => new Date(2026, m, day, 12).toISOString();
+  const list = [
+    tx({ type: 'expense', original_amount: 100, occurred_at: at(10, 2), category_id: 'food', subcategory_id: 'rest' }), // Mon Nov 2
+    tx({ type: 'expense', original_amount: 50, occurred_at: at(10, 7), category_id: 'food', subcategory_id: 'rest' }), // Sat Nov 7
+    tx({ type: 'expense', original_amount: 30, occurred_at: at(10, 8), category_id: 'food' }), // Sun Nov 8
+    tx({ type: 'expense', original_amount: 999, occurred_at: at(10, 9), category_id: 'food', status: 'pending' }),
+    tx({ type: 'income', original_amount: 500, occurred_at: at(10, 9) }),
+  ];
+
+  it('totals each week from the configured week start', () => {
+    const weeks = weeklySpending(list, new Date(2026, 10, 1), new Date(2026, 10, 15), 0);
+    expect(weeks.map((w) => [w.start.getDate(), w.total])).toEqual([
+      [1, 150],
+      [8, 30],
+    ]);
+    const mondays = weeklySpending(list, new Date(2026, 10, 1), new Date(2026, 10, 15), 1);
+    expect(mondays.map((w) => [w.start.getDate(), w.total])).toEqual([
+      [26, 0],
+      [2, 180],
+      [9, 0],
+    ]);
+  });
+
+  it('groups by subcategory, falling back to the category', () => {
+    expect(spendingBySubcategory(list, new Date(2026, 10, 1), new Date(2026, 11, 1))).toEqual([
+      { categoryId: 'rest', amount: 150, count: 2 },
+      { categoryId: 'food', amount: 30, count: 1 },
+    ]);
+  });
+});

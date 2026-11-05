@@ -1,6 +1,8 @@
 import {
   addMonths,
+  addWeeks,
   differenceInCalendarDays,
+  differenceInCalendarWeeks,
   endOfMonth,
   format,
   getDaysInMonth,
@@ -278,4 +280,42 @@ export function weekdaySpending(txs: Transaction[], from: Date, to: Date): { wee
     totals[new Date(t.occurred_at).getDay()] += num(t.base_amount_mxn);
   }
   return totals.map((total, weekday) => ({ weekday, total: round2(total), average: days[weekday] ? round2(total / days[weekday]) : 0 }));
+}
+
+/**
+ * Spending per subcategory (falling back to the category when an expense has
+ * none), largest first. `parentId` lets the screen show "Category › Sub".
+ */
+export function spendingBySubcategory(
+  txs: Transaction[],
+  from: Date,
+  to: Date,
+  limit = 10,
+): { categoryId: string | null; amount: number; count: number }[] {
+  const m = new Map<string | null, { amount: number; count: number }>();
+  for (const t of txs) {
+    if (t.type !== 'expense' || !isApplied(t) || !inRange(t, from, to)) continue;
+    const id = t.subcategory_id ?? t.category_id;
+    const e = m.get(id) ?? { amount: 0, count: 0 };
+    e.amount += num(t.base_amount_mxn);
+    e.count++;
+    m.set(id, e);
+  }
+  return [...m.entries()]
+    .map(([categoryId, e]) => ({ categoryId, amount: round2(e.amount), count: e.count }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+}
+
+/** Expense total of every week (by the user's week start) that overlaps [from, to). */
+export function weeklySpending(txs: Transaction[], from: Date, to: Date, weekStartsOn: 0 | 1): { start: Date; total: number }[] {
+  const weeks: { start: Date; total: number }[] = [];
+  for (let s = startOfWeek(from, { weekStartsOn }); s < to; s = addWeeks(s, 1)) weeks.push({ start: s, total: 0 });
+  if (!weeks.length) return weeks;
+  for (const t of txs) {
+    if (t.type !== 'expense' || !isApplied(t) || !inRange(t, from, to)) continue;
+    const i = differenceInCalendarWeeks(new Date(t.occurred_at), weeks[0].start, { weekStartsOn });
+    if (i >= 0 && i < weeks.length) weeks[i].total += num(t.base_amount_mxn);
+  }
+  return weeks.map((w) => ({ ...w, total: round2(w.total) }));
 }

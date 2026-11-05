@@ -303,7 +303,16 @@
     "budgets": "Avance de presupuestos",
     "weekday": "Gasto por día de la semana",
     "weekdayHelp": "Promedio por día de los últimos 3 meses (no cambia con el filtro).",
-    "day": "día"
+    "day": "día",
+    "bySubcategory": "Gasto por subcategoría",
+    "weekly": "Gasto por semana",
+    "weeklyAverage": "Promedio semanal",
+    "highestWeek": "Semana más alta",
+    "weekOf": "Semana del {{date}}",
+    "thisWeek": "Esta semana",
+    "vsAverage": "vs promedio",
+    "weeksCount": "Semanas",
+    "weeklyHelp": "Últimas 12 semanas en Esta semana / Este mes; en los demás filtros, cada semana del periodo. La línea punteada es el promedio de las semanas completas."
   },
   "import": {
     "title": "Importar desde Money Manager",
