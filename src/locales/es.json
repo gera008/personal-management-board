@@ -255,7 +255,17 @@
     "payoffHelp": "Se borran los pagos futuros y se registra un solo gasto por el monto pagado. Los pagos ya hechos se conservan. El pago de la tarjeta regístralo aparte como transferencia, como siempre.",
     "payoffConfirm": "Liquidar",
     "payoffNote": "liquidación",
-    "payoff": "liquidación"
+    "payoff": "liquidación",
+    "balance": "Saldo",
+    "thisMonth": "Ir a este mes",
+    "net": "Neto",
+    "moneyIn": "Entradas",
+    "moneyOut": "Salidas",
+    "noTransactionsMonth": "Sin movimientos en este mes.",
+    "chooseAccount": "Elige una cuenta",
+    "add": "Sumar",
+    "subtract": "Restar",
+    "incompleteMath": "Termina la operación"
   },
   "analytics": {
     "ranges": {

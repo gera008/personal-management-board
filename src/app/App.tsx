@@ -10,6 +10,7 @@ import { TasksPage } from '@/features/tasks/TasksPage';
 import { FinanceLayout } from '@/features/finance/FinanceLayout';
 import { FinanceHome } from '@/features/finance/FinanceHome';
 import { AccountsPage } from '@/features/finance/AccountsPage';
+import { AccountDetailPage } from '@/features/finance/AccountDetailPage';
 import { CategoriesPage } from '@/features/finance/CategoriesPage';
 import { BudgetsPage } from '@/features/finance/BudgetsPage';
 import { RecurringPage } from '@/features/finance/RecurringPage';
@@ -39,6 +40,7 @@ export function App() {
               <Route path="finance" element={<FinanceLayout />}>
                 <Route index element={<FinanceHome />} />
                 <Route path="accounts" element={<AccountsPage />} />
+                <Route path="accounts/:id" element={<AccountDetailPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="budgets" element={<BudgetsPage />} />
                 <Route path="recurring" element={<RecurringPage />} />

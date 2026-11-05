@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
@@ -16,6 +17,7 @@ export function AccountsPage() {
   const pending = usePendingByAccount().data ?? new Map<string, number>();
   const [sheet, setSheet] = useState<{ account?: Account | null } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const navigate = useNavigate();
 
   const list = (accounts.data ?? []).filter((a) => showArchived || !a.archived);
   const bal = balances.data ?? new Map();
@@ -51,7 +53,7 @@ export function AccountsPage() {
                 const b = bal.get(a.id) ?? num(a.initial_balance);
                 const p = pending.get(a.id) ?? 0;
                 return (
-                  <button key={a.id} onClick={() => setSheet({ account: a })} className="flex w-full items-center gap-3 py-3 text-left">
+                  <button key={a.id} onClick={() => navigate(a.id)} className="flex w-full items-center gap-3 py-3 text-left">
                     <div className="min-w-0 flex-1">
                       <div className={`truncate text-sm font-medium ${a.archived ? 'text-muted line-through' : ''}`}>{a.name}</div>
                       <div className="text-xs text-muted">
@@ -87,7 +89,7 @@ export function AccountsPage() {
   );
 }
 
-function AccountSheet({ open, account, onClose, position }: { open: boolean; account?: Account | null; onClose: () => void; position: number }) {
+export function AccountSheet({ open, account, onClose, position }: { open: boolean; account?: Account | null; onClose: () => void; position: number }) {
   const { t } = useTranslation();
   const save = useSave('accounts');
   const remove = useRemove('accounts');

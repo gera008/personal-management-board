@@ -8,6 +8,7 @@ import { money } from '@/lib/format';
 import { ErrorText, Field, SaveBar, Segmented, Sheet } from '@/components/ui';
 import { CURRENCIES, num, type Currency, type Transaction, type TxType } from '@/domain/types';
 import { useAccounts, useCategories } from './hooks';
+import { AmountInput, amountValue } from './AmountInput';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -39,7 +40,7 @@ interface Form {
   paid_for_others: boolean;
 }
 
-export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose: () => void; tx?: Transaction | null }) {
+export function TransactionSheet({ open, onClose, tx, accountId }: { open: boolean; onClose: () => void; tx?: Transaction | null; /** Preselects this account for a new entry (opened from an account's page). */ accountId?: string }) {
   const { t } = useTranslation();
   const { rates } = useProfile();
   const accounts = (useAccounts().data ?? []).filter((a) => !a.archived || a.id === tx?.account_id);
@@ -73,8 +74,9 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
     setError(null);
     setPair(null);
     if (!tx) {
-      const first = accounts[0];
-      setF({ ...blank(), account_id: first?.id ?? '', currency: first?.currency ?? 'MXN', rate: String(first ? rateFor(first.currency) : 1) });
+      // No account is preselected (so nothing lands in the wrong one by accident), except when opened from an account's page.
+      const chosen = accountId ? accounts.find((a) => a.id === accountId) : undefined;
+      setF({ ...blank(), account_id: chosen?.id ?? '', currency: chosen?.currency ?? 'MXN', rate: String(chosen ? rateFor(chosen.currency) : 1) });
       return;
     }
     const base: Form = {
@@ -124,10 +126,10 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
 
   // Suggest the destination amount from settings rates when currencies differ.
   useEffect(() => {
-    if (!crossCurrency || !fromAcc || !toAcc || !f.amount || f.to_amount) return;
+    if (!crossCurrency || !fromAcc || !toAcc || !(amountValue(f.amount) > 0) || f.to_amount) return;
     const fromRate = rateFor(fromAcc.currency);
     const toRate = rateFor(toAcc.currency);
-    if (fromRate && toRate) setF((x) => ({ ...x, to_amount: String(round2((Number(x.amount) * fromRate) / toRate)) }));
+    if (fromRate && toRate) setF((x) => ({ ...x, to_amount: String(round2((amountValue(x.amount) * fromRate) / toRate)) }));
   }, [crossCurrency, f.amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (e: FormEvent) => {
@@ -137,12 +139,12 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
     try {
       const when = timestampFor(f.occurred_at, tx?.occurred_at);
       const status = when > new Date() ? 'pending' : 'applied';
-      const amount = Number(f.amount);
+      const amount = amountValue(f.amount);
       if (!(amount > 0)) throw new Error(t('finance.amountRequired'));
 
       if (f.type === 'transfer') {
         if (!fromAcc || !toAcc || fromAcc.id === toAcc.id) throw new Error(t('finance.transferAccounts'));
-        const toAmount = crossCurrency ? Number(f.to_amount) : amount;
+        const toAmount = crossCurrency ? amountValue(f.to_amount) : amount;
         if (!(toAmount > 0)) throw new Error(t('finance.amountRequired'));
         // MXN value of the transfer: taken from whichever side is MXN, else from settings rates.
         const mxn = fromAcc.currency === 'MXN' ? amount : toAcc.currency === 'MXN' ? toAmount : round2(amount * rateFor(fromAcc.currency));
@@ -229,7 +231,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <Field label={f.type === 'transfer' && crossCurrency ? `${t('finance.amount')} (${fromAcc?.currency})` : t('finance.amount')}>
-            <input className={`input text-lg font-semibold ${accent}`} inputMode="decimal" required autoFocus={!tx} placeholder="0.00" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value.replace(',', '.') })} />
+            <AmountInput className={`text-lg font-semibold ${accent}`} required autoFocus={!tx} currency={f.type === 'transfer' ? fromAcc?.currency : f.currency} value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} />
           </Field>
           {f.type !== 'transfer' && (
             <Field label={t('finance.currency')}>
@@ -245,7 +247,7 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
           <Field label={t('finance.rateTo', { currency: f.currency })}>
             <div className="flex items-center gap-2">
               <input className="input" inputMode="decimal" required value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
-              <span className="shrink-0 text-sm text-muted">= {money(round2(Number(f.amount || 0) * Number(f.rate || 0)))}</span>
+              <span className="shrink-0 text-sm text-muted">= {money(round2((amountValue(f.amount) || 0) * Number(f.rate || 0)))}</span>
             </div>
           </Field>
         )}
@@ -282,10 +284,10 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
             </div>
             {crossCurrency && (
               <Field label={`${t('finance.amountReceived')} (${toAcc?.currency})`}>
-                <input className="input" inputMode="decimal" required value={f.to_amount} onChange={(e) => setF({ ...f, to_amount: e.target.value.replace(',', '.') })} />
-                {Number(f.amount) > 0 && Number(f.to_amount) > 0 && (
+                <AmountInput required currency={toAcc?.currency} value={f.to_amount} onChange={(to_amount) => setF((x) => ({ ...x, to_amount }))} />
+                {amountValue(f.amount) > 0 && amountValue(f.to_amount) > 0 && (
                   <span className="mt-1 block text-xs text-muted">
-                    1 {fromAcc?.currency} = {(Number(f.to_amount) / Number(f.amount)).toFixed(4)} {toAcc?.currency}
+                    1 {fromAcc?.currency} = {(amountValue(f.to_amount) / amountValue(f.amount)).toFixed(4)} {toAcc?.currency}
                   </span>
                 )}
               </Field>
@@ -295,6 +297,9 @@ export function TransactionSheet({ open, onClose, tx }: { open: boolean; onClose
           <>
             <Field label={t('finance.account')}>
               <select className="input" required value={f.account_id} onChange={(e) => setAccount(e.target.value)}>
+                <option value="" disabled>
+                  {t('finance.chooseAccount')}
+                </option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name} ({a.currency})

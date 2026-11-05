@@ -255,7 +255,17 @@
     "payoffHelp": "Future payments are removed and one expense is recorded for the amount paid. Payments already made stay. Record the card payment itself as a transfer, as usual.",
     "payoffConfirm": "Pay off",
     "payoffNote": "payoff",
-    "payoff": "payoff"
+    "payoff": "payoff",
+    "balance": "Balance",
+    "thisMonth": "Go to this month",
+    "net": "Net",
+    "moneyIn": "In",
+    "moneyOut": "Out",
+    "noTransactionsMonth": "No movements in this month.",
+    "chooseAccount": "Choose an account",
+    "add": "Add",
+    "subtract": "Subtract",
+    "incompleteMath": "Finish the operation"
   },
   "analytics": {
     "ranges": {
