@@ -3,6 +3,9 @@ import {
   canLogOn,
   combinedHeatmap,
   computeStreaks,
+  dayState,
+  monthSummary,
+  nextTap,
   habitHeatmap,
   isScheduled,
   logMap,
@@ -125,5 +128,52 @@ describe('logging past days', () => {
     expect(computeStreaks(h, missed, '2026-10-04').current).toBe(1);
     const fixed = logMap(logs('h1', ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']), 'h1');
     expect(computeStreaks(h, fixed, '2026-10-04')).toEqual({ current: 4, best: 4, unit: 'days' });
+  });
+});
+
+describe('month view', () => {
+  const today = '2026-11-04';
+  const good = habit({ id: 'g' });
+  const map = logMap(
+    [...logs('g', ['2026-11-01', '2026-11-02']), ...logs('g', ['2026-11-03'], { value: 0, is_slip: true })],
+    'g',
+  );
+
+  it('reads each day of a good habit', () => {
+    expect(['2026-09-30', '2026-11-01', '2026-11-03', '2026-11-04', '2026-11-05'].map((d) => dayState(good, map, d, today))).toEqual([
+      'beforeStart',
+      'done',
+      'missed',
+      'empty',
+      'future',
+    ]);
+  });
+
+  it('cycles a good habit through done, missed and empty', () => {
+    expect(nextTap(good, 'empty')).toEqual({ value: 1 });
+    expect(nextTap(good, 'done')).toEqual({ value: 0, isSlip: true });
+    expect(nextTap(good, 'missed')).toEqual({ remove: true });
+    expect(nextTap(good, 'future')).toBeNull();
+    expect(nextTap(habit({ type: 'numeric', target_value: 8 }), 'empty')).toBe('ask');
+  });
+
+  it('a "missed" mark counts like an empty day', () => {
+    expect(computeStreaks(good, map, today).current).toBe(0);
+    expect(monthSummary(good, map, new Date(2026, 10, 1), today)).toMatchObject({ done: 2, missed: 1, rate: 0.5 });
+  });
+
+  it('skips days a weekday habit is not due', () => {
+    const weekdays = habit({ id: 'w', frequency: { type: 'weekdays', days: [1, 2, 3, 4, 5] } });
+    expect(dayState(weekdays, new Map(), '2026-11-01', today)).toBe('notDue'); // Sunday
+    expect(nextTap(weekdays, 'notDue')).toBeNull();
+  });
+
+  it('reads a bad habit as clean unless it slipped', () => {
+    const bad = habit({ id: 'b', kind: 'bad' });
+    const slips = logMap(logs('b', ['2026-11-02'], { is_slip: true }), 'b');
+    expect(['2026-11-01', '2026-11-02', today].map((d) => dayState(bad, slips, d, today))).toEqual(['clean', 'slip', 'pending']);
+    expect(nextTap(bad, 'clean')).toEqual({ isSlip: true });
+    expect(nextTap(bad, 'slip')).toEqual({ remove: true });
+    expect(monthSummary(bad, slips, new Date(2026, 10, 1), today)).toMatchObject({ slips: 1, clean: 3 });
   });
 });

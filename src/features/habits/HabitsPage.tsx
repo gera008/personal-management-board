@@ -1,16 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { subDays } from 'date-fns';
+import { startOfMonth, subDays } from 'date-fns';
 import { addDaysKey } from '@shared/recurrence';
 import { formatDate } from '@/lib/format';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { Heatmap } from '@/components/Heatmap';
-import { Empty, ErrorText, Fab, Field, Icon, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
+import { Empty, ErrorText, Fab, Field, Icon, MonthPicker, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { canLogOn, computeStreaks, habitHeatmap, isSuccess, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
 import { num, type Habit, type HabitFrequency } from '@/domain/types';
 import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits, useLogHabit } from './shared';
+import { HabitMonth } from './HabitMonth';
 
 const GOOD_COLORS = ['#75639F', '#8573B0', '#5E4F86', '#9A8CC4', '#4E7299', '#6B7280'];
 
@@ -19,6 +20,9 @@ export function HabitsPage() {
   const habits = useHabits();
   const logs = useHabitLogs();
   const [tab, setTab] = useState<'today' | 'heatmap'>('today');
+  // Heatmap tab: every habit's month (tappable calendar) or the year at a glance.
+  const [span, setSpan] = useState<Span>('month');
+  const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [tag, setTag] = useState<string | null>(null);
   const [detail, setDetail] = useState<Habit | null>(null);
   const [form, setForm] = useState<{ habit?: Habit | null } | null>(null);
@@ -84,19 +88,27 @@ export function HabitsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <section className="card">
-            <h2 className="mb-2 text-sm font-semibold">{t('habits.combined')}</h2>
-            <CombinedHeatmap habits={active} logs={allLogs} />
-          </section>
-          {active.map((h) => (
-            <section key={h.id} className="card">
-              <button className="mb-2 text-sm font-semibold" onClick={() => setDetail(h)}>
-                {h.name}
-              </button>
-              <HabitHeatmap habit={h} interactive />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SpanSwitch value={span} onChange={setSpan} />
+            {span === 'month' && <MonthPicker month={month} onChange={setMonth} />}
+          </div>
+          {span === 'year' && (
+            <section className="card">
+              <h2 className="mb-2 text-sm font-semibold">{t('habits.combined')}</h2>
+              <CombinedHeatmap habits={active} logs={allLogs} />
             </section>
-          ))}
-          <p className="text-xs text-muted">{t('habits.tapDayHint')}</p>
+          )}
+          <div className={span === 'month' ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'}>
+            {active.map((h) => (
+              <section key={h.id} className="card">
+                <button className="mb-2 text-sm font-semibold" onClick={() => setDetail(h)}>
+                  {h.name}
+                </button>
+                {span === 'month' ? <HabitMonth habit={h} month={month} /> : <HabitHeatmap habit={h} interactive />}
+              </section>
+            ))}
+          </div>
+          {span === 'year' && <p className="text-xs text-muted">{t('habits.tapDayHint')}</p>}
         </div>
       )}
 
@@ -124,6 +136,22 @@ export function HabitsPage() {
       />
       <HabitForm open={!!form} habit={form?.habit} onClose={() => setForm(null)} position={(habits.data ?? []).length} />
     </div>
+  );
+}
+
+type Span = 'month' | 'year';
+
+function SpanSwitch({ value, onChange }: { value: Span; onChange: (s: Span) => void }) {
+  const { t } = useTranslation();
+  return (
+    <Segmented
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: 'month', label: t('habits.monthView') },
+        { value: 'year', label: t('habits.yearView') },
+      ]}
+    />
   );
 }
 
@@ -185,12 +213,14 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
   const { t } = useTranslation();
   const logs = useHabitLogs();
   const { weekStartsOn } = useProfile();
+  const [span, setSpan] = useState<Span>('month');
+  const [month, setMonth] = useState(() => startOfMonth(new Date()));
   if (!habit) return null;
   const today = toDateKey(new Date());
   const map = logMap(logs.data ?? [], habit.id);
   const s = computeStreaks(habit, map, today, weekStartsOn);
   const week = weeklyCompletion(habit, map, today, weekStartsOn);
-  const month = monthlyCompletion(habit, map, today);
+  const monthRate = monthlyCompletion(habit, map, today);
   const recentNotes = [...map.values()].filter((l) => l.note).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const unit = s.unit === 'weeks' ? t('habits.weeks') : t('habits.days');
 
@@ -209,7 +239,7 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
         <Stat label={habit.kind === 'bad' ? t('habits.currentDaysWithout') : t('habits.current')} value={`${s.current} ${unit}`} />
         <Stat label={t('habits.best')} value={`${s.best} ${unit}`} />
         <Stat label={t('habits.thisWeek')} value={`${Math.round(week * 100)}%`} />
-        <Stat label={t('habits.thisMonth')} value={`${Math.round(month * 100)}%`} />
+        <Stat label={t('habits.thisMonth')} value={`${Math.round(monthRate * 100)}%`} />
       </div>
       {habit.goal_days && (
         <div className="mb-4">
@@ -222,8 +252,18 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
           <Progress ratio={s.current / habit.goal_days} color={habit.kind === 'bad' ? 'bg-slip' : 'bg-habit'} />
         </div>
       )}
-      <HabitHeatmap habit={habit} interactive />
-      <p className="mt-1 text-xs text-muted">{t('habits.tapDayHint')}</p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <SpanSwitch value={span} onChange={setSpan} />
+        {span === 'month' && <MonthPicker month={month} onChange={setMonth} />}
+      </div>
+      {span === 'month' ? (
+        <HabitMonth habit={habit} month={month} />
+      ) : (
+        <>
+          <HabitHeatmap habit={habit} interactive />
+          <p className="mt-1 text-xs text-muted">{t('habits.tapDayHint')}</p>
+        </>
+      )}
       {recentNotes.length > 0 && (
         <div className="mt-4">
           <h3 className="section-title">{t('habits.notes')}</h3>

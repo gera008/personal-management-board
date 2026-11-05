@@ -433,7 +433,27 @@
     "notOnDay": "No tocaban ese día",
     "notePromptDay": "Nota del {{date}}",
     "valuePrompt": "¿Cuántos {{unit}} el {{date}}? Déjalo vacío para borrar.",
-    "tapDayHint": "Toca un día para registrarlo o quitarlo."
+    "tapDayHint": "Toca un día para registrarlo o quitarlo.",
+    "monthView": "Mes",
+    "yearView": "Año",
+    "clear": "Borrar",
+    "state": {
+      "future": "próximo",
+      "beforeStart": "antes de empezar el hábito",
+      "notDue": "no le tocaba",
+      "done": "hecho",
+      "partial": "hecho en parte",
+      "missed": "No lo hice",
+      "empty": "sin registrar",
+      "slip": "caída",
+      "clean": "limpio",
+      "pending": "hoy"
+    },
+    "monthGood": "✓ {{done}} hechos · ✕ {{missed}} sin hacer · {{rate}}% del mes",
+    "monthBad": "{{clean}} limpios · ✕ {{slips}} caídas",
+    "monthHintGood": "Toca un día: ✓ hecho → ✕ no lo hice → vacío.",
+    "monthHintBad": "Toca un día para marcar o quitar una caída. Los días sin caída cuentan como limpios.",
+    "monthHintNumeric": "Toca un día para escribir su valor o marcar que no lo hiciste."
   },
   "settings": {
     "title": "Ajustes",

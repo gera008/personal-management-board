@@ -168,3 +168,50 @@ export function combinedHeatmap(habits: Habit[], logs: HabitLog[], from: string,
   }
   return out;
 }
+
+/**
+ * How a day looks in the month view.
+ * Good habits: done / partial (numeric, below target) / missed (marked "didn't do it") / empty.
+ * Bad habits: slip / clean (nothing logged means clean) / pending (today, still open).
+ */
+export type DayState = 'future' | 'beforeStart' | 'notDue' | 'done' | 'partial' | 'missed' | 'empty' | 'slip' | 'clean' | 'pending';
+
+export function dayState(h: Habit, logs: LogMap, date: string, today: string): DayState {
+  if (date > today) return 'future';
+  if (date < h.start_date) return 'beforeStart';
+  const l = logs.get(date);
+  if (h.kind === 'bad') return l?.is_slip ? 'slip' : date === today ? 'pending' : 'clean';
+  if (l?.is_slip) return 'missed';
+  if (!isScheduled(h, date)) return l && num(l.value) > 0 ? 'done' : 'notDue';
+  if (!l) return 'empty';
+  const v = num(l.value);
+  return v >= target(h) ? 'done' : v > 0 ? 'partial' : 'empty';
+}
+
+/**
+ * What one tap on a day does. Good habits cycle empty → done → missed → empty;
+ * bad habits toggle clean ↔ slip. Numeric habits ask for a value instead.
+ */
+export function nextTap(h: Habit, state: DayState): { value?: number; isSlip?: boolean; remove?: true } | 'ask' | null {
+  if (state === 'future' || state === 'beforeStart' || state === 'notDue') return null;
+  if (h.kind === 'bad') return state === 'slip' ? { remove: true } : { isSlip: true };
+  if (h.type === 'numeric') return 'ask';
+  if (state === 'done') return { value: 0, isSlip: true };
+  if (state === 'missed') return { remove: true };
+  return { value: 1 };
+}
+
+/** Counts for a month's summary, up to today. */
+export function monthSummary(h: Habit, logs: LogMap, month: Date, today: string): { done: number; missed: number; slips: number; clean: number; rate: number } {
+  const from = toDateKey(startOfMonth(month));
+  const to = toDateKey(endOfMonth(month));
+  const out = { done: 0, missed: 0, slips: 0, clean: 0, rate: completionRate(h, logs, from, to, today) };
+  for (const d of daysBetween(from, to > today ? today : to)) {
+    const s = dayState(h, logs, d, today);
+    if (s === 'done') out.done++;
+    else if (s === 'missed') out.missed++;
+    else if (s === 'slip') out.slips++;
+    else if (s === 'clean' || s === 'pending') out.clean++;
+  }
+  return out;
+}

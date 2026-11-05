@@ -433,7 +433,27 @@
     "notOnDay": "Not due this day",
     "notePromptDay": "Note for {{date}}",
     "valuePrompt": "How many {{unit}} on {{date}}? Leave empty to clear.",
-    "tapDayHint": "Tap a day to log or undo it."
+    "tapDayHint": "Tap a day to log or undo it.",
+    "monthView": "Month",
+    "yearView": "Year",
+    "clear": "Clear",
+    "state": {
+      "future": "upcoming",
+      "beforeStart": "before the habit started",
+      "notDue": "not due",
+      "done": "done",
+      "partial": "partly done",
+      "missed": "Didn't do it",
+      "empty": "not logged",
+      "slip": "slip",
+      "clean": "clean",
+      "pending": "today"
+    },
+    "monthGood": "✓ {{done}} done · ✕ {{missed}} not done · {{rate}}% of the month",
+    "monthBad": "{{clean}} clean · ✕ {{slips}} slips",
+    "monthHintGood": "Tap a day: ✓ done → ✕ didn’t do it → empty.",
+    "monthHintBad": "Tap a day to mark or remove a slip. Days without one count as clean.",
+    "monthHintNumeric": "Tap a day to type its value or mark it as not done."
   },
   "settings": {
     "title": "Settings",
