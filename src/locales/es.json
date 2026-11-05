@@ -265,7 +265,14 @@
     "chooseAccount": "Elige una cuenta",
     "add": "Sumar",
     "subtract": "Restar",
-    "incompleteMath": "Termina la operación"
+    "incompleteMath": "Termina la operación",
+    "paidSoFar": "Pagado",
+    "stillToPay": "Por pagar",
+    "paymentsCount_one": "{{count}} pago",
+    "paymentsCount_other": "{{count}} pagos",
+    "upcomingPayments": "Próximos pagos",
+    "paidPayments": "Pagados",
+    "noPaymentsYet": "Aún no hay pagos."
   },
   "analytics": {
     "ranges": {

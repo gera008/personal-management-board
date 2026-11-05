@@ -14,6 +14,7 @@ import { AccountDetailPage } from '@/features/finance/AccountDetailPage';
 import { CategoriesPage } from '@/features/finance/CategoriesPage';
 import { BudgetsPage } from '@/features/finance/BudgetsPage';
 import { RecurringPage } from '@/features/finance/RecurringPage';
+import { SeriesDetailPage } from '@/features/finance/SeriesDetailPage';
 import { ImportExportPage } from '@/features/finance/ImportExportPage';
 import { HabitsPage } from '@/features/habits/HabitsPage';
 import { HealthLayout } from '@/features/health/HealthLayout';
@@ -44,6 +45,7 @@ export function App() {
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="budgets" element={<BudgetsPage />} />
                 <Route path="recurring" element={<RecurringPage />} />
+                <Route path="recurring/:id" element={<SeriesDetailPage />} />
                 <Route path="analytics" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-surface" />}><AnalyticsPage /></Suspense>} />
                 <Route path="data" element={<ImportExportPage />} />
               </Route>

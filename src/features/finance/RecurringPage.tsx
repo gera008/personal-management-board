@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
@@ -42,6 +43,7 @@ export function RecurringPage() {
   const accounts = useAccounts();
   const cats = useCategories();
   const [sheet, setSheet] = useState<{ series?: RecurringSeries | null } | null>(null);
+  const navigate = useNavigate();
   const accName = (id: string) => accounts.data?.find((a) => a.id === id)?.name ?? '';
   const all = series.data ?? [];
   const groups = [
@@ -65,7 +67,7 @@ export function RecurringPage() {
                 const payoff = counts.data?.liquidated.get(s.id);
                 const prog = s.total_count ? installmentProgress(applied, s.total_count) : null;
                 return (
-                  <button key={s.id} onClick={() => setSheet({ series: s })} className="block w-full py-3 text-left">
+                  <button key={s.id} onClick={() => navigate(s.id)} className="block w-full py-3 text-left">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-sm font-medium">{s.note || categoryName(cats.byId, s.category_id, t('finance.uncategorized'))}</span>
                       <span className={`shrink-0 text-sm font-semibold ${s.type === 'income' ? 'text-income' : 'text-expense'}`}>{money(num(s.amount), s.currency)}</span>
@@ -102,7 +104,7 @@ export function RecurringPage() {
   );
 }
 
-function SeriesSheet({ open, series, onClose }: { open: boolean; series?: RecurringSeries | null; onClose: () => void }) {
+export function SeriesSheet({ open, series, onClose }: { open: boolean; series?: RecurringSeries | null; onClose: () => void }) {
   const { t } = useTranslation();
   const { rates } = useProfile();
   const accounts = (useAccounts().data ?? []).filter((a) => !a.archived);

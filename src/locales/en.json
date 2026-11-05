@@ -265,7 +265,14 @@
     "chooseAccount": "Choose an account",
     "add": "Add",
     "subtract": "Subtract",
-    "incompleteMath": "Finish the operation"
+    "incompleteMath": "Finish the operation",
+    "paidSoFar": "Paid",
+    "stillToPay": "Still to pay",
+    "paymentsCount_one": "{{count}} payment",
+    "paymentsCount_other": "{{count}} payments",
+    "upcomingPayments": "Upcoming payments",
+    "paidPayments": "Paid",
+    "noPaymentsYet": "No payments yet."
   },
   "analytics": {
     "ranges": {

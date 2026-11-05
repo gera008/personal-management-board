@@ -12,7 +12,6 @@ import { TransactionSheet } from './TransactionSheet';
 export function FinanceHome() {
   const { t } = useTranslation();
   const [monthsBack, setMonthsBack] = useState(0);
-  const [showUpcoming, setShowUpcoming] = useState(false);
   const [sheet, setSheet] = useState<{ tx?: Transaction | null } | null>(null);
   const from = useMemo(() => startOfMonth(subMonths(new Date(), monthsBack)), [monthsBack]);
   const txs = useTransactions(from);
@@ -20,10 +19,10 @@ export function FinanceHome() {
   const cats = useCategories();
   const accById = new Map((accounts.data ?? []).map((a) => [a.id, a]));
 
+  // Future payments (installments, scheduled entries) stay out of this list; each series' page shows them.
   const now = Date.now();
   const all = txs.data ?? [];
-  const upcoming = all.filter((x) => x.status === 'pending' && new Date(x.occurred_at).getTime() > now).reverse();
-  const past = all.filter((x) => !upcoming.includes(x));
+  const past = all.filter((x) => !(x.status === 'pending' && new Date(x.occurred_at).getTime() > now));
   const groups = groupByDay(dedupeTransfers(past));
   // Name of the other account of each transfer, for "From → To" labels.
   const counterpart = (x: Transaction) => {
@@ -34,24 +33,6 @@ export function FinanceHome() {
   return (
     <div className="space-y-4">
       <Indicators />
-
-      {upcoming.length > 0 && (
-        <section className="card">
-          <button className="flex w-full items-center gap-1 text-sm font-semibold" onClick={() => setShowUpcoming(!showUpcoming)} aria-expanded={showUpcoming}>
-            <Icon name={showUpcoming ? 'chevronDown' : 'chevronRight'} size={16} className="text-muted" />
-            {t('finance.upcoming', { count: upcoming.length })}
-          </button>
-          {showUpcoming && (
-            <div className="mt-2 divide-y divide-border">
-              {dedupeTransfers(upcoming)
-                .slice(0, 50)
-                .map((x) => (
-                  <TxRow key={x.id} tx={x} accById={accById} cats={cats.byId} other={counterpart(x)} showDate onOpen={() => setSheet({ tx: x })} />
-                ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {txs.isLoading ? (
         <div className="h-40 animate-pulse rounded-xl bg-surface" />
