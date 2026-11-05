@@ -1,4 +1,5 @@
 import {
+  addDays,
   addMonths,
   addWeeks,
   differenceInCalendarDays,
@@ -6,6 +7,7 @@ import {
   endOfMonth,
   format,
   getDaysInMonth,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -318,4 +320,110 @@ export function weeklySpending(txs: Transaction[], from: Date, to: Date, weekSta
     if (i >= 0 && i < weeks.length) weeks[i].total += num(t.base_amount_mxn);
   }
   return weeks.map((w) => ({ ...w, total: round2(w.total) }));
+}
+
+export interface PeriodSummary {
+  expense: number;
+  income: number;
+  net: number;
+  /** Share of income kept (net / income), null without income. */
+  savingsRate: number | null;
+  /** Expenses that come from recurring series (installments, subscriptions). */
+  fixed: number;
+  variable: number;
+  paidForOthers: number;
+}
+
+/** "How much": totals of a period, all in MXN. */
+export function periodSummary(txs: Transaction[], from: Date, to: Date): PeriodSummary {
+  let expense = 0;
+  let income = 0;
+  let fixed = 0;
+  let paidForOthers = 0;
+  for (const t of txs) {
+    if (!isApplied(t) || !inRange(t, from, to)) continue;
+    const v = num(t.base_amount_mxn);
+    if (t.type === 'income') income += v;
+    if (t.type !== 'expense') continue;
+    expense += v;
+    if (t.series_id) fixed += v;
+    if (t.paid_for_others) paidForOthers += v;
+  }
+  return {
+    expense: round2(expense),
+    income: round2(income),
+    net: round2(income - expense),
+    savingsRate: income > 0 ? round2(((income - expense) / income) * 100) : null,
+    fixed: round2(fixed),
+    variable: round2(expense - fixed),
+    paidForOthers: round2(paidForOthers),
+  };
+}
+
+/** Expense total of each calendar day in [from, to). */
+export function dailySpending(txs: Transaction[], from: Date, to: Date): { day: Date; total: number }[] {
+  const days: { day: Date; total: number }[] = [];
+  for (let d = startOfDay(from); d < to; d = addDays(d, 1)) days.push({ day: d, total: 0 });
+  if (!days.length) return days;
+  for (const t of txs) {
+    if (t.type !== 'expense' || !isApplied(t) || !inRange(t, from, to)) continue;
+    const i = differenceInCalendarDays(new Date(t.occurred_at), days[0].day);
+    if (i >= 0 && i < days.length) days[i].total += num(t.base_amount_mxn);
+  }
+  return days.map((d) => ({ ...d, total: round2(d.total) }));
+}
+
+export interface CategoryBreakdown {
+  categoryId: string | null;
+  amount: number;
+  /** Same category in the previous period (null when there is none to compare). */
+  previous: number | null;
+  pct: number | null;
+  subs: { categoryId: string | null; amount: number; count: number }[];
+}
+
+/**
+ * "On what": spending per top-level category with its subcategories, and the
+ * change against a previous period when one is given.
+ */
+export function categoryBreakdown(
+  txs: Transaction[],
+  categories: Map<string, Category>,
+  from: Date,
+  to: Date,
+  previous?: { from: Date; to: Date },
+): CategoryBreakdown[] {
+  const prev = previous ? new Map(spendingByCategory(txs, categories, previous.from, previous.to).map((c) => [c.categoryId, c.amount])) : null;
+  const subs = new Map<string | null, Map<string | null, { amount: number; count: number }>>();
+  for (const t of txs) {
+    if (t.type !== 'expense' || !isApplied(t) || !inRange(t, from, to)) continue;
+    const top = topCategoryId(t, categories);
+    // Expenses without a subcategory are listed under their category's own name.
+    const sub = t.subcategory_id ?? t.category_id;
+    const m = subs.get(top) ?? new Map();
+    const e = m.get(sub) ?? { amount: 0, count: 0 };
+    e.amount += num(t.base_amount_mxn);
+    e.count++;
+    m.set(sub, e);
+    subs.set(top, m);
+  }
+  return spendingByCategory(txs, categories, from, to).map((c) => {
+    const previousAmount = prev ? prev.get(c.categoryId) ?? 0 : null;
+    return {
+      ...c,
+      previous: previousAmount,
+      pct: previousAmount == null ? null : pctChange(c.amount, previousAmount),
+      subs: [...(subs.get(c.categoryId) ?? new Map()).entries()]
+        .map(([categoryId, e]) => ({ categoryId, amount: round2(e.amount), count: e.count }))
+        .sort((a, b) => b.amount - a.amount),
+    };
+  });
+}
+
+/** The span of the same length right before [from, to): last week, last month, last year… */
+export function previousPeriod(range: 'week' | 'month' | 'year' | 'custom', from: Date, to: Date): { from: Date; to: Date } {
+  if (range === 'week') return { from: addWeeks(from, -1), to: from };
+  if (range === 'month') return { from: subMonths(from, 1), to: from };
+  if (range === 'year') return { from: addMonths(from, -12), to: from };
+  return { from: addDays(from, -differenceInCalendarDays(to, from)), to: from };
 }

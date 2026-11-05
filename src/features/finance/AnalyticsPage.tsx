@@ -5,15 +5,31 @@ import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, R
 import { useProfile } from '@/lib/profile';
 import { useThemeColors } from '@/lib/themeColors';
 import { formatDate, money, pct } from '@/lib/format';
-import { Empty, Segmented } from '@/components/ui';
+import { Empty, Icon, Segmented } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
-import { balanceEvolution, monthlyTrend, monthOverMonth, monthProjection, spendingByCategory, spendingBySubcategory, weekdaySpending, weeklySpending } from '@/domain/finance/totals';
+import {
+  balanceEvolution,
+  categoryBreakdown,
+  dailySpending,
+  monthlyTrend,
+  monthProjection,
+  periodSummary,
+  pctChange,
+  previousPeriod,
+  weekdaySpending,
+  weeklySpending,
+  type CategoryBreakdown,
+} from '@/domain/finance/totals';
 import { categoryName, useAccounts, useCategories, useTransactions } from './hooks';
-import { BudgetList } from './BudgetsPage';
 
 type Range = 'week' | 'month' | 'year' | 'all' | 'custom';
 const RANGES: Range[] = ['week', 'month', 'year', 'all', 'custom'];
 
+/**
+ * Everything follows the filter, ordered by three questions: how much, on what
+ * and when. Year / All time / Custom share the same sections; This week and
+ * This month swap the long-range charts for a day-by-day view.
+ */
 export function AnalyticsPage() {
   const { t } = useTranslation();
   const { rates, weekStartsOn } = useProfile();
@@ -50,53 +66,55 @@ export function AnalyticsPage() {
   const all = txs.data;
   if (!all.length) return <Empty>{t('analytics.noData')}</Empty>;
 
-  // Monthly charts: the last 12 months for week/month, otherwise every month of the selected period.
-  const lastDay = addDays(to < tomorrow ? to : tomorrow, -1);
-  const monthsEnd = range === 'week' || range === 'month' ? now : lastDay;
-  const months = range === 'week' || range === 'month' ? 12 : Math.max(1, differenceInCalendarMonths(lastDay, from) + 1);
+  const short = range === 'week' || range === 'month';
+  // Up to today: the rest of a running period has nothing applied yet.
+  const end = to < tomorrow ? to : tomorrow;
+  const prev = range === 'all' ? undefined : previousPeriod(range, from, to);
 
-  const byCat = spendingByCategory(all, cats.byId, from, to).map((c) => ({ name: categoryName(cats.byId, c.categoryId, t('finance.uncategorized')), amount: c.amount }));
-  const trend = monthlyTrend(all, monthsEnd, months).map((p) => ({ ...p, label: formatDate(`${p.month}-01`, months > 12 ? 'MMM yy' : 'MMM') }));
-  const mom = monthOverMonth(all, cats.byId, now);
-  const proj = monthProjection(all, now);
-  const subs = spendingBySubcategory(all, from, to);
-  const maxSub = Math.max(...subs.map((x) => x.amount), 1);
-  const subLabel = (id: string | null) => {
-    const c = id ? cats.byId.get(id) : undefined;
-    if (!c) return t('finance.uncategorized');
-    return c.parent_id ? `${categoryName(cats.byId, c.parent_id, '')} › ${c.name}` : c.name;
-  };
+  // ¿Cuánto?
+  const sum = periodSummary(all, from, to);
+  const prevSum = prev ? periodSummary(all, prev.from, prev.to) : null;
+  const monthsInPeriod = Math.max(1, differenceInCalendarMonths(addDays(end, -1), from) + 1);
+  const proj = range === 'month' ? monthProjection(all, now) : null;
 
-  // Weekly spending: the last 12 weeks for week/month, otherwise every week of the period (2 years at most).
+  // ¿En qué?
+  const breakdown = categoryBreakdown(all, cats.byId, from, to, prev);
+
+  // ¿Cuándo?
+  const days = short ? dailySpending(all, from, to) : [];
+  const elapsedDays = Math.max(1, days.filter((d) => d.day < tomorrow).length);
+  const dayAvg = sum.expense / elapsedDays;
+  const trend = monthlyTrend(all, addDays(end, -1), monthsInPeriod).map((p) => ({ ...p, label: formatDate(`${p.month}-01`, monthsInPeriod > 12 ? 'MMM yy' : 'MMM') }));
   const thisWeek = startOfWeek(now, { weekStartsOn });
-  const weeksTo = range === 'week' || range === 'month' ? addWeeks(thisWeek, 1) : to < tomorrow ? to : tomorrow;
-  const weeksFrom = range === 'week' || range === 'month' ? addWeeks(thisWeek, -11) : from > addWeeks(weeksTo, -104) ? from : addWeeks(weeksTo, -104);
-  const weeks = weeklySpending(all, weeksFrom, weeksTo, weekStartsOn).map((w) => ({ ...w, label: formatDate(w.start, 'd MMM') }));
+  const weeks = short ? [] : weeklySpending(all, from > addWeeks(end, -104) ? from : addWeeks(end, -104), end, weekStartsOn).map((w) => ({ ...w, label: formatDate(w.start, 'd MMM') }));
   // The running week is still filling up, so it stays out of the average and the record.
   const fullWeeks = weeks.filter((w) => !isSameDay(w.start, thisWeek));
-  const weekAvg = fullWeeks.length ? fullWeeks.reduce((sum, w) => sum + w.total, 0) / fullWeeks.length : 0;
+  const weekAvg = fullWeeks.length ? fullWeeks.reduce((s, w) => s + w.total, 0) / fullWeeks.length : 0;
   const topWeek = fullWeeks.reduce<(typeof weeks)[number] | null>((best, w) => (!best || w.total > best.total ? w : best), null);
-  const current = weeks.find((w) => isSameDay(w.start, thisWeek));
-  const accs = accounts.data ?? [];
-  const evolution = balanceEvolution(accs, all, rates, monthsEnd, months).map((p) => ({
-    label: formatDate(`${p.month}-01`, 'MMM yy'),
-    value: accountId === 'net' ? p.netWorth : p.byAccount[accountId] ?? 0,
-  }));
-  const selectedAcc = accs.find((a) => a.id === accountId);
-  // Fixed window, independent of the filter: the 3 months up to the latest applied
-  // transaction (today at most), so future pending rows never shift it.
-  const lastApplied = all.find((x) => x.status === 'applied' && new Date(x.occurred_at) < tomorrow);
-  const weekdayEnd = lastApplied ? addDays(startOfDay(new Date(lastApplied.occurred_at)), 1) : tomorrow;
-  const weekday = weekdaySpending(all, subMonths(weekdayEnd, 3), weekdayEnd);
+  const weekday = range === 'week' ? [] : weekdaySpending(all, from, end);
   const maxWeekday = Math.max(...weekday.map((w) => w.average), 1);
   const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + weekStartsOn) % 7);
+  const accs = accounts.data ?? [];
+  const evolution = short
+    ? []
+    : balanceEvolution(accs, all, rates, addDays(end, -1), monthsInPeriod).map((p) => ({
+        label: formatDate(`${p.month}-01`, 'MMM yy'),
+        value: accountId === 'net' ? p.netWorth : p.byAccount[accountId] ?? 0,
+      }));
+  const selectedAcc = accs.find((a) => a.id === accountId);
 
   const axis = { stroke: colors.muted, fontSize: 11, tickLine: false, axisLine: false };
   const tooltipStyle = { background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 8, fontSize: 12, color: colors.fg };
   const compact = (v: number) => money(v, 'MXN', { compact: true });
+  const vsPrev = (cur: number, before: number | undefined, higherIsBad: boolean) => {
+    if (before == null) return undefined;
+    const p = pctChange(cur, before);
+    if (p == null) return undefined;
+    return { text: `${pct(p)} ${t(`analytics.vsPrevious.${range}`)}`, tone: p === 0 ? 'text-muted' : p > 0 === higherIsBad ? 'text-expense' : 'text-income' };
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="-mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <Segmented value={range} onChange={setRange} options={RANGES.map((v) => ({ value: v, label: t(`analytics.ranges.${v}`) }))} />
@@ -113,176 +131,234 @@ export function AnalyticsPage() {
         </span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <ChartCard title={t('analytics.byCategory')}>
-          {byCat.length === 0 ? (
-            <p className="text-sm text-muted">{t('finance.noSpending')}</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(160, byCat.length * 30)}>
-              <BarChart data={byCat} layout="vertical" margin={{ left: 0, right: 8 }}>
-                <XAxis type="number" {...axis} tickFormatter={compact} />
-                <YAxis type="category" dataKey="name" {...axis} width={96} />
-                <Tooltip formatter={(v: number) => money(v)} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
-                <Bar dataKey="amount" name={t('finance.types.expense')} fill={colors.expense} radius={[0, 4, 4, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </ChartCard>
-
-        <ChartCard title={t('analytics.projection')}>
+      {/* ¿Cuánto? */}
+      <Question title={t('analytics.q.howMuch')}>
+        <section className="card space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            <Tile label={t('analytics.spentSoFar')} value={money(proj.spent)} />
-            <Tile label={t('analytics.dailyAverage')} value={money(proj.dailyAverage)} />
-            <Tile label={t('analytics.projected')} value={money(proj.projected)} />
+            <Tile label={t('analytics.expenses')} value={money(sum.expense)} delta={vsPrev(sum.expense, prevSum?.expense, true)} />
+            <Tile label={t('analytics.income')} value={money(sum.income)} delta={vsPrev(sum.income, prevSum?.income, false)} />
+            <Tile label={t('analytics.net')} value={money(sum.net, 'MXN', { sign: true })} tone={sum.net < 0 ? 'text-expense' : 'text-income'} />
           </div>
-        </ChartCard>
-
-        <ChartCard title={t('analytics.trend')} className="md:col-span-2">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={trend} barGap={2} margin={{ left: 0, right: 8 }}>
-              <CartesianGrid vertical={false} stroke={colors.border} />
-              <XAxis dataKey="label" {...axis} />
-              <YAxis {...axis} tickFormatter={compact} width={52} />
-              <Tooltip formatter={(v: number) => money(v)} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: colors.muted }} />
-              <Bar dataKey="income" name={t('finance.types.income')} fill={colors.income} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title={t('analytics.weekly')} className="md:col-span-2">
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            <Tile label={t('analytics.weeklyAverage')} value={money(weekAvg)} />
-            <Tile label={t('analytics.highestWeek')} value={topWeek ? money(topWeek.total) : '—'} sub={topWeek ? t('analytics.weekOf', { date: formatDate(topWeek.start, 'd MMM yy') }) : undefined} />
-            {current ? (
-              <Tile
-                label={t('analytics.thisWeek')}
-                value={money(current.total)}
-                sub={weekAvg ? `${pct(((current.total - weekAvg) / weekAvg) * 100)} ${t('analytics.vsAverage')}` : undefined}
-                subTone={weekAvg && current.total > weekAvg ? 'text-expense' : 'text-income'}
-              />
+          <div className={`grid gap-2 ${proj ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+            {short ? (
+              <Tile label={t('analytics.dailyAverage')} value={money(proj ? proj.dailyAverage : dayAvg)} />
             ) : (
-              <Tile label={t('analytics.weeksCount')} value={String(weeks.length)} />
+              <Tile label={t('analytics.monthlyAverage')} value={money(sum.expense / monthsInPeriod)} />
             )}
+            {proj && <Tile label={t('analytics.projected')} value={money(proj.projected)} />}
+            <Tile label={t('analytics.savingsRate')} value={sum.savingsRate == null ? '—' : `${Math.round(sum.savingsRate)}%`} tone={sum.savingsRate != null && sum.savingsRate < 0 ? 'text-expense' : ''} />
+            <Tile label={t('finance.paidForOthers')} value={money(sum.paidForOthers)} />
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weeks} margin={{ left: 0, right: 8 }}>
-              <CartesianGrid vertical={false} stroke={colors.border} />
-              <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
-              <YAxis {...axis} tickFormatter={compact} width={52} />
-              <Tooltip formatter={(v: number) => money(v)} labelFormatter={(l: string) => t('analytics.weekOf', { date: l })} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
-              {weekAvg > 0 && <ReferenceLine y={weekAvg} stroke={colors.muted} strokeDasharray="4 4" />}
-              <Bar dataKey="total" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="mt-1 text-xs text-muted">{t('analytics.weeklyHelp')}</p>
-        </ChartCard>
+          <FixedVsVariable fixed={sum.fixed} variable={sum.variable} />
+        </section>
+      </Question>
 
-        <ChartCard title={t('analytics.mom')}>
-          {mom.length === 0 ? (
+      {/* ¿En qué? */}
+      <Question title={t('analytics.q.onWhat')}>
+        <section className="card">
+          {breakdown.length === 0 ? (
             <p className="text-sm text-muted">{t('finance.noSpending')}</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-muted">
-                  <th className="pb-1 font-medium">{t('finance.category')}</th>
-                  <th className="pb-1 text-right font-medium">{t('analytics.thisMonth')}</th>
-                  <th className="pb-1 text-right font-medium">{t('finance.lastMonth')}</th>
-                  <th className="pb-1 text-right font-medium">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mom.map((m) => (
-                  <tr key={m.categoryId ?? 'none'} className="border-t border-border">
-                    <td className="max-w-[8rem] truncate py-1.5">{categoryName(cats.byId, m.categoryId, t('finance.uncategorized'))}</td>
-                    <td className="py-1.5 text-right">{money(m.current, 'MXN', { compact: true })}</td>
-                    <td className="py-1.5 text-right text-muted">{money(m.previous, 'MXN', { compact: true })}</td>
-                    <td className={`py-1.5 text-right text-xs ${m.pct == null ? 'text-muted' : m.pct > 0 ? 'text-expense' : 'text-income'}`}>{pct(m.pct)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <CategoryList items={breakdown} name={(id) => categoryName(cats.byId, id, t('finance.uncategorized'))} subName={(id, parent) => (id === parent ? t('analytics.noSubcategory') : categoryName(cats.byId, id, t('finance.uncategorized')))} compareLabel={range === 'all' ? null : t(`analytics.vsPrevious.${range}`)} />
           )}
-        </ChartCard>
+        </section>
+      </Question>
 
-        <ChartCard title={t('analytics.bySubcategory')}>
-          {subs.length === 0 ? (
-            <p className="text-sm text-muted">{t('finance.noSpending')}</p>
+      {/* ¿Cuándo? */}
+      <Question title={t('analytics.q.when')}>
+        <div className="grid gap-4 md:grid-cols-2">
+          {short ? (
+            <ChartCard title={t('analytics.perDay')} className="md:col-span-2" help={t('analytics.perDayHelp')}>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={days.map((d) => ({ ...d, label: formatDate(d.day, range === 'week' ? 'EEE d' : 'd') }))} margin={{ left: 0, right: 8 }}>
+                  <CartesianGrid vertical={false} stroke={colors.border} />
+                  <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={8} />
+                  <YAxis {...axis} tickFormatter={compact} width={52} />
+                  <Tooltip formatter={(v: number) => money(v)} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
+                  {dayAvg > 0 && <ReferenceLine y={dayAvg} stroke={colors.muted} strokeDasharray="4 4" />}
+                  <Bar dataKey="total" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
           ) : (
-            <ol className="space-y-2 text-sm">
-              {subs.map((x, i) => (
-                <li key={x.categoryId ?? 'none'}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 text-xs text-muted">{i + 1}</span>
-                    <span className="flex-1 truncate">{subLabel(x.categoryId)}</span>
-                    <span className="text-xs text-muted">×{x.count}</span>
-                    <span className="w-24 text-right font-medium">{money(x.amount)}</span>
-                  </div>
-                  <div className="ml-7 mt-1 h-1 rounded-full bg-surface">
-                    <div className="h-full rounded-full bg-expense" style={{ width: `${(x.amount / maxSub) * 100}%` }} />
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </ChartCard>
+            <>
+              <ChartCard title={t('analytics.trend')} className="md:col-span-2">
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={trend} barGap={2} margin={{ left: 0, right: 8 }}>
+                    <CartesianGrid vertical={false} stroke={colors.border} />
+                    <XAxis dataKey="label" {...axis} />
+                    <YAxis {...axis} tickFormatter={compact} width={52} />
+                    <Tooltip formatter={(v: number) => money(v)} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: colors.muted }} />
+                    <Bar dataKey="income" name={t('finance.types.income')} fill={colors.income} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expense" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
 
-        <ChartCard
-          title={t('analytics.balance')}
-          className="md:col-span-2"
-          right={
-            <select className="input max-w-[11rem] py-1 text-sm" value={accountId} onChange={(e) => setAccountId(e.target.value)} aria-label={t('finance.account')}>
-              <option value="net">{t('analytics.netWorth')}</option>
-              {accs.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          }
-        >
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={evolution} margin={{ left: 0, right: 8, top: 8 }}>
-              <CartesianGrid vertical={false} stroke={colors.border} />
-              <XAxis dataKey="label" {...axis} />
-              <YAxis {...axis} tickFormatter={(v: number) => money(v, selectedAcc?.currency ?? 'MXN', { compact: true })} width={56} />
-              <Tooltip formatter={(v: number) => money(v, selectedAcc?.currency ?? 'MXN')} contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey="value" name={selectedAcc?.name ?? t('analytics.netWorth')} stroke={colors.fg} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: colors.fg }} activeDot={{ r: 5 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title={t('analytics.budgets')}>
-          <BudgetList />
-        </ChartCard>
-
-        <ChartCard title={t('analytics.weekday')}>
-          <p className="mb-2 text-xs text-muted">{t('analytics.weekdayHelp')}</p>
-          <div className="grid grid-cols-7 gap-1">
-            {weekdayOrder.map((d) => {
-              const w = weekday[d];
-              const a = w.average / maxWeekday;
-              return (
-                <div key={d} className="text-center" title={`${money(w.average)} / ${t('analytics.day')}`}>
-                  <div className="mb-1 aspect-square rounded-md" style={{ background: w.average ? `rgb(var(--expense) / ${0.15 + a * 0.85})` : 'rgb(var(--surface))' }} />
-                  <div className="text-[11px] text-muted">{formatDate(addDays(new Date(2026, 10, 1), d), 'EEE')}</div>
-                  <div className="text-[11px] font-medium">{money(w.average, 'MXN', { compact: true })}</div>
+              <ChartCard title={t('analytics.weekly')} className="md:col-span-2" help={t('analytics.weeklyHelp')}>
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  <Tile label={t('analytics.weeklyAverage')} value={money(weekAvg)} />
+                  <Tile label={t('analytics.highestWeek')} value={topWeek ? money(topWeek.total) : '—'} sub={topWeek ? t('analytics.weekOf', { date: formatDate(topWeek.start, 'd MMM yy') }) : undefined} />
                 </div>
-              );
-            })}
-          </div>
-        </ChartCard>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={weeks} margin={{ left: 0, right: 8 }}>
+                    <CartesianGrid vertical={false} stroke={colors.border} />
+                    <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
+                    <YAxis {...axis} tickFormatter={compact} width={52} />
+                    <Tooltip formatter={(v: number) => money(v)} labelFormatter={(l: string) => t('analytics.weekOf', { date: l })} contentStyle={tooltipStyle} cursor={{ fill: colors.surface }} />
+                    {weekAvg > 0 && <ReferenceLine y={weekAvg} stroke={colors.muted} strokeDasharray="4 4" />}
+                    <Bar dataKey="total" name={t('finance.types.expense')} fill={colors.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </>
+          )}
+
+          {range !== 'week' && (
+            <ChartCard title={t('analytics.weekday')} help={t('analytics.weekdayHelp')}>
+              <div className="grid grid-cols-7 gap-1">
+                {weekdayOrder.map((d) => {
+                  const w = weekday[d];
+                  const a = w.average / maxWeekday;
+                  return (
+                    <div key={d} className="text-center" title={`${money(w.average)} / ${t('analytics.day')}`}>
+                      <div className="mb-1 aspect-square rounded-md" style={{ background: w.average ? `rgb(var(--expense) / ${0.15 + a * 0.85})` : 'rgb(var(--surface))' }} />
+                      <div className="text-[11px] text-muted">{formatDate(addDays(new Date(2026, 10, 1), d), 'EEE')}</div>
+                      <div className="text-[11px] font-medium">{money(w.average, 'MXN', { compact: true })}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ChartCard>
+          )}
+
+          {!short && (
+            <ChartCard
+              title={t('analytics.balance')}
+              right={
+                <select className="input max-w-[11rem] py-1 text-sm" value={accountId} onChange={(e) => setAccountId(e.target.value)} aria-label={t('finance.account')}>
+                  <option value="net">{t('analytics.netWorth')}</option>
+                  {accs.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              }
+            >
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={evolution} margin={{ left: 0, right: 8, top: 8 }}>
+                  <CartesianGrid vertical={false} stroke={colors.border} />
+                  <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
+                  <YAxis {...axis} tickFormatter={(v: number) => money(v, selectedAcc?.currency ?? 'MXN', { compact: true })} width={56} />
+                  <Tooltip formatter={(v: number) => money(v, selectedAcc?.currency ?? 'MXN')} contentStyle={tooltipStyle} />
+                  <Line type="monotone" dataKey="value" name={selectedAcc?.name ?? t('analytics.netWorth')} stroke={colors.fg} strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: colors.fg }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
+        </div>
+      </Question>
+    </div>
+  );
+}
+
+function Question({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <h2 className="section-title">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+/** Categories as a ranked list; tapping one shows its subcategories. */
+function CategoryList({
+  items,
+  name,
+  subName,
+  compareLabel,
+}: {
+  items: CategoryBreakdown[];
+  name: (id: string | null) => string;
+  subName: (id: string | null, parent: string | null) => string;
+  compareLabel: string | null;
+}) {
+  const [open, setOpen] = useState<string | null>(null);
+  const max = Math.max(...items.map((c) => c.amount), 1);
+  return (
+    <ol className="divide-y divide-border">
+      {compareLabel && <li className="pb-2 text-right text-[11px] text-muted">% {compareLabel}</li>}
+      {items.map((c) => {
+        const key = c.categoryId ?? 'none';
+        const expanded = open === key;
+        return (
+          <li key={key} className="py-2">
+            <button className="w-full text-left" onClick={() => setOpen(expanded ? null : key)} aria-expanded={expanded}>
+              <div className="flex items-center gap-2 text-sm">
+                <Icon name={expanded ? 'chevronDown' : 'chevronRight'} size={14} className="shrink-0 text-muted" />
+                <span className="flex-1 truncate font-medium">{name(c.categoryId)}</span>
+                <span className="font-semibold">{money(c.amount)}</span>
+                {compareLabel && (
+                  <span className={`w-14 text-right text-xs ${c.pct == null ? 'text-muted' : c.pct > 0 ? 'text-expense' : c.pct < 0 ? 'text-income' : 'text-muted'}`}>{c.pct == null ? '—' : pct(c.pct)}</span>
+                )}
+              </div>
+              <div className="ml-5 mt-1 h-1 rounded-full bg-surface">
+                <div className="h-full rounded-full bg-expense" style={{ width: `${(c.amount / max) * 100}%` }} />
+              </div>
+            </button>
+            {expanded && (
+              <ul className="ml-5 mt-2 space-y-1">
+                {c.subs.map((s) => (
+                  <li key={s.categoryId ?? 'none'} className="flex items-center gap-2 text-xs">
+                    <span className="flex-1 truncate">{subName(s.categoryId, c.categoryId)}</span>
+                    <span className="text-muted">×{s.count}</span>
+                    <span className="w-20 text-right font-medium">{money(s.amount)}</span>
+                    <span className="w-10 text-right text-muted">{Math.round((s.amount / c.amount) * 100)}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Share of spending that is committed (recurring series) versus day-to-day. */
+function FixedVsVariable({ fixed, variable }: { fixed: number; variable: number }) {
+  const { t } = useTranslation();
+  const total = fixed + variable;
+  if (!total) return null;
+  const share = (fixed / total) * 100;
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-[11px] text-muted">
+        <span>
+          {t('analytics.fixed')} · {money(fixed)} ({Math.round(share)}%)
+        </span>
+        <span>
+          {t('analytics.variable')} · {money(variable)} ({Math.round(100 - share)}%)
+        </span>
+      </div>
+      <div className="flex h-2 gap-0.5 overflow-hidden rounded-full">
+        {fixed > 0 && <div className="h-full bg-muted/60" style={{ width: `${share}%` }} />}
+        {variable > 0 && <div className="h-full flex-1 bg-expense" />}
       </div>
     </div>
   );
 }
 
-function ChartCard({ title, children, className = '', right }: { title: string; children: ReactNode; className?: string; right?: ReactNode }) {
+function ChartCard({ title, children, className = '', right, help }: { title: string; children: ReactNode; className?: string; right?: ReactNode; help?: string }) {
   return (
     <section className={`card min-w-0 ${className}`}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          {help && <p className="text-xs text-muted">{help}</p>}
+        </div>
         {right}
       </div>
       {children}
@@ -290,12 +366,13 @@ function ChartCard({ title, children, className = '', right }: { title: string; 
   );
 }
 
-function Tile({ label, value, sub, subTone = 'text-muted' }: { label: string; value: string; sub?: string; subTone?: string }) {
+function Tile({ label, value, sub, tone = '', delta }: { label: string; value: string; sub?: string; tone?: string; delta?: { text: string; tone: string } }) {
   return (
     <div className="min-w-0 rounded-lg bg-surface p-2">
-      <div className="text-[11px] text-muted">{label}</div>
-      <div className="truncate text-base font-semibold">{value}</div>
-      {sub && <div className={`truncate text-[11px] ${subTone}`}>{sub}</div>}
+      <div className="truncate text-[11px] text-muted">{label}</div>
+      <div className={`truncate text-base font-semibold ${tone}`}>{value}</div>
+      {delta && <div className={`truncate text-[11px] ${delta.tone}`}>{delta.text}</div>}
+      {sub && <div className="truncate text-[11px] text-muted">{sub}</div>}
     </div>
   );
 }

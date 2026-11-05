@@ -302,7 +302,7 @@
     "netWorth": "Net worth (MXN)",
     "budgets": "Budget progress",
     "weekday": "Spending by day of week",
-    "weekdayHelp": "Average per day over the last 3 months (not affected by the filter).",
+    "weekdayHelp": "Average per day within the selected period.",
     "day": "day",
     "bySubcategory": "Spending by subcategory",
     "weekly": "Spending per week",
@@ -312,7 +312,28 @@
     "thisWeek": "This week",
     "vsAverage": "vs average",
     "weeksCount": "Weeks",
-    "weeklyHelp": "Last 12 weeks for This week / This month; otherwise every week of the period. The dashed line is the average of full weeks."
+    "weeklyHelp": "Every week of the period. The dashed line is the average of full weeks.",
+    "q": {
+      "howMuch": "How much?",
+      "onWhat": "On what?",
+      "when": "When?"
+    },
+    "expenses": "Expenses",
+    "income": "Income",
+    "net": "Net (saved)",
+    "monthlyAverage": "Monthly average",
+    "savingsRate": "Savings rate",
+    "vsPrevious": {
+      "week": "vs last week",
+      "month": "vs last month",
+      "year": "vs last year",
+      "custom": "vs previous period"
+    },
+    "noSubcategory": "No subcategory",
+    "perDay": "Spending per day",
+    "perDayHelp": "The dashed line is the daily average so far.",
+    "fixed": "Fixed (recurring)",
+    "variable": "Variable"
   },
   "import": {
     "title": "Import from Money Manager",

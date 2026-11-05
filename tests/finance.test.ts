@@ -14,6 +14,10 @@ import {
   weekdaySpending,
   weeklySpending,
   spendingBySubcategory,
+  periodSummary,
+  dailySpending,
+  categoryBreakdown,
+  previousPeriod,
 } from '../src/domain/finance/totals';
 import { account, category, tx } from './fixtures';
 
@@ -202,5 +206,53 @@ describe('weekly and subcategory spending', () => {
       { categoryId: 'rest', amount: 150, count: 2 },
       { categoryId: 'food', amount: 30, count: 1 },
     ]);
+  });
+});
+
+describe('analytics periods', () => {
+  const at = (m: number, day: number) => new Date(2026, m, day, 12).toISOString();
+  const cats = new Map([
+    ['food', category({ id: 'food', name: 'Food' })],
+    ['rest', category({ id: 'rest', name: 'Restaurants', parent_id: 'food' })],
+    ['fun', category({ id: 'fun', name: 'Fun' })],
+  ]);
+  const list = [
+    tx({ type: 'expense', original_amount: 100, occurred_at: at(10, 2), category_id: 'food', subcategory_id: 'rest', paid_for_others: true }),
+    tx({ type: 'expense', original_amount: 40, occurred_at: at(10, 2), category_id: 'food' }),
+    tx({ type: 'expense', original_amount: 60, occurred_at: at(10, 4), category_id: 'fun', series_id: 's1' }),
+    tx({ type: 'expense', original_amount: 80, occurred_at: at(9, 20), category_id: 'food' }),
+    tx({ type: 'income', original_amount: 1000, occurred_at: at(10, 1) }),
+    tx({ type: 'expense', original_amount: 999, occurred_at: at(10, 20), status: 'pending' }),
+  ];
+  const nov = [new Date(2026, 10, 1), new Date(2026, 11, 1)] as const;
+
+  it('summarises how much', () => {
+    expect(periodSummary(list, ...nov)).toEqual({ expense: 200, income: 1000, net: 800, savingsRate: 80, fixed: 60, variable: 140, paidForOthers: 100 });
+  });
+
+  it('totals each day', () => {
+    const days = dailySpending(list, new Date(2026, 10, 1), new Date(2026, 10, 5));
+    expect(days.map((d) => d.total)).toEqual([0, 140, 0, 60]);
+  });
+
+  it('breaks categories into subcategories against the previous period', () => {
+    const b = categoryBreakdown(list, cats, ...nov, previousPeriod('month', ...nov));
+    expect(b[0]).toEqual({
+      categoryId: 'food',
+      amount: 140,
+      previous: 80,
+      pct: 75,
+      subs: [
+        { categoryId: 'rest', amount: 100, count: 1 },
+        { categoryId: 'food', amount: 40, count: 1 },
+      ],
+    });
+    expect(b[1]).toMatchObject({ categoryId: 'fun', amount: 60, previous: 0, pct: null });
+    expect(categoryBreakdown(list, cats, ...nov)[0].previous).toBeNull();
+  });
+
+  it('finds the previous period', () => {
+    expect(previousPeriod('custom', new Date(2026, 10, 10), new Date(2026, 10, 20))).toEqual({ from: new Date(2026, 9, 31), to: new Date(2026, 10, 10) });
+    expect(previousPeriod('year', new Date(2026, 0, 1), new Date(2027, 0, 1)).from).toEqual(new Date(2025, 0, 1));
   });
 });

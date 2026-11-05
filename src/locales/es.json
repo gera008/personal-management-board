@@ -302,7 +302,7 @@
     "netWorth": "Patrimonio (MXN)",
     "budgets": "Avance de presupuestos",
     "weekday": "Gasto por día de la semana",
-    "weekdayHelp": "Promedio por día de los últimos 3 meses (no cambia con el filtro).",
+    "weekdayHelp": "Promedio por día dentro del periodo elegido.",
     "day": "día",
     "bySubcategory": "Gasto por subcategoría",
     "weekly": "Gasto por semana",
@@ -312,7 +312,28 @@
     "thisWeek": "Esta semana",
     "vsAverage": "vs promedio",
     "weeksCount": "Semanas",
-    "weeklyHelp": "Últimas 12 semanas en Esta semana / Este mes; en los demás filtros, cada semana del periodo. La línea punteada es el promedio de las semanas completas."
+    "weeklyHelp": "Cada semana del periodo. La línea punteada es el promedio de las semanas completas.",
+    "q": {
+      "howMuch": "¿Cuánto?",
+      "onWhat": "¿En qué?",
+      "when": "¿Cuándo?"
+    },
+    "expenses": "Gastos",
+    "income": "Ingresos",
+    "net": "Neto (ahorro)",
+    "monthlyAverage": "Promedio mensual",
+    "savingsRate": "Tasa de ahorro",
+    "vsPrevious": {
+      "week": "vs semana anterior",
+      "month": "vs mes anterior",
+      "year": "vs año anterior",
+      "custom": "vs periodo anterior"
+    },
+    "noSubcategory": "Sin subcategoría",
+    "perDay": "Gasto por día",
+    "perDayHelp": "La línea punteada es el promedio diario hasta hoy.",
+    "fixed": "Fijos (recurrentes)",
+    "variable": "Variables"
   },
   "import": {
     "title": "Importar desde Money Manager",
