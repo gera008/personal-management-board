@@ -241,8 +241,8 @@
     "assets": "Assets",
     "liabilities": "Liabilities",
     "today": "Today",
-    "paidForOthers": "Paid for others",
-    "paidForOthersHelp": "An expense you covered for someone else (partner, family…).",
+    "paidForOthers": "Shared expense",
+    "paidForOthersHelp": "You paid it, but it includes other people (partner, family…).",
     "finalAmount": "Different last payment",
     "optional": "Optional",
     "finalPayment": "Final payment",
@@ -333,7 +333,8 @@
     "perDay": "Spending per day",
     "perDayHelp": "The dashed line is the daily average so far.",
     "fixed": "Fixed (recurring)",
-    "variable": "Variable"
+    "variable": "Variable",
+    "shared": "Shared expenses"
   },
   "import": {
     "title": "Import from Money Manager",

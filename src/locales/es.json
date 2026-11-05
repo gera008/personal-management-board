@@ -241,8 +241,8 @@
     "assets": "Activos",
     "liabilities": "Pasivos",
     "today": "Hoy",
-    "paidForOthers": "Pagué por otros",
-    "paidForOthersHelp": "Un gasto que cubriste por alguien más (pareja, familia…).",
+    "paidForOthers": "Gasto compartido",
+    "paidForOthersHelp": "Lo pagaste tú, pero incluye a otras personas (pareja, familia…).",
     "finalAmount": "Último pago diferente",
     "optional": "Opcional",
     "finalPayment": "Pago final",
@@ -333,7 +333,8 @@
     "perDay": "Gasto por día",
     "perDayHelp": "La línea punteada es el promedio diario hasta hoy.",
     "fixed": "Fijos (recurrentes)",
-    "variable": "Variables"
+    "variable": "Variables",
+    "shared": "Gastos compartidos"
   },
   "import": {
     "title": "Importar desde Money Manager",

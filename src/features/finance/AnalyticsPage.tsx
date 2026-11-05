@@ -147,7 +147,7 @@ export function AnalyticsPage() {
             )}
             {proj && <Tile label={t('analytics.projected')} value={money(proj.projected)} />}
             <Tile label={t('analytics.savingsRate')} value={sum.savingsRate == null ? '—' : `${Math.round(sum.savingsRate)}%`} tone={sum.savingsRate != null && sum.savingsRate < 0 ? 'text-expense' : ''} />
-            <Tile label={t('finance.paidForOthers')} value={money(sum.paidForOthers)} />
+            <Tile label={t('analytics.shared')} value={money(sum.paidForOthers)} />
           </div>
           <FixedVsVariable fixed={sum.fixed} variable={sum.variable} />
         </section>
