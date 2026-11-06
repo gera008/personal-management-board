@@ -20,8 +20,8 @@ export default defineConfig({
       injectManifest: { maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 },
       devOptions: { enabled: true, type: 'module' },
       manifest: {
-        name: 'Personal Hub',
-        short_name: 'Hub',
+        name: 'Mios',
+        short_name: 'Mios',
         description: 'Calendar, tasks, finance and habits in one place.',
         theme_color: '#F8F9FA',
         background_color: '#F8F9FA',

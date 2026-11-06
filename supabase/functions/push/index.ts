@@ -163,7 +163,7 @@ async function runReminders(db: SupabaseClient) {
     if (delta >= 0 && delta < 5) {
       const { count } = await db.from('tasks').select('id', { count: 'exact', head: true }).eq('user_id', p.user_id).is('completed_at', null).eq('due_date', local.date);
       if (count) {
-        await sendToUser(db, p.user_id, { title: 'Personal Hub', body: m.digest(count), url: '/tasks?list=today', tag: `digest-${local.date}` });
+        await sendToUser(db, p.user_id, { title: 'Mios', body: m.digest(count), url: '/tasks?list=today', tag: `digest-${local.date}` });
         stats.digests++;
       }
     }
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     if (!data.user) return new Response('Unauthorized', { status: 401, headers: cors });
     const { data: profile } = await db.from('profiles').select('language').eq('user_id', data.user.id).maybeSingle();
     const m = MESSAGES[(profile?.language as 'en' | 'es') ?? 'en'];
-    const sent = await sendToUser(db, data.user.id, { title: 'Personal Hub', body: m.test, url: '/settings', tag: 'test' });
+    const sent = await sendToUser(db, data.user.id, { title: 'Mios', body: m.test, url: '/settings', tag: 'test' });
     return Response.json({ sent }, { headers: cors });
   }
 

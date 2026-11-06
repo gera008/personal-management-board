@@ -24,11 +24,11 @@ interface PushPayload {
 }
 
 self.addEventListener('push', (event) => {
-  let data: PushPayload = { title: 'Personal Hub' };
+  let data: PushPayload = { title: 'Mios' };
   try {
     data = event.data?.json() ?? data;
   } catch {
-    data = { title: 'Personal Hub', body: event.data?.text() };
+    data = { title: 'Mios', body: event.data?.text() };
   }
   event.waitUntil(
     self.registration.showNotification(data.title, {

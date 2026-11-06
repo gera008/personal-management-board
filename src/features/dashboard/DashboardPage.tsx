@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { addDays, startOfDay } from 'date-fns';
@@ -47,30 +47,72 @@ export function DashboardPage() {
       ) : widgets.length === 0 ? (
         <Empty>{t('dashboard.allHidden')}</Empty>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {widgets.map((w) => (
-            <Widget key={w.id} id={w.id} />
-          ))}
-        </div>
+        <Widgets ids={widgets.map((w) => w.id)} />
       )}
     </div>
   );
 }
 
-function Widget({ id }: { id: WidgetId }) {
+/**
+ * Wide screens arrange the widgets in rows of equal-sized cards: the month
+ * calendar on its own (large), This week beside Tasks, then finance, today's
+ * habits and the heatmap side by side. Rows follow the order picked in
+ * Customize. Phones and tablets keep one column in that order.
+ */
+const ROWS: WidgetId[][] = [['month_calendar'], ['week_detail', 'tasks'], ['finance_summary', 'habits_today', 'habit_heatmap']];
+const COLS = ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3'];
+
+function Widgets({ ids }: { ids: WidgetId[] }) {
+  const wide = useMediaQuery('(min-width: 1024px)');
+  if (!wide) {
+    return (
+      <div className="space-y-4">
+        {ids.map((id) => (
+          <Widget key={id} id={id} />
+        ))}
+      </div>
+    );
+  }
+  const rows = ROWS.map((row) => ids.filter((id) => row.includes(id)))
+    .filter((row) => row.length)
+    .sort((x, y) => ids.indexOf(x[0]) - ids.indexOf(y[0]));
+  return (
+    <div className="space-y-4">
+      {rows.map((row) => (
+        // Cards in a row stretch to the tallest one, so they read as one size.
+        <div key={row.join()} className={`grid gap-4 ${COLS[row.length]}`}>
+          {row.map((id) => (
+            <div key={id} className="min-w-0 [&>*]:h-full">
+              <Widget id={id} big={wide} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setMatches(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, [query]);
+  return matches;
+}
+
+function Widget({ id, big }: { id: WidgetId; big?: boolean }) {
   switch (id) {
     case 'month_calendar':
-      return <MonthWidget />;
+      return <MonthWidget big={big} />;
     case 'week_detail':
       return <WeekWidget />;
     case 'tasks':
       return <TasksWidget />;
     case 'finance_summary':
-      return (
-        <div className="min-w-0 md:col-span-2">
-          <FinanceWidget />
-        </div>
-      );
+      return <FinanceWidget />;
     case 'habits_today':
       return <HabitsWidget />;
     case 'habit_heatmap':
@@ -97,16 +139,18 @@ function useOpenItem() {
   return (i: CalItem) => navigate(i.kind === 'task' ? `/tasks?task=${i.id}` : '/calendar');
 }
 
-function MonthWidget() {
+/** Large on wide screens: event titles inside the days instead of dots. */
+function MonthWidget({ big }: { big?: boolean }) {
   const { t } = useTranslation();
   const { weekStartsOn } = useProfile();
   const today = startOfDay(new Date());
   const { from, to } = monthRange(today, weekStartsOn);
   const { items } = useCalendarItems(from, to);
   const navigate = useNavigate();
+  const open = useOpenItem();
   return (
     <Card title={formatDate(today, 'MMMM yyyy')} to="/calendar">
-      <MonthGrid month={today} items={items} weekStartsOn={weekStartsOn} compact onSelect={() => navigate('/calendar')} />
+      <MonthGrid month={today} items={items} weekStartsOn={weekStartsOn} compact={!big} onSelect={() => navigate('/calendar')} onItem={open} />
       <div className="mt-2 flex gap-3 text-[11px] text-muted">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-calendar" /> {t('dashboard.events')}
@@ -166,7 +210,7 @@ function TasksWidget() {
 function FinanceWidget() {
   const { t } = useTranslation();
   return (
-    <div className="relative">
+    <div className="relative [&>*]:h-full">
       <Indicators storageKey="dashboard-finance" title={t('dashboard.finance')} />
       <Link to="/finance" className="absolute right-4 top-4 text-muted" aria-label={t('nav.finance')}>
         <Icon name="chevronRight" size={18} />
@@ -201,7 +245,7 @@ function HeatmapWidget() {
   const habits = useHabits();
   const logs = useHabitLogs();
   return (
-    <Card title={t('dashboard.habitHeatmap')} to="/health/habits" className="md:col-span-2">
+    <Card title={t('dashboard.habitHeatmap')} to="/health/habits">
       {(habits.data ?? []).length === 0 ? <p className="text-sm text-muted">{t('habits.empty')}</p> : <CombinedHeatmap habits={habits.data ?? []} logs={logs.data ?? []} />}
     </Card>
   );

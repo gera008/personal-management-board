@@ -44,7 +44,9 @@
     "createAccount": "Create an account",
     "haveAccount": "I already have an account",
     "useMagic": "Sign in with an email link instead",
-    "setupNeeded": "Supabase isn't configured yet. Copy .env.example to .env.local, fill in your project URL and anon key, then restart the dev server."
+    "setupNeeded": "Supabase isn't configured yet. Copy .env.example to .env.local, fill in your project URL and anon key, then restart the dev server.",
+    "tryDemo": "Try the demo",
+    "demoBanner": "You are in the demo account. Changes are erased every night."
   },
   "widgets": {
     "month_calendar": "Month calendar",

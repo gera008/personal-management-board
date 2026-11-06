@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Session } from '@supabase/supabase-js';
 import { isConfigured, supabase } from '@/lib/supabase';
 import { ErrorText } from '@/components/ui';
+import { demoAvailable, signInDemo } from '@/lib/demo';
 
 export function AuthGate({ children }: { children: (session: Session) => ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -24,7 +25,7 @@ function SetupNeeded() {
   const { t } = useTranslation();
   return (
     <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="mb-2 text-2xl font-bold">Personal Hub</h1>
+      <h1 className="mb-2 text-2xl font-bold">Mios</h1>
       <p className="text-sm text-muted">{t('auth.setupNeeded')}</p>
       <pre className="mt-4 overflow-x-auto rounded-lg bg-surface p-3 text-xs">VITE_SUPABASE_URL=…{'\n'}VITE_SUPABASE_ANON_KEY=…</pre>
     </main>
@@ -69,7 +70,7 @@ function Login() {
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4">
       <div className="mb-8 flex items-center gap-3">
         <img src="/icon-192.png" alt="" className="h-10 w-10 rounded-lg" />
-        <h1 className="text-2xl font-bold">Personal Hub</h1>
+        <h1 className="text-2xl font-bold">Mios</h1>
       </div>
       <form onSubmit={submit} className="space-y-3">
         <ErrorText error={error} />
@@ -91,6 +92,21 @@ function Login() {
           {t(`auth.${mode}`)}
         </button>
       </form>
+      {demoAvailable && (
+        <button
+          className="btn-ghost mt-3 w-full py-2.5"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            const { error } = await signInDemo();
+            if (error) setError(error);
+            setBusy(false);
+          }}
+        >
+          {t('auth.tryDemo')}
+        </button>
+      )}
       <div className="mt-4 flex flex-col gap-1 text-center text-sm text-muted">
         {mode !== 'signin' && <button onClick={() => setMode('signin')}>{t('auth.haveAccount')}</button>}
         {mode !== 'signup' && <button onClick={() => setMode('signup')}>{t('auth.createAccount')}</button>}
