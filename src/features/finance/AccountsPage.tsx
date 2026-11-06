@@ -21,7 +21,7 @@ export function AccountsPage() {
 
   const list = (accounts.data ?? []).filter((a) => showArchived || !a.archived);
   const bal = balances.data ?? new Map();
-  // Totals include every debt, also installments that are still pending (like Money Manager).
+  // Totals include every debt, also installments that are still pending.
   const withPending = new Map([...bal].map(([id, b]) => [id, b + (pending.get(id) ?? 0)]));
   const summary = balanceSummary(accounts.data ?? [], withPending, rates);
   const byType = ACCOUNT_TYPES.map((type) => ({ type, items: list.filter((a) => a.type === type) })).filter((g) => g.items.length);

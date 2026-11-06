@@ -339,8 +339,8 @@
     "shared": "Gastos compartidos"
   },
   "import": {
-    "title": "Importar desde Money Manager",
-    "help": "Elige el archivo de Excel exportado de Money Manager. Verás una vista previa y las inconsistencias antes de guardar.",
+    "title": "Importar desde Excel",
+    "help": "Elige el archivo de Excel exportado de tu app de finanzas anterior. Verás una vista previa y las inconsistencias antes de guardar.",
     "choose": "Elegir archivo",
     "preview": "Vista previa",
     "rows": "Filas",

@@ -92,7 +92,7 @@ describe('finance totals', () => {
     expect(totalBalanceMXN(accs, bal, { CAD: 14 })).toBe(2400);
   });
 
-  it('splits balances into assets, liabilities and total like Money Manager', () => {
+  it('splits balances into assets, liabilities and total', () => {
     const accs = [
       account({ id: 'debit' }),
       account({ id: 'oro', type: 'credit_card' }),

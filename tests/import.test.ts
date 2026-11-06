@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildImportPlan, resolvePlan } from '../src/domain/import/moneyManager';
+import { buildImportPlan, resolvePlan } from '../src/domain/import/excelImport';
 
 const HEADER = ['Period', 'Accounts', 'Category', 'Subcategory', 'Note', 'MXN', 'Income/Expense', 'Description', 'Amount', 'Currency', 'Accounts'];
 const row = (date: Date, account: string, category: string, sub: string | null, note: string | null, mxn: number, kind: string, amount: number, currency = 'MXN') =>
@@ -35,7 +35,7 @@ const table = [
   [new Date(2026, 9, 11), 'Debit Card', null, null, null, 'x', 'Exp.', null, 'abc', 'MXN', null],
 ];
 
-describe('Money Manager import', () => {
+describe('Excel import', () => {
   const plan = buildImportPlan(table, NOW);
 
   it('counts rows by type', () => {

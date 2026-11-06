@@ -14,7 +14,7 @@ import { AccountSheet } from './AccountsPage';
 import { TxRow } from './FinanceHome';
 import { TransactionSheet } from './TransactionSheet';
 
-/** One account's movements, a month at a time (like opening an account in Money Manager). */
+/** One account's movements, a month at a time. */
 export function AccountDetailPage() {
   const { id = '' } = useParams();
   const { t } = useTranslation();

@@ -118,7 +118,7 @@ export interface BalanceSummary {
 }
 
 /**
- * Money Manager style summary in MXN: accounts with a positive balance add to
+ * Summary in MXN: accounts with a positive balance add to
  * assets, negative ones (credit cards, overdrafts) to liabilities. Only
  * active accounts included in totals count.
  */

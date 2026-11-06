@@ -2,7 +2,7 @@ import type { AccountType, Currency } from '../types';
 import { CURRENCIES } from '../types';
 
 /**
- * Money Manager Excel export -> import plan.
+ * Excel export of a finance app -> import plan.
  *
  * Columns: Period, Accounts, Category, Subcategory, Note, MXN, Income/Expense,
  * Description, Amount, Currency, Accounts (duplicate, ignored).

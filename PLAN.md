@@ -1,4 +1,4 @@
-# Personal Hub — MVP Plan
+# Mios — MVP Plan
 
 Status: **draft, waiting for confirmation**. Nothing is built yet.
 
@@ -52,7 +52,7 @@ personal-hub/
 │  │  ├─ finance/          # totals, indicators, projections, transfer pairing
 │  │  ├─ recurring/        # next-occurrence, schedule generation
 │  │  ├─ habits/           # schedule matching, streaks, completion %
-│  │  └─ import/           # Money Manager parser, normalizer, validator
+│  │  └─ import/           # Excel import parser, normalizer, validator
 │  ├─ features/
 │  │  ├─ dashboard/        # widgets + registry
 │  │  ├─ calendar/         # month/week/day/agenda + event form
@@ -88,7 +88,7 @@ Each table gets `user_id uuid not null default auth.uid() references auth.users`
 | 009 | `budgets` | Unique `(user_id, category_id)`. |
 | 010 | `habits`, `habit_logs` | `tags text[]` on habits (simpler than a join table). `frequency jsonb` = `{type: daily}` / `{type: weekdays, days:[1,3,5]}` / `{type: times_per_week, n:3}` / `{type: every_n_days, n:2}`. Logs are unique `(habit_id, date)`. |
 | 011 | `push_subscriptions` | Unique `(user_id, endpoint)`. |
-| 012 | Views/RPCs | `account_balances` view, `finance_indicators(range)` RPC, `import_money_manager(jsonb)` RPC (single transaction, upserts on hash). |
+| 012 | Views/RPCs | `account_balances` view, `finance_indicators(range)` RPC, `import_transactions(jsonb)` RPC (single transaction, upserts on hash). |
 | 013 | Cron | `pg_cron` + `pg_net`: hourly call to the `daily-job` edge function (it applies work that's due in each user's local time) and a **5-minute** call to `send-reminders`. |
 
 **Balance rule:** account balance = `initial_balance + Σ applied signed amounts in the account's currency`. Pending rows are excluded from balances but shown in lists and projections.
@@ -117,7 +117,7 @@ Bottom nav on mobile (Home · Calendar · Tasks · Finance · Habits) and a side
 6. Finance core (accounts, categories, transactions, transfers, balances)
 7. Recurring series + daily job
 8. Budgets + indicators
-9. Import (Money Manager)
+9. Import (Excel)
 10. Analytics
 11. Habits
 12. Dashboard
@@ -135,4 +135,4 @@ Bottom nav on mobile (Home · Calendar · Tasks · Finance · Habits) and a side
 8. **Default currency** is MXN for all reporting. Should USD/CAD rates start at placeholders (e.g. USD 18.00, CAD 13.84), which you then edit?
 9. **Habit "X times per week":** is a streak counted in weeks (met the weekly target) or in days? I propose weeks for that frequency type and days for the others.
 10. **Bad habits:** does "días sin" count from the habit's creation date (or the last slip), with no daily check-in needed? I assume yes, since a day with no slip counts as a success.
-11. **App name:** keep "Personal Hub"?
+11. **App name:** keep "Mios"?

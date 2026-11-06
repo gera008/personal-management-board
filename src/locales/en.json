@@ -339,8 +339,8 @@
     "shared": "Shared expenses"
   },
   "import": {
-    "title": "Import from Money Manager",
-    "help": "Choose the Excel file exported from Money Manager. You'll see a preview and any inconsistencies before anything is saved.",
+    "title": "Import from Excel",
+    "help": "Choose the Excel file exported from your previous finance app. You'll see a preview and any inconsistencies before anything is saved.",
     "choose": "Choose file",
     "preview": "Preview",
     "rows": "Rows",

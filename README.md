@@ -1,6 +1,6 @@
-# Personal Hub
+# Mios
 
-Personal management PWA: dashboard, calendar, lists & tasks, finance (Money Manager style) and a habit tracker. React + TypeScript + Vite + Tailwind, Supabase (Postgres + RLS, Auth, Edge Functions, pg_cron), Web Push.
+Personal management PWA: dashboard, calendar, lists & tasks, finance and a habit tracker. React + TypeScript + Vite + Tailwind, Supabase (Postgres + RLS, Auth, Edge Functions, pg_cron), Web Push.
 
 The app starts empty. Only three task lists (Personal, School, Work) and the MXN rate are created for a new user.
 
@@ -77,5 +77,5 @@ Import the repo, framework preset **Vite**, and set `VITE_SUPABASE_URL`, `VITE_S
 - **Balances:** `account_balances` view = initial balance + applied transactions. Pending rows don't count until applied.
 - **Recurring:** creating a series generates its future payments as `pending` (all payments for installments, 12 months for subscriptions). The job applies them on their date. Editing rebuilds only future pending payments, and cancelling removes them; paid history is untouched.
 - **Habits:** bad habits count "días sin" (days without a slip). "X times per week" habits count their streak in weeks. Weeks start on the profile's week start (Sunday by default).
-- **Import:** Money Manager Excel parsed in the browser with a preview and per-issue choices. Each row gets a stable hash (`import_hash`, unique per user), so re-importing the same file adds nothing.
+- **Import:** Excel export parsed in the browser with a preview and per-issue choices. Each row gets a stable hash (`import_hash`, unique per user), so re-importing the same file adds nothing.
 - **RLS:** every table has `user_id` and owner-only policies.

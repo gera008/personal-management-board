@@ -4,7 +4,7 @@ import { useInvalidate } from '@/lib/data';
 import { formatDate } from '@/lib/format';
 import { exportAllJson, exportTransactionsCsv } from '@/lib/exporter';
 import { ErrorText, Icon } from '@/components/ui';
-import { buildImportPlan, type ImportPlan, type Resolution } from '@/domain/import/moneyManager';
+import { buildImportPlan, type ImportPlan, type Resolution } from '@/domain/import/excelImport';
 import { commitImport, type ImportResult } from './importer';
 
 export function ImportExportPage() {

@@ -1,6 +1,6 @@
 import { supabase, unwrap } from '@/lib/supabase';
-import type { ImportPlan, PlannedTransfer, PlannedTx, Resolution } from '@/domain/import/moneyManager';
-import { resolvePlan } from '@/domain/import/moneyManager';
+import type { ImportPlan, PlannedTransfer, PlannedTx, Resolution } from '@/domain/import/excelImport';
+import { resolvePlan } from '@/domain/import/excelImport';
 import type { Account, Category } from '@/domain/types';
 
 const BATCH = 500;
