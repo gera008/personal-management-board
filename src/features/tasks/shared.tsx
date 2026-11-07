@@ -90,6 +90,8 @@ export function TaskRow({ task, list, onOpen }: { task: Task; list?: TaskList; o
           {task.priority > 0 && <span className="mr-1 font-bold text-tasks">{PRIORITY_FLAGS[task.priority]}</span>}
           {task.title}
         </div>
+        {/* A peek at the notes (two lines at most) without opening the task. */}
+        {task.notes?.trim() && <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-muted">{task.notes.trim()}</p>}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           {task.due_date && (
             <span className={overdue ? 'text-expense' : ''}>
