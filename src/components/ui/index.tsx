@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { addMonths, isSameMonth, startOfMonth } from 'date-fns';
 import { formatDate } from '@/lib/format';
+import { nextHourTime } from '@/domain/dates';
 import { Icon } from './Icon';
 
 export { Icon } from './Icon';
@@ -235,4 +236,16 @@ export function MonthPicker({ month, onChange, className = '' }: { month: Date; 
       </div>
     </div>
   );
+}
+
+/**
+ * Time field that starts at the next full hour: an empty field fills in
+ * "HH:00" the moment it's tapped, so the picker doesn't open on the current
+ * minute. A value already set is left alone.
+ */
+export function TimeInput({ value, onChange, disabled, className = 'input' }: { value: string; onChange: (v: string) => void; disabled?: boolean; className?: string }) {
+  const prefill = () => {
+    if (!value && !disabled) onChange(nextHourTime());
+  };
+  return <input type="time" className={className} disabled={disabled} value={value} onPointerDown={prefill} onFocus={prefill} onChange={(e) => onChange(e.target.value)} />;
 }

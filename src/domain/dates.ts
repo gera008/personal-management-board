@@ -8,3 +8,6 @@ export const fromDateKey = (key: string): Date => parseISO(key);
 
 /** Date key of an ISO timestamp in the browser's local time. */
 export const isoToDateKey = (iso: string): string => toDateKey(new Date(iso));
+
+/** The next full hour as "HH:00" (13:37 → "14:00"; 23:10 → "00:00"). Default for empty time fields. */
+export const nextHourTime = (now: Date = new Date()): string => `${String((now.getHours() + 1) % 24).padStart(2, '0')}:00`;

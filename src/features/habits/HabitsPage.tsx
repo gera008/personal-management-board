@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/format';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { Heatmap } from '@/components/Heatmap';
-import { Empty, ErrorText, Fab, Field, Icon, MonthPicker, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
+import { Empty, ErrorText, Fab, Field, Icon, MonthPicker, Progress, SaveBar, Segmented, Sheet, TagInput, TimeInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { canLogOn, computeStreaks, habitHeatmap, isSuccess, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
 import { PALETTE, num, type Habit, type HabitFrequency } from '@/domain/types';
@@ -459,7 +459,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
           </Field>
         </div>
         <Field label={t('habits.reminder')}>
-          <input type="time" className="input" value={f.reminder_time} onChange={(e) => setF({ ...f, reminder_time: e.target.value })} />
+          <TimeInput value={f.reminder_time} onChange={(reminder_time) => setF({ ...f, reminder_time })} />
         </Field>
         <Field label={t('common.tags')}>
           <TagInput value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />

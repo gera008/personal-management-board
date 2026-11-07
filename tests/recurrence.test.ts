@@ -64,3 +64,12 @@ describe('recurrence', () => {
     expect(cleanRule({ freq: 'daily', interval: 2, count: 5, until: '2027-01-01' })).toEqual({ freq: 'daily', interval: 2, count: 5 });
   });
 });
+
+describe('nextHourTime', () => {
+  it('rounds up to the next full hour', async () => {
+    const { nextHourTime } = await import('../src/domain/dates');
+    expect(nextHourTime(new Date(2026, 10, 7, 13, 37))).toBe('14:00');
+    expect(nextHourTime(new Date(2026, 10, 7, 9, 0))).toBe('10:00');
+    expect(nextHourTime(new Date(2026, 10, 7, 23, 10))).toBe('00:00');
+  });
+});

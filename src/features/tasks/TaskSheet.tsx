@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { supabase, unwrap } from '@/lib/supabase';
-import { ErrorText, Field, Icon, SaveBar, Sheet, TagInput } from '@/components/ui';
+import { ErrorText, Field, Icon, SaveBar, Sheet, TagInput, TimeInput } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import type { Task, TaskList } from '@/domain/types';
@@ -116,7 +116,7 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
             <input type="date" className="input" value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} />
           </Field>
           <Field label={t('tasks.dueTime')}>
-            <input type="time" className="input" disabled={!f.due_date} value={f.due_time} onChange={(e) => setF({ ...f, due_time: e.target.value })} />
+            <TimeInput disabled={!f.due_date} value={f.due_time} onChange={(due_time) => setF({ ...f, due_time })} />
           </Field>
         </div>
         {f.due_date && <RecurrencePicker value={rule} onChange={setRule} anchor={f.due_date} accent="tasks" />}
