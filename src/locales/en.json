@@ -100,17 +100,18 @@
     "hoursBefore_other": "{{count}} hours before",
     "daysBefore_one": "{{count}} day before",
     "daysBefore_other": "{{count}} days before",
-    "color": "Color"
+    "category": "Category",
+    "noCategory": "No category"
   },
   "tasks": {
     "today": "Today",
     "all": "All",
     "newTask": "New task",
     "editTask": "Edit task",
-    "newList": "New list",
-    "editList": "Edit list",
+    "newList": "New category",
+    "editList": "Edit category",
     "title": "Title",
-    "list": "List",
+    "list": "Category",
     "dueDate": "Due date",
     "dueTime": "Time",
     "priority": "Priority",
@@ -125,7 +126,7 @@
     "hideCompleted": "Hide completed",
     "markComplete": "Mark complete",
     "markIncomplete": "Mark incomplete",
-    "deleteListWarning": "Deleting a list also deletes its tasks."
+    "deleteListWarning": "Deleting a category also deletes its tasks. Events in it are left without a category."
   },
   "finance": {
     "tabs": {

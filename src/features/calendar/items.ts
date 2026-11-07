@@ -2,7 +2,7 @@ import { addDays, endOfDay, startOfDay } from 'date-fns';
 import { useRows } from '@/lib/data';
 import { toDateKey } from '@/domain/dates';
 import { expandEvents } from '@/domain/events';
-import type { CalendarEvent, Task } from '@/domain/types';
+import { DEFAULT_EVENT_COLOR, type CalendarEvent, type Task } from '@/domain/types';
 
 export interface CalItem {
   kind: 'event' | 'task';
@@ -12,6 +12,8 @@ export interface CalItem {
   start: Date;
   end: Date;
   done?: boolean;
+  /** The category's color (tasks and events alike), or the default event color. */
+  color: string;
   event?: CalendarEvent;
   /** Date key of the occurrence when the event repeats. */
   occurrence?: string | null;
@@ -31,6 +33,8 @@ export function useCalendarItems(from: Date, to: Date) {
     key: ['recurring', toIso],
     filter: (q) => q.not('recurrence', 'is', null).lt('start_at', toIso),
   });
+  const lists = useRows('task_lists', { filter: (q) => q.order('position') });
+  const listColor = new Map((lists.data ?? []).map((l) => [l.id, l.color]));
   const tasks = useRows('tasks', {
     key: ['due', toDateKey(from), toDateKey(to)],
     filter: (q) => q.gte('due_date', toDateKey(from)).lt('due_date', toDateKey(to)).order('due_date'),
@@ -44,12 +48,13 @@ export function useCalendarItems(from: Date, to: Date) {
       allDay: i.event.all_day,
       start: i.start,
       end: i.end,
+      color: (i.event.list_id && listColor.get(i.event.list_id)) || i.event.color || DEFAULT_EVENT_COLOR,
       event: i.event,
       occurrence: i.occurrence,
     })),
     ...(tasks.data ?? []).map((t) => {
       const start = new Date(`${t.due_date}T${t.due_time ?? '00:00'}`);
-      return { kind: 'task' as const, id: t.id, title: t.title, allDay: !t.due_time, start, end: start, done: !!t.completed_at, task: t };
+      return { kind: 'task' as const, id: t.id, title: t.title, allDay: !t.due_time, start, end: start, done: !!t.completed_at, color: listColor.get(t.list_id) ?? DEFAULT_EVENT_COLOR, task: t };
     }),
   ];
   return { items, isLoading: oneOff.isLoading || recurring.isLoading || tasks.isLoading };

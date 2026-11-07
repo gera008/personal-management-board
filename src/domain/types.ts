@@ -31,11 +31,23 @@ export const ACCENTS: { id: Accent; hex: string }[] = [
   { id: 'mint', hex: '#4ADE80' },
 ];
 
-/** Colors an event can wear; events without one show in DEFAULT_EVENT_COLOR (the --calendar token). */
-export const EVENT_COLORS = ['#A879FF', '#3D8BFF', '#22D3EE', '#FF57B2', '#FFC93D', '#E5E5EA'] as const;
+/** Colors for categories (shared by tasks and events) and habits, in picker order. */
+export const PALETTE: readonly string[] = [
+  '#A879FF', // violet
+  '#D96BFF', // purple
+  '#FF57B2', // pink
+  '#FF6B81', // rose
+  '#FF9F43', // tangerine
+  '#FFC93D', // amber
+  '#14B8A6', // teal
+  '#22D3EE', // cyan
+  '#8FD3FF', // sky
+  '#3D8BFF', // blue
+  '#5B6CFF', // indigo
+  '#E5E5EA', // silver
+];
+/** Events without a category (or synced from Google) show in this color (the --calendar token). */
 export const DEFAULT_EVENT_COLOR = '#3D8BFF';
-/** The same six colors for task lists and habits. */
-export const PALETTE: readonly string[] = EVENT_COLORS;
 
 export type WidgetId = 'month_calendar' | 'week_detail' | 'tasks' | 'finance_summary' | 'habits_today' | 'habit_heatmap';
 export interface WidgetSetting {
@@ -60,6 +72,9 @@ export interface CalendarEvent {
   recurrence: Recurrence | null;
   exdates: string[];
   recurrence_parent_id: string | null;
+  /** Category (a task list); its color paints the event. */
+  list_id?: string | null;
+  /** Older per-event color, used only when there's no category. */
   color?: string | null;
   google_calendar_id?: string | null;
   google_event_id?: string | null;

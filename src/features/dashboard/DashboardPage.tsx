@@ -141,7 +141,6 @@ function useOpenItem() {
 
 /** Large on wide screens: event titles inside the days instead of dots. */
 function MonthWidget({ big }: { big?: boolean }) {
-  const { t } = useTranslation();
   const { weekStartsOn } = useProfile();
   const today = startOfDay(new Date());
   const { from, to } = monthRange(today, weekStartsOn);
@@ -151,14 +150,6 @@ function MonthWidget({ big }: { big?: boolean }) {
   return (
     <Card title={formatDate(today, 'MMMM yyyy')} to="/calendar">
       <MonthGrid month={today} items={items} weekStartsOn={weekStartsOn} compact={!big} onSelect={() => navigate('/calendar')} onItem={open} />
-      <div className="mt-2 flex gap-3 text-[11px] text-muted">
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-calendar" /> {t('dashboard.events')}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-tasks" /> {t('dashboard.tasksDue')}
-        </span>
-      </div>
     </Card>
   );
 }

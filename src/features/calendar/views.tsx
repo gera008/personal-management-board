@@ -18,8 +18,8 @@ export function weekRange(day: Date, weekStartsOn: 0 | 1) {
 
 const timeLabel = (d: Date) => formatDate(d, 'HH:mm');
 
-/** An event's own color (or the default event color); tasks use the tasks color. */
-export const itemColor = (i: CalItem) => (i.kind === 'task' ? 'rgb(var(--tasks))' : i.event?.color ?? 'rgb(var(--calendar))');
+/** Tasks and events wear their category's color. */
+export const itemColor = (i: CalItem) => i.color;
 /** Colored left edge and a soft fill of the item's color. */
 const tint = (i: CalItem, pct: number) => ({ borderColor: itemColor(i), background: `color-mix(in srgb, ${itemColor(i)} ${pct}%, transparent)` });
 
@@ -33,7 +33,7 @@ export function ItemChip({ item, onClick, compact }: { item: CalItem; onClick?: 
       }`}
       style={tint(item, 26)}
     >
-      {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
+      {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-full border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
       {!compact && !item.allDay && <span className="shrink-0 text-muted">{timeLabel(item.start)}</span>}
       <span className="truncate">{item.title}</span>
     </button>
@@ -148,7 +148,7 @@ function TimedBlock({ item, short, narrow, onClick }: { item: CalItem; short: bo
       style={tint(item, 32)}
     >
       <span className="flex min-w-0 items-center gap-1.5">
-        {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
+        {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-full border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
         {/* Narrow week columns wrap the title over the block's height instead of cutting it to one line. */}
         <span className={`font-medium ${narrow && !short ? '[overflow-wrap:anywhere]' : 'truncate'}`}>{item.title}</span>
       </span>

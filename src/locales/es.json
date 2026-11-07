@@ -100,17 +100,18 @@
     "hoursBefore_other": "{{count}} horas antes",
     "daysBefore_one": "{{count}} día antes",
     "daysBefore_other": "{{count}} días antes",
-    "color": "Color"
+    "category": "Categoría",
+    "noCategory": "Sin categoría"
   },
   "tasks": {
     "today": "Hoy",
     "all": "Todas",
     "newTask": "Nueva tarea",
     "editTask": "Editar tarea",
-    "newList": "Nueva lista",
-    "editList": "Editar lista",
+    "newList": "Nueva categoría",
+    "editList": "Editar categoría",
     "title": "Título",
-    "list": "Lista",
+    "list": "Categoría",
     "dueDate": "Fecha límite",
     "dueTime": "Hora",
     "priority": "Prioridad",
@@ -125,7 +126,7 @@
     "hideCompleted": "Ocultar completadas",
     "markComplete": "Marcar como completada",
     "markIncomplete": "Marcar como pendiente",
-    "deleteListWarning": "Eliminar una lista también elimina sus tareas."
+    "deleteListWarning": "Eliminar una categoría también elimina sus tareas. Los eventos con esta categoría se quedan sin categoría."
   },
   "finance": {
     "tabs": {

@@ -185,14 +185,7 @@ begin
     (uid, 'Comida familiar', 'Casa de mis papás', ((today - 3) + time '14:00') at time zone tz, ((today - 3) + time '17:00') at time zone tz, null);
   insert into events (user_id, title, start_at, end_at, all_day) values
     (uid, 'Cumpleaños de Ana', (today + 9)::timestamp at time zone tz, ((today + 9) + time '23:59') at time zone tz, true);
-  update events set color = case title
-    when 'Dentista' then '#22D3EE'
-    when 'Cena con amigos' then '#FF57B2'
-    when 'Entrega de proyecto' then '#FFC93D'
-    when 'Clase de inglés' then '#A879FF'
-    when 'Cumpleaños de Ana' then '#FF57B2'
-    else null end
-  where user_id = uid;
+
 
   -- Tasks (lists come from the new-user trigger; recreate them if missing)
   if not exists (select 1 from task_lists where user_id = uid) then
@@ -203,6 +196,12 @@ begin
   select id into l_personal from task_lists where user_id = uid order by position limit 1;
   select id into l_school from task_lists where user_id = uid order by position offset 1 limit 1;
   select id into l_work from task_lists where user_id = uid order by position offset 2 limit 1;
+  -- Calendar and tasks share categories
+  update events set list_id = case
+    when title in ('Junta semanal del equipo', 'Entrega de proyecto') then l_work
+    when title = 'Clase de inglés' then l_school
+    else l_personal end
+  where user_id = uid;
   insert into tasks (user_id, list_id, title, due_date, due_time, priority, completed_at) values
     (uid, l_personal, 'Pagar la tarjeta', today + 3, null, 2, null),
     (uid, l_personal, 'Comprar regalo para Ana', today + 7, null, 1, null),

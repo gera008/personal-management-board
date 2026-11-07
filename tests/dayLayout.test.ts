@@ -9,6 +9,7 @@ const ev = (id: string, start: string, end: string): CalItem => ({
   allDay: false,
   start: new Date(`2026-11-02T${start}`),
   end: new Date(`2026-11-02T${end}`),
+  color: '#3D8BFF',
 });
 const byId = (slots: ReturnType<typeof layoutDay>) => Object.fromEntries(slots.map((s) => [s.item.id, s]));
 

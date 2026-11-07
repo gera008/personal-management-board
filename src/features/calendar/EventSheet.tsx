@@ -8,7 +8,8 @@ import { ErrorText, Field, SaveBar, Sheet } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import { planSeriesDelete, planSeriesEdit, type EventFields, type SeriesPlan, type SeriesScope } from '@/domain/eventSeries';
-import { DEFAULT_EVENT_COLOR, EVENT_COLORS, type CalendarEvent } from '@/domain/types';
+import { DEFAULT_EVENT_COLOR, type CalendarEvent } from '@/domain/types';
+import { useLists } from '../tasks/shared';
 
 const REMINDERS = [null, 0, 5, 10, 15, 30, 60, 120, 1440];
 const local = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
@@ -27,10 +28,11 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
   const invalidate = useInvalidate();
   const event = target?.event ?? null;
   const occurrence = event?.recurrence ? target?.occurrence ?? null : null;
-  const [f, setF] = useState({ title: '', notes: '', location: '', start: '', end: '', all_day: false, reminder: '' as string, color: null as string | null });
+  const [f, setF] = useState({ title: '', notes: '', location: '', start: '', end: '', all_day: false, reminder: '' as string, list_id: null as string | null });
   const [rule, setRule] = useState<Recurrence | null>(null);
   const [ask, setAsk] = useState<'save' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
+  const lists = (useLists().data ?? []).map((l) => ({ id: l.id as string | null, name: l.name, color: l.color }));
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -47,12 +49,12 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         end: local(target?.instanceEnd ?? new Date(event.end_at)),
         all_day: event.all_day,
         reminder: event.reminder_minutes == null ? '' : String(event.reminder_minutes),
-        color: event.color ?? null,
+        list_id: event.list_id ?? null,
       });
       setRule(event.recurrence);
     } else {
       const s = target?.defaultStart ?? addHours(new Date(new Date().setMinutes(0, 0, 0)), 1);
-      setF({ title: '', notes: '', location: '', start: local(s), end: local(addHours(s, 1)), all_day: false, reminder: '', color: null });
+      setF({ title: '', notes: '', location: '', start: local(s), end: local(addHours(s, 1)), all_day: false, reminder: '', list_id: null });
       setRule(null);
     }
   }, [open, event?.id, occurrence]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -71,7 +73,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
       location: f.location || null,
       all_day: f.all_day,
       reminder_minutes: f.reminder === '' ? null : Number(f.reminder),
-      color: f.color,
+      list_id: f.list_id,
     };
     return { fields, start, end };
   };
@@ -181,20 +183,20 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         <Field label={t('calendar.title')}>
           <input className="input" required autoFocus={!event} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
         </Field>
-        <Field label={t('calendar.color')}>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('calendar.color')}>
-            {EVENT_COLORS.map((c) => (
+        <Field label={t('calendar.category')}>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('calendar.category')}>
+            {[{ id: null, name: t('calendar.noCategory'), color: DEFAULT_EVENT_COLOR }, ...lists].map((l) => (
               <button
-                key={c}
+                key={l.id ?? 'none'}
                 type="button"
                 role="radio"
-                // Events without a color show in the default blue, which is in the palette.
-                aria-checked={(f.color ?? DEFAULT_EVENT_COLOR) === c}
-                aria-label={c}
-                onClick={() => setF({ ...f, color: c })}
-                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-card ${(f.color ?? DEFAULT_EVENT_COLOR) === c ? 'ring-2 ring-fg' : ''}`}
-                style={{ background: c }}
-              />
+                aria-checked={f.list_id === l.id}
+                onClick={() => setF({ ...f, list_id: l.id })}
+                className={`chip gap-1.5 py-1.5 ${f.list_id === l.id ? 'border-fg bg-surface text-fg' : 'text-muted'}`}
+              >
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
+                {l.name}
+              </button>
             ))}
           </div>
         </Field>
