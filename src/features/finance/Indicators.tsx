@@ -15,7 +15,7 @@ export function Indicators({ storageKey = 'finance-indicators', title, month }: 
   return (
     <Collapsible title={title ?? t('finance.indicators')} storageKey={storageKey}>
       {!ind ? (
-        <div className="h-24 animate-pulse rounded-lg bg-surface" />
+        <div className="h-24 animate-pulse rounded-2xl bg-surface" />
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           {current ? <Stat label={t('finance.spentWeek')} value={money(ind.thisWeek)} /> : <Stat label={t('finance.weekAverage')} value={money(ind.weekAverage)} />}

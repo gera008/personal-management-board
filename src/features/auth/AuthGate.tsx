@@ -27,7 +27,7 @@ function SetupNeeded() {
     <main className="mx-auto max-w-md px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold">Mios</h1>
       <p className="text-sm text-muted">{t('auth.setupNeeded')}</p>
-      <pre className="mt-4 overflow-x-auto rounded-lg bg-surface p-3 text-xs">VITE_SUPABASE_URL=…{'\n'}VITE_SUPABASE_ANON_KEY=…</pre>
+      <pre className="mt-4 overflow-x-auto rounded-2xl bg-surface p-3 text-xs">VITE_SUPABASE_URL=…{'\n'}VITE_SUPABASE_ANON_KEY=…</pre>
     </main>
   );
 }
@@ -74,7 +74,7 @@ function Login() {
       </div>
       <form onSubmit={submit} className="space-y-3">
         <ErrorText error={error} />
-        {notice && <p className="rounded-lg bg-surface px-3 py-2 text-sm">{notice}</p>}
+        {notice && <p className="rounded-2xl bg-surface px-3 py-2 text-sm">{notice}</p>}
         <input className="input" type="email" required autoComplete="email" placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} />
         {mode !== 'magic' && (
           <input

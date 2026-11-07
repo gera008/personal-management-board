@@ -35,7 +35,7 @@ export function FinanceHome() {
       <MonthPicker month={month} onChange={setMonth} />
 
       {txs.isLoading ? (
-        <div className="h-40 animate-pulse rounded-xl bg-surface" />
+        <div className="h-40 animate-pulse rounded-3xl bg-surface" />
       ) : groups.length === 0 ? (
         <Empty>{(accounts.data ?? []).length === 0 ? t('finance.startWithAccount') : t('finance.noTransactionsMonth')}</Empty>
       ) : (

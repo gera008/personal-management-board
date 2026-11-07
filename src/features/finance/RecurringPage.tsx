@@ -311,7 +311,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
       <form id="sheet-form" onSubmit={submit} hidden={!!payoff}>
         <fieldset disabled={!active}>
           <ErrorText error={error} />
-          {editing && <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted">{t('finance.editSeriesHelp')}</p>}
+          {editing && <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-xs text-muted">{t('finance.editSeriesHelp')}</p>}
           <Segmented
             className="mb-3 w-full"
             value={f.kind}
@@ -411,7 +411,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
               <input type="date" className="input" value={f.end_date} min={f.start_date} onChange={(e) => setF({ ...f, end_date: e.target.value })} />
             </Field>
           )}
-          <div className="rounded-lg bg-surface px-3 py-2 text-xs text-muted">
+          <div className="rounded-2xl bg-surface px-3 py-2 text-xs text-muted">
             {t('finance.firstDates')}: {preview.map((d) => formatDate(d, 'd MMM yyyy')).join(', ')}
             {f.kind === 'installment' && Number(f.total_count) > 0 && (
               <>

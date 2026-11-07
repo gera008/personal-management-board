@@ -46,13 +46,13 @@ export function App() {
                 <Route path="budgets" element={<BudgetsPage />} />
                 <Route path="recurring" element={<RecurringPage />} />
                 <Route path="recurring/:id" element={<SeriesDetailPage />} />
-                <Route path="analytics" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-surface" />}><AnalyticsPage /></Suspense>} />
+                <Route path="analytics" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-3xl bg-surface" />}><AnalyticsPage /></Suspense>} />
                 <Route path="data" element={<ImportExportPage />} />
               </Route>
               <Route path="health" element={<HealthLayout />}>
                 <Route index element={<Navigate to="habits" replace />} />
                 <Route path="habits" element={<HabitsPage />} />
-                <Route path="garmin" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-surface" />}><GarminPage /></Suspense>} />
+                <Route path="garmin" element={<Suspense fallback={<div className="h-64 animate-pulse rounded-3xl bg-surface" />}><GarminPage /></Suspense>} />
               </Route>
               {/* Old address (bookmarks, earlier push notifications). */}
               <Route path="habits" element={<Navigate to="/health/habits" replace />} />

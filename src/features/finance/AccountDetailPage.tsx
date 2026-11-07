@@ -62,7 +62,7 @@ export function AccountDetailPage() {
   }, [rows]);
 
   if (accounts.isSuccess && !account) return <Navigate to="/finance/accounts" replace />;
-  if (!account) return <div className="h-40 animate-pulse rounded-xl bg-surface" />;
+  if (!account) return <div className="h-40 animate-pulse rounded-3xl bg-surface" />;
 
   const today = balances.data?.get(id) ?? num(account.initial_balance);
   const withPending = today + (pending?.get(id) ?? 0);
@@ -94,7 +94,10 @@ export function AccountDetailPage() {
 
       <div className="card text-center">
         <div className="label">{t('finance.balance')}</div>
-        <div className={`text-2xl font-bold ${withPending < 0 ? 'text-expense' : ''}`}>{money(withPending, account.currency)}</div>
+        <div className={`text-display mt-1 ${withPending < 0 ? 'text-expense' : ''}`}>
+          {money(withPending, account.currency)}
+          <span className="text-unit ml-1.5">{account.currency}</span>
+        </div>
         {account.currency !== 'MXN' && <div className="text-xs text-muted">{money(withPending * (rates[account.currency] ?? 0))}</div>}
         {Math.abs(withPending - today) >= 0.005 && (
           <div className="text-xs text-muted">
@@ -121,7 +124,7 @@ export function AccountDetailPage() {
       </div>
 
       {txs.isLoading ? (
-        <div className="h-40 animate-pulse rounded-xl bg-surface" />
+        <div className="h-40 animate-pulse rounded-3xl bg-surface" />
       ) : groups.length === 0 ? (
         <Empty>{t('finance.noTransactionsMonth')}</Empty>
       ) : (

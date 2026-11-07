@@ -8,7 +8,7 @@ import { ErrorText, Field, SaveBar, Sheet } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import { planSeriesDelete, planSeriesEdit, type EventFields, type SeriesPlan, type SeriesScope } from '@/domain/eventSeries';
-import { EVENT_COLORS, type CalendarEvent } from '@/domain/types';
+import { DEFAULT_EVENT_COLOR, EVENT_COLORS, type CalendarEvent } from '@/domain/types';
 
 const REMINDERS = [null, 0, 5, 10, 15, 30, 60, 120, 1440];
 const local = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
@@ -175,7 +175,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={error} />
         {event?.google_event_id && (
-          <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted">{readonly ? t('google.eventReadOnly') : t('google.eventLinked')}</p>
+          <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-xs text-muted">{readonly ? t('google.eventReadOnly') : t('google.eventLinked')}</p>
         )}
         <fieldset disabled={readonly}>
         <Field label={t('calendar.title')}>
@@ -183,16 +183,17 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         </Field>
         <Field label={t('calendar.color')}>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('calendar.color')}>
-            {[null, ...EVENT_COLORS].map((c) => (
+            {EVENT_COLORS.map((c) => (
               <button
-                key={c ?? 'default'}
+                key={c}
                 type="button"
                 role="radio"
-                aria-checked={f.color === c}
-                aria-label={c ?? t('calendar.defaultColor')}
+                // Events without a color show in ice blue, which is in the palette.
+                aria-checked={(f.color ?? DEFAULT_EVENT_COLOR) === c}
+                aria-label={c}
                 onClick={() => setF({ ...f, color: c })}
-                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-card ${f.color === c ? 'ring-2 ring-fg' : ''}`}
-                style={{ background: c ?? 'rgb(var(--calendar))' }}
+                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-card ${(f.color ?? DEFAULT_EVENT_COLOR) === c ? 'ring-2 ring-fg' : ''}`}
+                style={{ background: c }}
               />
             ))}
           </div>

@@ -220,7 +220,7 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={error} />
-        {tx?.series_id && <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted">{t('finance.partOfSeries')}</p>}
+        {tx?.series_id && <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-xs text-muted">{t('finance.partOfSeries')}</p>}
         <Segmented
           className="mb-4 w-full"
           value={f.type}

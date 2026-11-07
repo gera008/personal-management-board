@@ -100,8 +100,7 @@
     "hoursBefore_other": "{{count}} hours before",
     "daysBefore_one": "{{count}} day before",
     "daysBefore_other": "{{count}} days before",
-    "color": "Color",
-    "defaultColor": "Default color"
+    "color": "Color"
   },
   "tasks": {
     "today": "Today",

@@ -62,7 +62,7 @@ export function AnalyticsPage() {
     }
   }, [range, custom, weekStartsOn, firstDate.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (txs.isLoading || !txs.data) return <div className="h-64 animate-pulse rounded-xl bg-surface" />;
+  if (txs.isLoading || !txs.data) return <div className="h-64 animate-pulse rounded-3xl bg-surface" />;
   const all = txs.data;
   if (!all.length) return <Empty>{t('analytics.noData')}</Empty>;
 
@@ -134,12 +134,14 @@ export function AnalyticsPage() {
       {/* ¿Cuánto? */}
       <Question title={t('analytics.q.howMuch')}>
         <section className="card space-y-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <Tile label={t('analytics.expenses')} value={money(sum.expense)} delta={vsPrev(sum.expense, prevSum?.expense, true)} />
             <Tile label={t('analytics.income')} value={money(sum.income)} delta={vsPrev(sum.income, prevSum?.income, false)} />
-            <Tile label={t('analytics.net')} value={money(sum.net, 'MXN', { sign: true })} tone={sum.net < 0 ? 'text-expense' : 'text-income'} />
+            <div className="col-span-2 sm:col-span-1">
+              <Tile label={t('analytics.net')} value={money(sum.net, 'MXN', { sign: true })} tone={sum.net < 0 ? 'text-expense' : 'text-income'} />
+            </div>
           </div>
-          <div className={`grid gap-2 ${proj ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+          <div className={`grid grid-cols-2 gap-2 ${proj ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
             {short ? (
               <Tile label={t('analytics.dailyAverage')} value={money(proj ? proj.dailyAverage : dayAvg)} />
             ) : (
@@ -368,7 +370,7 @@ function ChartCard({ title, children, className = '', right, help }: { title: st
 
 function Tile({ label, value, sub, tone = '', delta }: { label: string; value: string; sub?: string; tone?: string; delta?: { text: string; tone: string } }) {
   return (
-    <div className="min-w-0 rounded-lg bg-surface p-2">
+    <div className="min-w-0 rounded-2xl bg-surface p-3">
       <div className="truncate text-[11px] text-muted">{label}</div>
       <div className={`truncate text-base font-semibold ${tone}`}>{value}</div>
       {delta && <div className={`truncate text-[11px] ${delta.tone}`}>{delta.text}</div>}

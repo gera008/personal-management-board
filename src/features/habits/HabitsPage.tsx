@@ -282,7 +282,7 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-surface p-2">
+    <div className="rounded-2xl bg-surface p-2">
       <div className="text-[11px] text-muted">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>

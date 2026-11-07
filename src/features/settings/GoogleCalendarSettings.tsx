@@ -82,7 +82,7 @@ export function GoogleCalendarSettings() {
     <section className="card">
       <h2 className="section-title">{t('google.title')}</h2>
       <ErrorText error={error} />
-      {notice && <p className="mb-3 rounded-lg bg-surface px-3 py-2 text-sm">{notice}</p>}
+      {notice && <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-sm">{notice}</p>}
 
       {!a ? (
         <>

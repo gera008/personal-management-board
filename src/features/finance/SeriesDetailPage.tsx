@@ -30,7 +30,7 @@ export function SeriesDetailPage() {
   });
 
   if (series.isSuccess && !s) return <Navigate to="/finance/recurring" replace />;
-  if (!s) return <div className="h-40 animate-pulse rounded-xl bg-surface" />;
+  if (!s) return <div className="h-40 animate-pulse rounded-3xl bg-surface" />;
 
   const rows = payments.data ?? [];
   const now = Date.now();
@@ -108,7 +108,7 @@ export function SeriesDetailPage() {
       </div>
 
       {payments.isLoading ? (
-        <div className="h-40 animate-pulse rounded-xl bg-surface" />
+        <div className="h-40 animate-pulse rounded-3xl bg-surface" />
       ) : rows.length === 0 ? (
         <Empty>{t('finance.noPaymentsYet')}</Empty>
       ) : (

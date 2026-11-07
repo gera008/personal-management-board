@@ -100,8 +100,7 @@
     "hoursBefore_other": "{{count}} horas antes",
     "daysBefore_one": "{{count}} día antes",
     "daysBefore_other": "{{count}} días antes",
-    "color": "Color",
-    "defaultColor": "Color predeterminado"
+    "color": "Color"
   },
   "tasks": {
     "today": "Hoy",
