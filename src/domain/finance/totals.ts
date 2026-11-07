@@ -249,26 +249,50 @@ export function balanceEvolution(
 
 export interface BudgetProgress {
   budget: Budget;
+  /** This month. */
   spent: number;
   limit: number;
   ratio: number;
+  /** This week (the part inside this month). */
+  week: { from: Date; to: Date; spent: number; limit: number; ratio: number };
 }
 
-export function budgetProgress(budgets: Budget[], txs: Transaction[], categories: Map<string, Category>, now: Date): BudgetProgress[] {
-  const s = startOfMonth(now);
-  const spend = spendingByCategory(txs, categories, s, addMonths(s, 1));
-  // A budget on a subcategory only counts that subcategory; on a parent it counts the whole tree.
+/**
+ * Monthly budgets with a weekly allowance that adapts: at the start of each
+ * week, what's left of the month is spread over the days left, and this week
+ * gets its share. Overspend early and later weeks get less; spend less and
+ * they get more, so keeping to the weekly figure keeps the month on track.
+ * A budget without a category covers every expense; on a parent category it
+ * counts the whole tree, on a subcategory only that subcategory.
+ */
+export function budgetProgress(budgets: Budget[], txs: Transaction[], categories: Map<string, Category>, now: Date, weekStartsOn: 0 | 1 = 0): BudgetProgress[] {
+  const mStart = startOfMonth(now);
+  const mEnd = addMonths(mStart, 1);
+  // This week, clipped to the month (a week can straddle two months).
+  const ws = startOfWeek(now, { weekStartsOn });
+  const wFrom = ws < mStart ? mStart : ws;
+  const wTo = addDays(ws, 7) > mEnd ? mEnd : addDays(ws, 7);
+  const daysLeft = differenceInCalendarDays(mEnd, wFrom);
+  const weekDays = differenceInCalendarDays(wTo, wFrom);
+
   return budgets.map((b) => {
-    const cat = categories.get(b.category_id);
-    const spent = cat?.parent_id
-      ? round2(
-          txs
-            .filter((t) => t.type === 'expense' && isApplied(t) && inRange(t, s, addMonths(s, 1)) && t.subcategory_id === b.category_id)
-            .reduce((x, t) => x + num(t.base_amount_mxn), 0),
-        )
-      : spend.find((c) => c.categoryId === b.category_id)?.amount ?? 0;
+    const cat = b.category_id ? categories.get(b.category_id) : undefined;
+    const counts = (t: Transaction) =>
+      !b.category_id ? true : cat?.parent_id ? t.subcategory_id === b.category_id : topCategoryId(t, categories) === b.category_id;
+    const spentIn = (from: Date, to: Date) =>
+      round2(txs.filter((t) => t.type === 'expense' && isApplied(t) && inRange(t, from, to) && counts(t)).reduce((x, t) => x + num(t.base_amount_mxn), 0));
     const limit = num(b.monthly_limit_mxn);
-    return { budget: b, spent, limit, ratio: limit > 0 ? spent / limit : 0 };
+    const spent = spentIn(mStart, mEnd);
+    const leftAtWeekStart = Math.max(0, limit - spentIn(mStart, wFrom));
+    const weekLimit = daysLeft > 0 ? round2((leftAtWeekStart * weekDays) / daysLeft) : 0;
+    const weekSpent = spentIn(wFrom, wTo);
+    return {
+      budget: b,
+      spent,
+      limit,
+      ratio: limit > 0 ? spent / limit : 0,
+      week: { from: wFrom, to: wTo, spent: weekSpent, limit: weekLimit, ratio: weekLimit > 0 ? weekSpent / weekLimit : weekSpent > 0 ? Infinity : 0 },
+    };
   });
 }
 

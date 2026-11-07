@@ -189,7 +189,8 @@ export interface RecurringSeries {
 
 export interface Budget {
   id: string;
-  category_id: string;
+  /** null: a general budget over every expense. */
+  category_id: string | null;
   monthly_limit_mxn: Numeric;
 }
 

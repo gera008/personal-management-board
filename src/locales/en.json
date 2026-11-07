@@ -219,7 +219,7 @@
     "newSubcategory": "New subcategory",
     "renameCategory": "New name",
     "noCategories": "No categories yet. Add your first one above.",
-    "budgetsHelp": "Monthly spending limit per category (in MXN). A budget on a parent category includes its subcategories.",
+    "budgetsHelp": "Monthly limits in MXN: a general one for all your spending and/or per category (a parent includes its subcategories). Each week shows how much you can spend: what is left of the month spread over the days to go.",
     "noBudgets": "No budgets yet.",
     "newBudget": "New budget",
     "editBudget": "Edit budget",
@@ -281,7 +281,12 @@
     "noPaymentsYet": "No payments yet.",
     "weekAverage": "Weekly average",
     "spentIn": "Spent in {{month}}",
-    "topCategoriesIn": "Top categories in {{month}}"
+    "topCategoriesIn": "Top categories in {{month}}",
+    "generalBudget": "General budget",
+    "generalBudgetOption": "General (all expenses)",
+    "perMonth": "{{amount}} / month",
+    "thisWeek": "This week",
+    "thisMonthBudget": "This month"
   },
   "analytics": {
     "ranges": {

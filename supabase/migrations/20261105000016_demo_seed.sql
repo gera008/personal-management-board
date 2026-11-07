@@ -84,7 +84,7 @@ begin
   insert into categories (user_id, name, type, position) values (uid, 'Sueldo', 'income', 0) returning id into c_salary;
   insert into categories (user_id, name, type, position) values (uid, 'Freelance', 'income', 1) returning id into c_freelance;
 
-  insert into budgets (user_id, category_id, monthly_limit_mxn) values (uid, c_food, 8000), (uid, c_fun, 2500);
+  insert into budgets (user_id, category_id, monthly_limit_mxn) values (uid, null, 30000), (uid, c_food, 8000), (uid, c_fun, 2500);
 
   -- 120 days of everyday life
   for i in 0..120 loop

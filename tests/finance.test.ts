@@ -256,3 +256,42 @@ describe('analytics periods', () => {
     expect(previousPeriod('year', new Date(2026, 0, 1), new Date(2027, 0, 1)).from).toEqual(new Date(2025, 0, 1));
   });
 });
+
+describe('budgets with an adjustable weekly allowance', () => {
+  const at = (m: number, day: number) => new Date(2026, m, day, 12).toISOString();
+  const cats = new Map([
+    ['food', category({ id: 'food' })],
+    ['fun', category({ id: 'fun' })],
+  ]);
+  // November 2026: 30 days, starts on a Sunday.
+  const list = [
+    tx({ type: 'expense', original_amount: 3000, occurred_at: at(10, 2), category_id: 'food' }), // week 1
+    tx({ type: 'expense', original_amount: 500, occurred_at: at(10, 9), category_id: 'fun' }), // week 2
+    tx({ type: 'expense', original_amount: 200, occurred_at: at(10, 10), category_id: 'food' }), // week 2
+  ];
+  const general = { id: 'g', category_id: null, monthly_limit_mxn: 9000 };
+  const food = { id: 'f', category_id: 'food', monthly_limit_mxn: 9000 };
+
+  it('a general budget counts every expense', () => {
+    const [g] = budgetProgress([general], list, cats, new Date(2026, 10, 11, 12));
+    expect(g.spent).toBe(3700);
+  });
+
+  it('spreads what is left of the month over the remaining days', () => {
+    // Week of Nov 8–14: before it 3000 spent, 6000 left for 23 days -> 7 days get 1826.09.
+    const [g, f] = budgetProgress([general, food], list, cats, new Date(2026, 10, 11, 12));
+    expect(g.week.limit).toBe(1826.09);
+    expect(g.week.spent).toBe(700);
+    expect(f.week.spent).toBe(200);
+    // The first week has the whole month ahead: 9000 * 7 / 30.
+    expect(budgetProgress([general], list, cats, new Date(2026, 10, 3, 12))[0].week.limit).toBe(2100);
+  });
+
+  it('clips the last week to the month', () => {
+    // Nov 29 (Sun) – Nov 30: 2 days left of the month.
+    const [g] = budgetProgress([general], list, cats, new Date(2026, 10, 30, 12));
+    expect(g.week.from).toEqual(new Date(2026, 10, 29));
+    expect(g.week.to).toEqual(new Date(2026, 11, 1));
+    expect(g.week.limit).toBe(5300); // all that's left
+  });
+});

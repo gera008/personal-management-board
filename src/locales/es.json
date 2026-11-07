@@ -219,7 +219,7 @@
     "newSubcategory": "Nueva subcategoría",
     "renameCategory": "Nuevo nombre",
     "noCategories": "Aún no hay categorías. Agrega la primera arriba.",
-    "budgetsHelp": "Límite mensual de gasto por categoría (en MXN). Un presupuesto en una categoría principal incluye sus subcategorías.",
+    "budgetsHelp": "Límites mensuales en MXN: uno general para todos tus gastos y/o por categoría (una principal incluye sus subcategorías). Cada semana muestra cuánto puedes gastar: lo que queda del mes repartido entre los días que faltan.",
     "noBudgets": "Aún no hay presupuestos.",
     "newBudget": "Nuevo presupuesto",
     "editBudget": "Editar presupuesto",
@@ -281,7 +281,12 @@
     "noPaymentsYet": "Aún no hay pagos.",
     "weekAverage": "Promedio semanal",
     "spentIn": "Gastado en {{month}}",
-    "topCategoriesIn": "Principales categorías de {{month}}"
+    "topCategoriesIn": "Principales categorías de {{month}}",
+    "generalBudget": "Presupuesto general",
+    "generalBudgetOption": "General (todos los gastos)",
+    "perMonth": "{{amount}} / mes",
+    "thisWeek": "Esta semana",
+    "thisMonthBudget": "Este mes"
   },
   "analytics": {
     "ranges": {
