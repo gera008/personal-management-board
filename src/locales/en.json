@@ -126,7 +126,10 @@
     "hideCompleted": "Hide completed",
     "markComplete": "Mark complete",
     "markIncomplete": "Mark incomplete",
-    "deleteListWarning": "Deleting a category also deletes its tasks. Events in it are left without a category."
+    "deleteListWarning": "Deleting a category also deletes its tasks. Events in it are left without a category.",
+    "categories": "Categories",
+    "reorder": "Reorder",
+    "dragToReorder": "Drag to reorder {{name}}"
   },
   "finance": {
     "tabs": {

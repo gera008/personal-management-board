@@ -126,7 +126,10 @@
     "hideCompleted": "Ocultar completadas",
     "markComplete": "Marcar como completada",
     "markIncomplete": "Marcar como pendiente",
-    "deleteListWarning": "Eliminar una categoría también elimina sus tareas. Los eventos con esta categoría se quedan sin categoría."
+    "deleteListWarning": "Eliminar una categoría también elimina sus tareas. Los eventos con esta categoría se quedan sin categoría.",
+    "categories": "Categorías",
+    "reorder": "Ordenar",
+    "dragToReorder": "Arrastra para mover {{name}}"
   },
   "finance": {
     "tabs": {

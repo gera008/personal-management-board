@@ -7,6 +7,7 @@ import { toDateKey } from '@/domain/dates';
 import { PALETTE, type Task, type TaskList } from '@/domain/types';
 import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
 import { TaskSheet } from './TaskSheet';
+import { CategoryNav } from './CategoryNav';
 
 const LIST_ICONS = ['list', 'user', 'book', 'briefcase', 'cart', 'heart', 'star', 'flag', 'home'];
 
@@ -52,34 +53,16 @@ export function TasksPage() {
 
   return (
     <div className="md:flex md:gap-6">
-      <aside className="md:w-56 md:shrink-0">
+      <aside className="md:w-72 md:shrink-0">
         <PageHeader
           title={t('nav.tasks')}
           right={
-            <button className="btn-ghost px-2" onClick={() => setListSheet({})} aria-label={t('tasks.newList')}>
-              <Icon name="plus" size={18} />
+            <button className="btn-round" onClick={() => setListSheet({})} aria-label={t('tasks.newList')} title={t('tasks.newList')}>
+              <Icon name="plus" size={20} />
             </button>
           }
         />
-        <nav className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-1 md:px-0">
-          {[
-            { id: 'today', name: t('tasks.today'), color: 'rgb(var(--tasks))', icon: 'calendar' },
-            { id: 'all', name: t('tasks.all'), color: 'rgb(var(--fg))', icon: 'tasks' },
-            ...allLists.map((l) => ({ id: l.id, name: l.name, color: l.color, icon: l.icon })),
-          ].map((l) => (
-            <button
-              key={l.id}
-              onClick={() => select(l.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm md:border-0 ${view === l.id ? 'border-fg bg-surface font-semibold' : 'border-border'}`}
-            >
-              <span style={{ color: l.color }}>
-                <Icon name={l.icon} size={16} />
-              </span>
-              <span className="md:flex-1 md:text-left">{l.name}</span>
-              <span className="text-xs text-muted">{counts(l.id) || ''}</span>
-            </button>
-          ))}
-        </nav>
+        <CategoryNav lists={allLists} view={view} counts={counts} onSelect={select} />
         {tags.length > 0 && (
           <div className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
             {tags.map((tag) => (

@@ -18,6 +18,8 @@ import {
   IconEye,
   IconEyeOff,
   IconFlag,
+  IconGripVertical,
+  IconArrowsSort,
   IconHeart,
   IconHeartbeat,
   IconLayoutGrid,
@@ -83,6 +85,8 @@ const icons = {
   minus: IconMinus,
   arrowUp: IconArrowUp,
   arrowDown: IconArrowDown,
+  grip: IconGripVertical,
+  sort: IconArrowsSort,
 } satisfies Record<string, TablerIcon>;
 
 export type IconName = keyof typeof icons;
