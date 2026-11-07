@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui';
@@ -8,10 +8,10 @@ import { Icon } from '@/components/ui';
  * Phones: half circle at the bottom, pointer at 12 o'clock.
  * Wide screens: half circle on the left edge, pointer at 3 o'clock.
  * Idle it shrinks into the background; touching, dragging, scrolling or
- * using the arrow keys brings it forward until it rests again.
+ * using the arrow keys brings it forward, as large as the screen allows,
+ * until it rests again. The hub in the middle opens the Overview.
  */
 export const MODULES = [
-  { to: '/', icon: 'home', key: 'nav.home' },
   { to: '/calendar', icon: 'calendar', key: 'nav.calendar' },
   { to: '/tasks', icon: 'tasks', key: 'nav.tasks' },
   { to: '/finance', icon: 'finance', key: 'nav.finance' },
@@ -20,65 +20,89 @@ export const MODULES = [
 
 const N = MODULES.length;
 const STEP = 360 / N;
-export const DIAL_R = 170; // outer radius of the dial
-const ITEM = 52; // module button size
-const ITEM_R = DIAL_R - 58; // where the buttons sit
 const NOTCH = 24; // room for the pointer outside the dial
 const IDLE_MS = 1600;
-/** Idle size, as a share of the active one. */
-export const IDLE_SCALE = 0.56;
+/** Idle size in pixels (pointer to the far edge), whatever the active size is. */
+const IDLE_EXTENT = 110;
 
 export type DialSide = 'bottom' | 'left';
 
 export function moduleIndex(pathname: string): number {
-  if (pathname.startsWith('/calendar')) return 1;
-  if (pathname.startsWith('/tasks')) return 2;
-  if (pathname.startsWith('/finance')) return 3;
-  if (pathname.startsWith('/health') || pathname.startsWith('/habits')) return 4;
-  if (pathname === '/') return 0;
-  return -1; // Settings and other pages: no module highlighted
+  if (pathname.startsWith('/calendar')) return 0;
+  if (pathname.startsWith('/tasks')) return 1;
+  if (pathname.startsWith('/finance')) return 2;
+  if (pathname.startsWith('/health') || pathname.startsWith('/habits')) return 3;
+  return -1; // Overview, Settings: no module lit
 }
 
 /** Which module sits under the pointer for a dial rotation (degrees). */
 export const indexForRotation = (rot: number) => ((Math.round(-rot / STEP) % N) + N) % N;
 
-/** Position of a button `deg` degrees clockwise from the pointer, inside the dial box. */
-function place(deg: number, side: DialSide) {
-  const a = (deg * Math.PI) / 180;
-  const x = side === 'bottom' ? DIAL_R + ITEM_R * Math.sin(a) : DIAL_R + ITEM_R * Math.cos(a);
-  const y = side === 'bottom' ? DIAL_R - ITEM_R * Math.cos(a) : DIAL_R + ITEM_R * Math.sin(a);
-  return { left: x - ITEM / 2, top: y - ITEM / 2 };
+/**
+ * Active radius: as big as the screen allows. Phones are limited by width;
+ * on the left edge, by height (leaving room for the header).
+ */
+function radiusFor(side: DialSide, w: number, h: number) {
+  return Math.round(side === 'bottom' ? Math.min(w / 2 - 6, h * 0.42, 240) : Math.min(h / 2 - 48, 300));
 }
 
-function ticks() {
-  const lines = [];
+/** Everything that depends on the radius: button size and ring, hub, ticks. */
+function geometry(R: number) {
+  const k = R / 170;
+  const item = Math.round(Math.min(64, 52 * k));
+  const itemR = R - Math.round(58 * k);
+  const hub = Math.round(78 * k); // hub radius
+  const ticks = [];
   for (let i = 0; i < 72; i++) {
     const a = (i * 5 * Math.PI) / 180;
     const long = i % 3 === 0;
-    const r1 = DIAL_R - 6;
-    const r2 = DIAL_R - (long ? 16 : 11);
-    lines.push(
+    const r1 = R - 6;
+    const r2 = R - (long ? 16 : 11);
+    ticks.push(
       <line
         key={i}
-        x1={DIAL_R + r1 * Math.sin(a)}
-        y1={DIAL_R - r1 * Math.cos(a)}
-        x2={DIAL_R + r2 * Math.sin(a)}
-        y2={DIAL_R - r2 * Math.cos(a)}
+        x1={R + r1 * Math.sin(a)}
+        y1={R - r1 * Math.cos(a)}
+        x2={R + r2 * Math.sin(a)}
+        y2={R - r2 * Math.cos(a)}
         stroke={long ? 'rgb(var(--line))' : 'rgb(var(--border))'}
         strokeWidth={long ? 2 : 1.5}
         strokeLinecap="round"
       />,
     );
   }
-  return lines;
+  return { item, itemR, hub, ticks };
 }
-const TICKS = ticks();
+
+/** Position of a button `deg` degrees clockwise from the pointer, inside the dial box. */
+function place(deg: number, side: DialSide, R: number, itemR: number, item: number) {
+  const a = (deg * Math.PI) / 180;
+  const x = side === 'bottom' ? R + itemR * Math.sin(a) : R + itemR * Math.cos(a);
+  const y = side === 'bottom' ? R - itemR * Math.cos(a) : R + itemR * Math.sin(a);
+  return { left: x - item / 2, top: y - item / 2 };
+}
+
+function useViewport() {
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  useEffect(() => {
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return size;
+}
 
 export function ModuleDial({ side }: { side: DialSide }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const routeIndex = moduleIndex(pathname);
+  const onOverview = pathname === '/';
+
+  const { w, h } = useViewport();
+  const R = radiusFor(side, w, h);
+  const g = useMemo(() => geometry(R), [R]);
+  const idleScale = IDLE_EXTENT / (R + NOTCH);
 
   const dock = useRef<HTMLDivElement>(null);
   const dial = useRef<HTMLDivElement>(null);
@@ -131,7 +155,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     [navigate, paint],
   );
 
-  useLayoutEffect(() => paint(false), [paint, side]);
+  useLayoutEffect(() => paint(false), [paint, side, R]);
   // Follow navigation that didn't come from the dial (links, back button).
   useEffect(() => {
     if (routeIndex >= 0 && routeIndex !== indexForRotation(rot.current)) goTo(routeIndex, false);
@@ -152,12 +176,15 @@ export function ModuleDial({ side }: { side: DialSide }) {
     // Clockwise degrees from the pointer direction (up, or right on the left edge).
     return ((side === 'bottom' ? Math.atan2(dx, -dy) : Math.atan2(dy, dx)) * 180) / Math.PI;
   };
-  const drag = useRef<{ last: number; moved: number; item: number | null } | null>(null);
+  const drag = useRef<{ last: number; moved: number; item: number | null; hub: boolean } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    wake();
-    const btn = (e.target as HTMLElement).closest('[data-i]');
-    drag.current = { last: angle(e), moved: 0, item: btn ? Number(btn.getAttribute('data-i')) : null };
+    const target = e.target as HTMLElement;
+    const btn = target.closest('[data-i]');
+    const hub = !!target.closest('[data-hub]');
+    // Idle, a tap on the hub goes straight to the Overview without opening the dial.
+    if (!hub || active) wake();
+    drag.current = { last: angle(e), moved: 0, item: btn ? Number(btn.getAttribute('data-i')) : null, hub };
     dock.current?.setPointerCapture(e.pointerId);
     paint(false);
   };
@@ -171,6 +198,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     rot.current += delta;
     d.last = a;
     d.moved += Math.abs(delta);
+    if (d.moved >= 3) wake();
     paint(false);
   };
   const onPointerUp = () => {
@@ -178,6 +206,13 @@ export function ModuleDial({ side }: { side: DialSide }) {
     if (!d) return;
     drag.current = null;
     if (d.moved < 3) {
+      if (d.hub) {
+        // The hub opens the Overview.
+        goTo(indexForRotation(rot.current), false);
+        if (window.location.pathname !== '/') navigate('/');
+        setActive(false);
+        return;
+      }
       // A tap: open the tapped module; a tap elsewhere just wakes the dial.
       if (d.item != null) goTo(d.item);
       else goTo(indexForRotation(rot.current), false);
@@ -206,6 +241,11 @@ export function ModuleDial({ side }: { side: DialSide }) {
     return () => el.removeEventListener('wheel', onWheel);
   }, [goTo, wake, rest]);
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      navigate('/');
+      return;
+    }
     const next = side === 'bottom' ? ['ArrowRight', 'ArrowDown'] : ['ArrowDown', 'ArrowRight'];
     const prev = side === 'bottom' ? ['ArrowLeft', 'ArrowUp'] : ['ArrowUp', 'ArrowLeft'];
     if (![...next, ...prev].includes(e.key)) return;
@@ -217,7 +257,9 @@ export function ModuleDial({ side }: { side: DialSide }) {
 
   const bottom = side === 'bottom';
   const name = t(MODULES[current].key);
+  // On the Overview (or Settings) no module is lit until you start turning.
   const highlighted = active || routeIndex >= 0 ? current : -1;
+  const hubLit = onOverview && !active;
 
   return (
     <div
@@ -242,20 +284,20 @@ export function ModuleDial({ side }: { side: DialSide }) {
           ? {
               left: '50%',
               bottom: 0,
-              width: DIAL_R * 2,
-              height: DIAL_R + NOTCH,
-              marginLeft: -DIAL_R,
+              width: R * 2,
+              height: R + NOTCH,
+              marginLeft: -R,
               transformOrigin: 'bottom center',
-              transform: `scale(${active ? 1 : IDLE_SCALE})`,
+              transform: `scale(${active ? 1 : idleScale})`,
             }
           : {
               left: 0,
               top: '50%',
-              width: DIAL_R + NOTCH,
-              height: DIAL_R * 2,
-              marginTop: -DIAL_R,
+              width: R + NOTCH,
+              height: R * 2,
+              marginTop: -R,
               transformOrigin: 'left center',
-              transform: `scale(${active ? 1 : IDLE_SCALE})`,
+              transform: `scale(${active ? 1 : idleScale})`,
             }
       }
     >
@@ -271,10 +313,10 @@ export function ModuleDial({ side }: { side: DialSide }) {
       <div
         ref={dial}
         className="absolute rounded-full border border-border bg-card will-change-transform"
-        style={{ width: DIAL_R * 2, height: DIAL_R * 2, ...(bottom ? { left: 0, top: NOTCH } : { left: -DIAL_R, top: 0 }) }}
+        style={{ width: R * 2, height: R * 2, ...(bottom ? { left: 0, top: NOTCH } : { left: -R, top: 0 }) }}
       >
-        <svg viewBox={`0 0 ${DIAL_R * 2} ${DIAL_R * 2}`} className="pointer-events-none absolute inset-0 h-full w-full">
-          {TICKS}
+        <svg viewBox={`0 0 ${R * 2} ${R * 2}`} className="pointer-events-none absolute inset-0 h-full w-full">
+          {g.ticks}
         </svg>
         {MODULES.map((m, i) => (
           <button
@@ -284,31 +326,62 @@ export function ModuleDial({ side }: { side: DialSide }) {
             tabIndex={-1}
             aria-label={t(m.key)}
             className="absolute"
-            style={{ width: ITEM, height: ITEM, ...place(i * STEP, side) }}
+            style={{ width: g.item, height: g.item, ...place(i * STEP, side, R, g.itemR, g.item) }}
           >
             <span
               className={`flex h-full w-full items-center justify-center rounded-full border transition-colors ${
                 i === highlighted ? 'border-transparent bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)]' : 'border-border bg-bg text-muted'
               }`}
             >
-              <Icon name={m.icon} size={24} />
+              <Icon name={m.icon} size={Math.round(g.item * 0.46)} />
             </span>
           </button>
         ))}
       </div>
-      {/* Hub with the module's name */}
-      <div
-        className="pointer-events-none absolute flex flex-col items-center justify-end border border-border bg-bg text-center"
+      {/* Hub: the module's name while turning; a tap opens the Overview. */}
+      <button
+        data-hub
+        tabIndex={-1}
+        aria-label={t('nav.home')}
+        className={`absolute flex flex-col items-center border text-center transition-colors ${
+          hubLit ? 'border-transparent bg-accent text-bg' : 'border-border bg-bg text-fg hover:bg-card'
+        }`}
         style={
           bottom
-            ? { left: '50%', bottom: 0, width: 156, height: 78, marginLeft: -78, borderRadius: '78px 78px 0 0', borderBottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }
-            : { left: 0, top: '50%', width: 92, height: 184, marginTop: -92, borderRadius: '0 92px 92px 0', borderLeft: 0, justifyContent: 'center', paddingRight: 8 }
+            ? {
+                left: '50%',
+                bottom: 0,
+                width: g.hub * 2,
+                height: g.hub,
+                marginLeft: -g.hub,
+                borderRadius: `${g.hub}px ${g.hub}px 0 0`,
+                borderBottom: 0,
+                justifyContent: 'flex-end',
+                paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+              }
+            : {
+                left: 0,
+                top: '50%',
+                width: g.hub,
+                height: g.hub * 2,
+                marginTop: -g.hub,
+                borderRadius: `0 ${g.hub}px ${g.hub}px 0`,
+                borderLeft: 0,
+                justifyContent: 'center',
+                paddingRight: 8,
+              }
         }
       >
-        {/* Idle, the dial is small: the lit button says enough and the page title names the module. */}
-        <b className={`text-[15px] font-semibold leading-tight transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`}>{name}</b>
-        <small className={`mt-0.5 text-[11px] text-muted transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`}>{t('nav.turnToChange')}</small>
-      </div>
+        {active ? (
+          <>
+            <b className="text-[15px] font-semibold leading-tight">{name}</b>
+            <small className="mt-0.5 text-[11px] text-muted">{t('nav.tapForOverview')}</small>
+          </>
+        ) : (
+          // Idle the dial is small: just the Overview icon.
+          <Icon name="home" size={Math.round(g.hub * 0.55)} className={bottom ? 'mb-1' : ''} />
+        )}
+      </button>
     </div>
   );
 }

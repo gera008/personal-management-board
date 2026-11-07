@@ -8,7 +8,7 @@
     "settings": "Settings",
     "health": "Health",
     "selector": "Module selector",
-    "turnToChange": "Turn to change"
+    "tapForOverview": "Tap here for the Overview"
   },
   "common": {
     "add": "Add",
