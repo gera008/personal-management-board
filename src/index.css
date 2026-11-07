@@ -94,11 +94,12 @@ body {
   }
 }
 
-.pb-safe {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 4.5rem);
+/* Room under the content for the idle module dial at the bottom (phones/tablets). */
+.pb-dial {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 8.5rem);
 }
-@media (min-width: 768px) {
-  .pb-safe {
-    padding-bottom: 2rem;
+@media (min-width: 1024px) {
+  .pb-dial {
+    padding-bottom: 3rem;
   }
 }

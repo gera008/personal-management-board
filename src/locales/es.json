@@ -6,7 +6,9 @@
     "finance": "Finanzas",
     "habits": "Hábitos",
     "settings": "Ajustes",
-    "health": "Salud"
+    "health": "Salud",
+    "selector": "Selector de módulos",
+    "turnToChange": "Gira para cambiar"
   },
   "common": {
     "add": "Agregar",

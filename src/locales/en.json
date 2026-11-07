@@ -6,7 +6,9 @@
     "finance": "Finance",
     "habits": "Habits",
     "settings": "Settings",
-    "health": "Health"
+    "health": "Health",
+    "selector": "Module selector",
+    "turnToChange": "Turn to change"
   },
   "common": {
     "add": "Add",
