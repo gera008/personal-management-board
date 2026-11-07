@@ -44,10 +44,9 @@ export const PALETTE: readonly string[] = [
   '#8FD3FF', // sky
   '#3D8BFF', // blue
   '#5B6CFF', // indigo
-  '#E5E5EA', // silver
 ];
-/** Events without a category (or synced from Google) show in this color (the --calendar token). */
-export const DEFAULT_EVENT_COLOR = '#3D8BFF';
+/** Silver: events without a category (or synced from Google). Kept out of PALETTE so it always means "no category". */
+export const DEFAULT_EVENT_COLOR = '#E5E5EA';
 
 export type WidgetId = 'month_calendar' | 'week_detail' | 'tasks' | 'finance_summary' | 'habits_today' | 'habit_heatmap';
 export interface WidgetSetting {
@@ -74,7 +73,7 @@ export interface CalendarEvent {
   recurrence_parent_id: string | null;
   /** Category (a task list); its color paints the event. */
   list_id?: string | null;
-  /** Older per-event color, used only when there's no category. */
+  /** Older per-event color; no longer shown (the category decides). */
   color?: string | null;
   google_calendar_id?: string | null;
   google_event_id?: string | null;

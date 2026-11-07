@@ -17,7 +17,7 @@
   --income: 74 222 128; /* menta #4ADE80 */
   --expense: 255 107 44; /* naranja #FF6B2C */
   --transfer: 142 142 147;
-  --calendar: 61 139 255; /* #3D8BFF: default event color */
+  --calendar: 61 139 255; /* #3D8BFF: calendar accents (recurrence picker, charts) */
   --tasks: 255 201 61; /* #FFC93D */
   --habit: var(--accent);
   --slip: 255 87 178; /* #FF57B2 */

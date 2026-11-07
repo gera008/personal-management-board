@@ -48,7 +48,8 @@ export function useCalendarItems(from: Date, to: Date) {
       allDay: i.event.all_day,
       start: i.start,
       end: i.end,
-      color: (i.event.list_id && listColor.get(i.event.list_id)) || i.event.color || DEFAULT_EVENT_COLOR,
+      // No category = silver, so it never looks like a category's color.
+      color: (i.event.list_id && listColor.get(i.event.list_id)) || DEFAULT_EVENT_COLOR,
       event: i.event,
       occurrence: i.occurrence,
     })),
