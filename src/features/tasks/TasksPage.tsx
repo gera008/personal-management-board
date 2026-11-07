@@ -4,12 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { Empty, ErrorText, Fab, Field, Icon, PageHeader, SaveBar, Sheet } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
-import type { Task, TaskList } from '@/domain/types';
+import { PALETTE, type Task, type TaskList } from '@/domain/types';
 import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
 import { TaskSheet } from './TaskSheet';
 
 const LIST_ICONS = ['list', 'user', 'book', 'briefcase', 'cart', 'heart', 'star', 'flag', 'home'];
-const LIST_COLORS = ['#9C6534', '#C08552', '#B0564E', '#96644F', '#4E7299', '#467659', '#75639F', '#6B7280'];
 
 export function TasksPage() {
   const { t } = useTranslation();
@@ -145,9 +144,9 @@ function ListSheet({ open, list, position, onClose, onDeleted }: { open: boolean
   const { t } = useTranslation();
   const save = useSave('task_lists');
   const remove = useRemove('task_lists');
-  const [f, setF] = useState({ name: '', color: LIST_COLORS[0], icon: 'list' });
+  const [f, setF] = useState({ name: '', color: PALETTE[0], icon: 'list' });
   useEffect(() => {
-    if (open) setF({ name: list?.name ?? '', color: list?.color ?? LIST_COLORS[0], icon: list?.icon ?? 'list' });
+    if (open) setF({ name: list?.name ?? '', color: list?.color ?? PALETTE[0], icon: list?.icon ?? 'list' });
   }, [open, list?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (e: FormEvent) => {
@@ -185,7 +184,7 @@ function ListSheet({ open, list, position, onClose, onDeleted }: { open: boolean
         </Field>
         <Field label={t('common.color')}>
           <div className="flex flex-wrap gap-2">
-            {LIST_COLORS.map((c) => (
+            {PALETTE.map((c) => (
               <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`h-8 w-8 rounded-full ${f.color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-bg' : ''}`} style={{ background: c }} aria-label={c} />
             ))}
           </div>

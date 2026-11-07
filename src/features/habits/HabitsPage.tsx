@@ -9,11 +9,10 @@ import { Heatmap } from '@/components/Heatmap';
 import { Empty, ErrorText, Fab, Field, Icon, MonthPicker, Progress, SaveBar, Segmented, Sheet, TagInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { canLogOn, computeStreaks, habitHeatmap, isSuccess, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
-import { num, type Habit, type HabitFrequency } from '@/domain/types';
+import { PALETTE, num, type Habit, type HabitFrequency } from '@/domain/types';
 import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits, useLogHabit } from './shared';
 import { HabitMonth } from './HabitMonth';
 
-const GOOD_COLORS = ['#75639F', '#8573B0', '#5E4F86', '#9A8CC4', '#4E7299', '#6B7280'];
 
 export function HabitsPage() {
   const { t } = useTranslation();
@@ -305,7 +304,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
     days: [1, 2, 3, 4, 5] as number[],
     n: '3',
     goal_days: '',
-    color: GOOD_COLORS[0],
+    color: PALETTE[0],
     tags: [] as string[],
     reminder_time: '',
     start_date: toDateKey(new Date()),
@@ -326,7 +325,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
       days: fr.type === 'weekdays' ? fr.days : [1, 2, 3, 4, 5],
       n: fr.type === 'times_per_week' || fr.type === 'every_n_days' ? String(fr.n) : '3',
       goal_days: habit?.goal_days ? String(habit.goal_days) : '',
-      color: habit?.color ?? GOOD_COLORS[0],
+      color: habit?.color ?? PALETTE[0],
       tags: habit?.tags ?? [],
       reminder_time: habit?.reminder_time?.slice(0, 5) ?? '',
       start_date: habit?.start_date ?? toDateKey(new Date()),
@@ -443,7 +442,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
             )}
             <Field label={t('common.color')}>
               <div className="flex gap-2">
-                {GOOD_COLORS.map((c) => (
+                {PALETTE.map((c) => (
                   <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`h-8 w-8 rounded-full ${f.color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-bg' : ''}`} style={{ background: c }} aria-label={c} />
                 ))}
               </div>

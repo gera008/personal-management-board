@@ -34,6 +34,8 @@ export const ACCENTS: { id: Accent; hex: string }[] = [
 /** Colors an event can wear; events without one show in DEFAULT_EVENT_COLOR (the --calendar token). */
 export const EVENT_COLORS = ['#6EE7B7', '#7CC4FF', '#A78BFA', '#F0A6CA', '#E8C468', '#F59E8B'] as const;
 export const DEFAULT_EVENT_COLOR = '#7CC4FF';
+/** The same six colors for task lists and habits. */
+export const PALETTE: readonly string[] = EVENT_COLORS;
 
 export type WidgetId = 'month_calendar' | 'week_detail' | 'tasks' | 'finance_summary' | 'habits_today' | 'habit_heatmap';
 export interface WidgetSetting {
