@@ -6,6 +6,7 @@ import './lib/i18n';
 import './index.css';
 import { App } from './app/App';
 import { applyAccent } from './lib/profile';
+import { keepAppUpdated } from './lib/swUpdate';
 
 // Apply the last accent before the profile loads to avoid a flash.
 try {
@@ -14,6 +15,8 @@ try {
 } catch {
   /* storage unavailable */
 }
+
+keepAppUpdated();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: true, retry: 1 } },
