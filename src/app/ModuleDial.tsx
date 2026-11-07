@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui';
  * Phones: half circle at the bottom, pointer at 12 o'clock.
  * Wide screens: half circle on the left edge, pointer at 3 o'clock.
  * Idle it shrinks into the background; touching, dragging, scrolling or
- * using the arrow keys brings it forward, as large as the screen allows,
+ * using the arrow keys brings it forward
  * until it rests again. The hub in the middle opens the Overview.
  */
 export const MODULES = [
@@ -38,12 +38,9 @@ export function moduleIndex(pathname: string): number {
 /** Which module sits under the pointer for a dial rotation (degrees). */
 export const indexForRotation = (rot: number) => ((Math.round(-rot / STEP) % N) + N) % N;
 
-/**
- * Active radius: as big as the screen allows. Phones are limited by width;
- * on the left edge, by height (leaving room for the header).
- */
+/** Active radius: 170px, shrunk only if a very small screen can't fit it. */
 function radiusFor(side: DialSide, w: number, h: number) {
-  return Math.round(side === 'bottom' ? Math.min(w / 2 - 6, h * 0.42, 240) : Math.min(h / 2 - 48, 300));
+  return Math.round(Math.min(170, side === 'bottom' ? w / 2 - 6 : h / 2 - 48));
 }
 
 /** Everything that depends on the radius: button size and ring, hub, ticks. */
