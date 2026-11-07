@@ -38,9 +38,12 @@ export function moduleIndex(pathname: string): number {
 /** Which module sits under the pointer for a dial rotation (degrees). */
 export const indexForRotation = (rot: number) => ((Math.round(-rot / STEP) % N) + N) % N;
 
-/** Active radius: 170px, shrunk only if a very small screen can't fit it. */
+/**
+ * Active radius: a bit larger than the original 170px (up to 185 on phones,
+ * 225 on the left edge), shrunk only if the screen can't fit it.
+ */
 function radiusFor(side: DialSide, w: number, h: number) {
-  return Math.round(Math.min(170, side === 'bottom' ? w / 2 - 6 : h / 2 - 48));
+  return Math.round(side === 'bottom' ? Math.min(185, w / 2 - 10) : Math.min(225, h / 2 - 48));
 }
 
 /** Everything that depends on the radius: button size and ring, hub, ticks. */
