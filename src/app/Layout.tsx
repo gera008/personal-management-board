@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui';
 import { useAmountsHidden } from '@/lib/privacy';
 import { useIsDemo } from '@/lib/demo';
+import { useIdleHome } from '@/lib/idleHome';
 import { ModuleDial } from './ModuleDial';
 
 function PrivacyToggle() {
@@ -36,6 +37,8 @@ export function Layout() {
   useAmountsHidden();
   const demo = useIsDemo();
   const wide = useWide();
+  // Two idle minutes bring the Overview back.
+  useIdleHome();
   return (
     <div className="min-h-dvh">
       <div className="lg:pl-28">
