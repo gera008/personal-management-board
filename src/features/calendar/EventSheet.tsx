@@ -188,7 +188,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
                 key={c}
                 type="button"
                 role="radio"
-                // Events without a color show in ice blue, which is in the palette.
+                // Events without a color show in the default blue, which is in the palette.
                 aria-checked={(f.color ?? DEFAULT_EVENT_COLOR) === c}
                 aria-label={c}
                 onClick={() => setF({ ...f, color: c })}

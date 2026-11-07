@@ -32,8 +32,8 @@ export const ACCENTS: { id: Accent; hex: string }[] = [
 ];
 
 /** Colors an event can wear; events without one show in DEFAULT_EVENT_COLOR (the --calendar token). */
-export const EVENT_COLORS = ['#6EE7B7', '#7CC4FF', '#A78BFA', '#F0A6CA', '#E8C468', '#F59E8B'] as const;
-export const DEFAULT_EVENT_COLOR = '#7CC4FF';
+export const EVENT_COLORS = ['#A879FF', '#3D8BFF', '#22D3EE', '#FF57B2', '#FFC93D', '#E5E5EA'] as const;
+export const DEFAULT_EVENT_COLOR = '#3D8BFF';
 /** The same six colors for task lists and habits. */
 export const PALETTE: readonly string[] = EVENT_COLORS;
 

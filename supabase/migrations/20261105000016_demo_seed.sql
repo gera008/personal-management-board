@@ -185,13 +185,21 @@ begin
     (uid, 'Comida familiar', 'Casa de mis papás', ((today - 3) + time '14:00') at time zone tz, ((today - 3) + time '17:00') at time zone tz, null);
   insert into events (user_id, title, start_at, end_at, all_day) values
     (uid, 'Cumpleaños de Ana', (today + 9)::timestamp at time zone tz, ((today + 9) + time '23:59') at time zone tz, true);
+  update events set color = case title
+    when 'Dentista' then '#22D3EE'
+    when 'Cena con amigos' then '#FF57B2'
+    when 'Entrega de proyecto' then '#FFC93D'
+    when 'Clase de inglés' then '#A879FF'
+    when 'Cumpleaños de Ana' then '#FF57B2'
+    else null end
+  where user_id = uid;
 
   -- Tasks (lists come from the new-user trigger; recreate them if missing)
   if not exists (select 1 from task_lists where user_id = uid) then
     insert into task_lists (user_id, name, color, icon, position) values
-      (uid, 'Personal', '#7CC4FF', 'user', 0), (uid, 'School', '#E8C468', 'book', 1), (uid, 'Work', '#F59E8B', 'briefcase', 2);
+      (uid, 'Personal', '#3D8BFF', 'user', 0), (uid, 'School', '#FFC93D', 'book', 1), (uid, 'Work', '#A879FF', 'briefcase', 2);
   end if;
-  update task_lists set color = nearest_palette_color(color) where user_id = uid;
+  update task_lists set color = vivid_color(color) where user_id = uid;
   select id into l_personal from task_lists where user_id = uid order by position limit 1;
   select id into l_school from task_lists where user_id = uid order by position offset 1 limit 1;
   select id into l_work from task_lists where user_id = uid order by position offset 2 limit 1;
@@ -208,10 +216,10 @@ begin
     (uid, l_school, 'Leer capítulo 4', today + 4, null, 0, null);
 
   -- Habits with about two months of history
-  insert into habits (user_id, name, kind, type, color, start_date, goal_days, tags, position) values (uid, 'Ejercicio', 'good', 'boolean', '#6EE7B7', today - 60, 66, '{salud}', 0) returning id into h_gym;
-  insert into habits (user_id, name, kind, type, color, start_date, frequency, tags, position) values (uid, 'Leer 20 minutos', 'good', 'boolean', '#7CC4FF', today - 60, '{"type":"weekdays","days":[1,2,3,4,5]}', '{mente}', 1) returning id into h_read;
-  insert into habits (user_id, name, kind, type, unit, target_value, color, start_date, tags, position) values (uid, 'Tomar agua', 'good', 'numeric', 'vasos', 8, '#A78BFA', today - 60, '{salud}', 2) returning id into h_water;
-  insert into habits (user_id, name, kind, type, color, start_date, position) values (uid, 'Sin refresco', 'bad', 'boolean', '#F59E8B', today - 60, 3) returning id into h_soda;
+  insert into habits (user_id, name, kind, type, color, start_date, goal_days, tags, position) values (uid, 'Ejercicio', 'good', 'boolean', '#22D3EE', today - 60, 66, '{salud}', 0) returning id into h_gym;
+  insert into habits (user_id, name, kind, type, color, start_date, frequency, tags, position) values (uid, 'Leer 20 minutos', 'good', 'boolean', '#A879FF', today - 60, '{"type":"weekdays","days":[1,2,3,4,5]}', '{mente}', 1) returning id into h_read;
+  insert into habits (user_id, name, kind, type, unit, target_value, color, start_date, tags, position) values (uid, 'Tomar agua', 'good', 'numeric', 'vasos', 8, '#3D8BFF', today - 60, '{salud}', 2) returning id into h_water;
+  insert into habits (user_id, name, kind, type, color, start_date, position) values (uid, 'Sin refresco', 'bad', 'boolean', '#FF57B2', today - 60, 3) returning id into h_soda;
   for i in 0..59 loop
     d := today - 60 + i;
     if random() < 0.72 then

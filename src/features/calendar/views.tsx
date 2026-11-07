@@ -31,7 +31,7 @@ export function ItemChip({ item, onClick, compact }: { item: CalItem; onClick?: 
       className={`flex w-full min-w-0 items-center gap-1.5 rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${
         item.done ? 'text-muted line-through' : ''
       }`}
-      style={tint(item, 14)}
+      style={tint(item, 26)}
     >
       {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
       {!compact && !item.allDay && <span className="shrink-0 text-muted">{timeLabel(item.start)}</span>}
@@ -145,7 +145,7 @@ function TimedBlock({ item, short, narrow, onClick }: { item: CalItem; short: bo
       className={`flex h-full w-full min-w-0 overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${short && !narrow ? 'items-center gap-1.5' : 'flex-col'} ${
         narrow ? 'px-1 text-[11px] leading-tight' : ''
       } ${item.done ? 'text-muted line-through' : ''}`}
-      style={tint(item, 22)}
+      style={tint(item, 32)}
     >
       <span className="flex min-w-0 items-center gap-1.5">
         {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}

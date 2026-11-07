@@ -17,10 +17,10 @@
   --income: 74 222 128; /* menta #4ADE80 */
   --expense: 255 107 44; /* naranja #FF6B2C */
   --transfer: 142 142 147;
-  --calendar: 124 196 255; /* azul hielo: default event color */
-  --tasks: 232 196 104; /* #E8C468 */
+  --calendar: 61 139 255; /* #3D8BFF: default event color */
+  --tasks: 255 201 61; /* #FFC93D */
   --habit: var(--accent);
-  --slip: 245 158 139; /* #F59E8B */
+  --slip: 255 87 178; /* #FF57B2 */
   color-scheme: dark;
 }
 :root[data-accent='orange'] {
