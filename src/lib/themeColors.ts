@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const TOKENS = ['fg', 'muted', 'border', 'surface', 'bg', 'expense', 'income', 'transfer', 'habit', 'calendar', 'tasks', 'slip'] as const;
+const TOKENS = ['fg', 'muted', 'border', 'line', 'surface', 'card', 'bg', 'accent', 'expense', 'income', 'transfer', 'habit', 'calendar', 'tasks', 'slip'] as const;
 type Token = (typeof TOKENS)[number];
 
 function read(): Record<Token, string> {
@@ -10,20 +10,15 @@ function read(): Record<Token, string> {
 
 /**
  * Resolved theme colors for libraries (Recharts) that write SVG attributes,
- * where CSS variables don't resolve. Updates on theme or OS scheme change.
+ * where CSS variables don't resolve. Updates when the accent changes.
  */
 export function useThemeColors() {
   const [c, setC] = useState(read);
   useEffect(() => {
     const update = () => setC(read());
     const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    const mq = matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener('change', update);
-    return () => {
-      obs.disconnect();
-      mq.removeEventListener('change', update);
-    };
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent'] });
+    return () => obs.disconnect();
   }, []);
   return c;
 }

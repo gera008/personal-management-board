@@ -8,7 +8,7 @@ import { ErrorText, Icon, PageHeader, Segmented } from '@/components/ui';
 import { currentSubscription, disablePush, enablePush, isIosBrowserTab, pushSupported, sendTestPush } from '@/lib/push';
 import { exportAllJson, exportTransactionsCsv } from '@/lib/exporter';
 import { GoogleCalendarSettings } from './GoogleCalendarSettings';
-import type { Currency, WidgetSetting } from '@/domain/types';
+import { ACCENTS, type Currency, type WidgetSetting } from '@/domain/types';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -32,12 +32,21 @@ export function SettingsPage() {
             ]}
           />
         </Row>
-        <Row label={t('settings.theme')}>
-          <Segmented
-            value={profile.theme}
-            onChange={(theme) => run(update({ theme }))}
-            options={(['light', 'dark', 'system'] as const).map((v) => ({ value: v, label: t(`settings.themes.${v}`) }))}
-          />
+        <Row label={t('settings.accent')}>
+          <div className="flex gap-2" role="radiogroup" aria-label={t('settings.accent')}>
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                role="radio"
+                aria-checked={(profile.accent ?? 'lime') === a.id}
+                aria-label={t(`settings.accents.${a.id}`)}
+                title={t(`settings.accents.${a.id}`)}
+                onClick={() => run(update({ accent: a.id }))}
+                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-card transition ${(profile.accent ?? 'lime') === a.id ? 'ring-2 ring-fg' : ''}`}
+                style={{ background: a.hex }}
+              />
+            ))}
+          </div>
         </Row>
         <Row label={t('settings.weekStart')}>
           <Segmented

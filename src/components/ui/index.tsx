@@ -21,16 +21,16 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-border bg-bg sm:max-w-lg sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <button className="rounded-lg p-1 text-muted hover:bg-surface" onClick={onClose} aria-label="Close">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[92dvh] w-full flex-col rounded-t-3xl border border-border bg-card sm:max-w-lg sm:rounded-3xl">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-muted hover:text-fg" onClick={onClose} aria-label="Close">
             <Icon name="close" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="flex flex-wrap gap-2 border-t border-border px-5 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">{footer}</div>}
       </div>
     </div>
   );
@@ -47,14 +47,14 @@ export function Field({ label, children, className = '' }: { label: string; chil
 
 export function Segmented<T extends string>({ value, onChange, options, className = '' }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; className?: string }) {
   return (
-    <div className={`inline-flex rounded-lg border border-border bg-surface p-0.5 ${className}`} role="tablist">
+    <div className={`inline-flex rounded-full border border-border bg-card p-1 ${className}`} role="tablist">
       {options.map((o) => (
         <button
           key={o.value}
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition ${value === o.value ? 'bg-bg font-medium shadow-sm' : 'text-muted'}`}
+          className={`flex-1 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm transition ${value === o.value ? 'bg-fg font-medium text-bg' : 'text-muted hover:text-fg'}`}
         >
           {o.label}
         </button>
@@ -115,7 +115,7 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
   return (
     <header className="mb-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-title">{title}</h1>
         <div className="flex items-center gap-2">{right}</div>
       </div>
       {children}
@@ -123,13 +123,13 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
   );
 }
 
-/** Floating "+" button: neutral ink fill; `accent` adds a thin ring in the module's color. */
-export function Fab({ onClick, label, accent = 'ring-transparent' }: { onClick: () => void; label: string; accent?: string }) {
+/** Floating "+" button in the accent color. (`accent` is kept for callers; the accent now comes from Settings.) */
+export function Fab({ onClick, label }: { onClick: () => void; label: string; accent?: string }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className={`fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-fg text-bg shadow-md ring-2 ring-offset-2 ring-offset-bg md:bottom-8 md:right-8 ${accent}`}
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 md:bottom-8 md:right-8"
     >
       <Icon name="plus" size={26} />
     </button>

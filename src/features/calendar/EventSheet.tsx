@@ -8,7 +8,7 @@ import { ErrorText, Field, SaveBar, Sheet } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import { planSeriesDelete, planSeriesEdit, type EventFields, type SeriesPlan, type SeriesScope } from '@/domain/eventSeries';
-import type { CalendarEvent } from '@/domain/types';
+import { EVENT_COLORS, type CalendarEvent } from '@/domain/types';
 
 const REMINDERS = [null, 0, 5, 10, 15, 30, 60, 120, 1440];
 const local = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
@@ -27,7 +27,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
   const invalidate = useInvalidate();
   const event = target?.event ?? null;
   const occurrence = event?.recurrence ? target?.occurrence ?? null : null;
-  const [f, setF] = useState({ title: '', notes: '', location: '', start: '', end: '', all_day: false, reminder: '' as string });
+  const [f, setF] = useState({ title: '', notes: '', location: '', start: '', end: '', all_day: false, reminder: '' as string, color: null as string | null });
   const [rule, setRule] = useState<Recurrence | null>(null);
   const [ask, setAsk] = useState<'save' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,11 +47,12 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         end: local(target?.instanceEnd ?? new Date(event.end_at)),
         all_day: event.all_day,
         reminder: event.reminder_minutes == null ? '' : String(event.reminder_minutes),
+        color: event.color ?? null,
       });
       setRule(event.recurrence);
     } else {
       const s = target?.defaultStart ?? addHours(new Date(new Date().setMinutes(0, 0, 0)), 1);
-      setF({ title: '', notes: '', location: '', start: local(s), end: local(addHours(s, 1)), all_day: false, reminder: '' });
+      setF({ title: '', notes: '', location: '', start: local(s), end: local(addHours(s, 1)), all_day: false, reminder: '', color: null });
       setRule(null);
     }
   }, [open, event?.id, occurrence]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,6 +71,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
       location: f.location || null,
       all_day: f.all_day,
       reminder_minutes: f.reminder === '' ? null : Number(f.reminder),
+      color: f.color,
     };
     return { fields, start, end };
   };
@@ -178,6 +180,22 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         <fieldset disabled={readonly}>
         <Field label={t('calendar.title')}>
           <input className="input" required autoFocus={!event} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+        </Field>
+        <Field label={t('calendar.color')}>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('calendar.color')}>
+            {[null, ...EVENT_COLORS].map((c) => (
+              <button
+                key={c ?? 'default'}
+                type="button"
+                role="radio"
+                aria-checked={f.color === c}
+                aria-label={c ?? t('calendar.defaultColor')}
+                onClick={() => setF({ ...f, color: c })}
+                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-card ${f.color === c ? 'ring-2 ring-fg' : ''}`}
+                style={{ background: c ?? 'rgb(var(--calendar))' }}
+              />
+            ))}
+          </div>
         </Field>
         <label className="mb-3 flex items-center gap-2 text-sm">
           <input type="checkbox" checked={f.all_day} onChange={(e) => setF({ ...f, all_day: e.target.checked })} />

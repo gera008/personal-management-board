@@ -16,11 +16,23 @@ export interface Profile {
   language: 'en' | 'es';
   default_currency: Currency;
   theme: 'light' | 'dark' | 'system';
+  accent: Accent;
   timezone: string;
   week_start: 0 | 1;
   digest_time: string;
   dashboard_layout: WidgetSetting[];
 }
+
+export type Accent = 'lime' | 'orange' | 'ice' | 'mint';
+export const ACCENTS: { id: Accent; hex: string }[] = [
+  { id: 'lime', hex: '#C6F432' },
+  { id: 'orange', hex: '#FF6B2C' },
+  { id: 'ice', hex: '#7CC4FF' },
+  { id: 'mint', hex: '#4ADE80' },
+];
+
+/** Colors an event can wear; none picked = the default event color. */
+export const EVENT_COLORS = ['#6EE7B7', '#7CC4FF', '#A78BFA', '#F0A6CA', '#E8C468', '#F59E8B'] as const;
 
 export type WidgetId = 'month_calendar' | 'week_detail' | 'tasks' | 'finance_summary' | 'habits_today' | 'habit_heatmap';
 export interface WidgetSetting {
@@ -45,6 +57,7 @@ export interface CalendarEvent {
   recurrence: Recurrence | null;
   exdates: string[];
   recurrence_parent_id: string | null;
+  color?: string | null;
   google_calendar_id?: string | null;
   google_event_id?: string | null;
   /** From a Google calendar you can't edit, or a series the app can't represent. */

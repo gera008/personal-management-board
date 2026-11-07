@@ -15,7 +15,7 @@ export function FinanceLayout() {
   const { t } = useTranslation();
   return (
     <div>
-      <h1 className="mb-3 text-2xl font-bold tracking-tight">{t('nav.finance')}</h1>
+      <h1 className="text-title mb-3">{t('nav.finance')}</h1>
       <nav className="-mx-4 mb-4 flex gap-1 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0">
         {TABS.map((tab) => (
           <NavLink

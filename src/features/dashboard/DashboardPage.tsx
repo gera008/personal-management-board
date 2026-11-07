@@ -33,8 +33,8 @@ export function DashboardPage() {
     <div>
       <div className="mb-4 flex items-end justify-between gap-2">
         <div>
-          <p className="text-sm capitalize text-muted">{formatDate(new Date(), 'EEEE d MMMM')}</p>
-          <h1 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <p className="text-eyebrow capitalize">{formatDate(new Date(), 'EEEE d MMMM')}</p>
+          <h1 className="text-title">{t('dashboard.title')}</h1>
         </div>
         {!editing && (
           <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setEditing(true)}>

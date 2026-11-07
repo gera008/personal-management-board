@@ -5,12 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import './lib/i18n';
 import './index.css';
 import { App } from './app/App';
-import { applyTheme } from './lib/profile';
+import { applyAccent } from './lib/profile';
 
-// Apply the last theme before the profile loads to avoid a flash.
+// Apply the last accent before the profile loads to avoid a flash.
 try {
-  const t = localStorage.getItem('theme');
-  if (t === 'light' || t === 'dark') applyTheme(t);
+  const a = localStorage.getItem('accent');
+  if (a === 'orange' || a === 'ice' || a === 'mint') applyAccent(a);
 } catch {
   /* storage unavailable */
 }

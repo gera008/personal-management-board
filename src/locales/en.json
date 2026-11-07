@@ -97,7 +97,9 @@
     "hoursBefore_one": "{{count}} hour before",
     "hoursBefore_other": "{{count}} hours before",
     "daysBefore_one": "{{count}} day before",
-    "daysBefore_other": "{{count}} days before"
+    "daysBefore_other": "{{count}} days before",
+    "color": "Color",
+    "defaultColor": "Default color"
   },
   "tasks": {
     "today": "Today",
@@ -486,7 +488,14 @@
     "exportCsv": "Export transactions (CSV)",
     "exportJson": "Export everything (JSON)",
     "signedIn": "Signed in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "accent": "Accent color",
+    "accents": {
+      "lime": "Electric lime",
+      "orange": "Orange",
+      "ice": "Ice blue",
+      "mint": "Mint"
+    }
   },
   "privacy": {
     "hide": "Hide amounts",

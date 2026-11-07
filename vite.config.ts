@@ -23,8 +23,8 @@ export default defineConfig({
         name: 'Mios',
         short_name: 'Mios',
         description: 'Calendar, tasks, finance and habits in one place.',
-        theme_color: '#F8F9FA',
-        background_color: '#F8F9FA',
+        theme_color: '#0B0B0D',
+        background_color: '#0B0B0D',
         display: 'standalone',
         start_url: '/',
         icons: [

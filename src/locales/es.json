@@ -97,7 +97,9 @@
     "hoursBefore_one": "{{count}} hora antes",
     "hoursBefore_other": "{{count}} horas antes",
     "daysBefore_one": "{{count}} día antes",
-    "daysBefore_other": "{{count}} días antes"
+    "daysBefore_other": "{{count}} días antes",
+    "color": "Color",
+    "defaultColor": "Color predeterminado"
   },
   "tasks": {
     "today": "Hoy",
@@ -486,7 +488,14 @@
     "exportCsv": "Exportar movimientos (CSV)",
     "exportJson": "Exportar todo (JSON)",
     "signedIn": "Sesión iniciada",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "accent": "Color de acento",
+    "accents": {
+      "lime": "Lima eléctrico",
+      "orange": "Naranja",
+      "ice": "Azul hielo",
+      "mint": "Menta"
+    }
   },
   "privacy": {
     "hide": "Ocultar montos",

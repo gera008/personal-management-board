@@ -10,6 +10,7 @@ export interface EventFields {
   location: string | null;
   all_day: boolean;
   reminder_minutes: number | null;
+  color?: string | null;
 }
 
 /** Database writes needed to apply an edit or delete to a recurring series. */

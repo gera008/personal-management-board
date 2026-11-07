@@ -23,12 +23,13 @@ interface Ctx {
 
 const ProfileContext = createContext<Ctx | null>(null);
 
-export function applyTheme(theme: Profile['theme']) {
+/** The app is dark only; the accent color comes from Settings. */
+export function applyAccent(accent: Profile['accent'] | undefined) {
   const root = document.documentElement;
-  if (theme === 'system') root.removeAttribute('data-theme');
-  else root.setAttribute('data-theme', theme);
+  if (!accent || accent === 'lime') root.removeAttribute('data-accent');
+  else root.setAttribute('data-accent', accent);
   try {
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('accent', accent ?? 'lime');
   } catch {
     /* storage unavailable */
   }
@@ -48,8 +49,8 @@ export function ProfileProvider({ userId, children }: { userId: string; children
   useEffect(() => {
     if (!profile) return;
     setLanguage(profile.language);
-    applyTheme(profile.theme);
-  }, [profile?.language, profile?.theme]); // eslint-disable-line react-hooks/exhaustive-deps
+    applyAccent(profile.accent);
+  }, [profile?.language, profile?.accent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (profileQ.isLoading || ratesQ.isLoading) return <div className="p-6 text-sm text-muted">…</div>;
   if (!profile) return <div className="p-6 text-sm text-expense">Profile not found. Check that the database migrations ran.</div>;

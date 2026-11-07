@@ -18,14 +18,20 @@ export function weekRange(day: Date, weekStartsOn: 0 | 1) {
 
 const timeLabel = (d: Date) => formatDate(d, 'HH:mm');
 
+/** An event's own color (or the default event color); tasks use the tasks color. */
+export const itemColor = (i: CalItem) => (i.kind === 'task' ? 'rgb(var(--tasks))' : i.event?.color ?? 'rgb(var(--calendar))');
+/** Colored left edge and a soft fill of the item's color. */
+const tint = (i: CalItem, pct: number) => ({ borderColor: itemColor(i), background: `color-mix(in srgb, ${itemColor(i)} ${pct}%, transparent)` });
+
 export function ItemChip({ item, onClick, compact }: { item: CalItem; onClick?: () => void; compact?: boolean }) {
   const isTask = item.kind === 'task';
   return (
     <button
       onClick={onClick}
       className={`flex w-full min-w-0 items-center gap-1.5 rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${
-        isTask ? 'border-tasks bg-tasks/10' : 'border-calendar bg-calendar/10'
-      } ${item.done ? 'text-muted line-through' : ''}`}
+        item.done ? 'text-muted line-through' : ''
+      }`}
+      style={tint(item, 14)}
     >
       {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
       {!compact && !item.allDay && <span className="shrink-0 text-muted">{timeLabel(item.start)}</span>}
@@ -73,11 +79,11 @@ export function MonthGrid({
               onClick={() => onSelect?.(d)}
               className={`min-w-0 cursor-pointer bg-bg p-1 ${compact ? 'h-12' : 'min-h-[4.5rem] sm:min-h-[6rem]'} ${isSameMonth(d, month) ? '' : 'text-muted/60'} ${sel ? 'ring-2 ring-inset ring-fg' : ''}`}
             >
-              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${isToday(d) ? 'bg-calendar font-semibold text-bg' : ''}`}>{formatDate(d, 'd')}</div>
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${isToday(d) ? 'bg-accent font-semibold text-bg' : ''}`}>{formatDate(d, 'd')}</div>
               {compact ? (
                 <div className="flex flex-wrap gap-0.5 px-0.5">
                   {dayItems.slice(0, 4).map((i) => (
-                    <span key={i.kind + i.id} className={`h-1.5 w-1.5 rounded-full ${i.kind === 'task' ? 'bg-tasks' : 'bg-calendar'} ${i.done ? 'opacity-40' : ''}`} />
+                    <span key={i.kind + i.id} className={`h-1.5 w-1.5 rounded-full ${i.done ? 'opacity-40' : ''}`} style={{ background: itemColor(i) }} />
                   ))}
                 </div>
               ) : (
@@ -91,7 +97,7 @@ export function MonthGrid({
               {!compact && (
                 <div className="flex flex-wrap gap-0.5 px-0.5 sm:hidden">
                   {dayItems.slice(0, 4).map((i) => (
-                    <span key={i.kind + i.id} className={`h-1.5 w-1.5 rounded-full ${i.kind === 'task' ? 'bg-tasks' : 'bg-calendar'}`} />
+                    <span key={i.kind + i.id} className="h-1.5 w-1.5 rounded-full" style={{ background: itemColor(i) }} />
                   ))}
                 </div>
               )}
@@ -112,7 +118,7 @@ export function WeekList({ start, items, onItem, onDay }: { start: Date; items: 
         const dayItems = itemsForDay(items, d);
         return (
           <div key={d.toISOString()} className="flex gap-3 py-2">
-            <button onClick={() => onDay?.(d)} className={`w-12 shrink-0 text-left ${isToday(d) ? 'text-calendar' : ''}`}>
+            <button onClick={() => onDay?.(d)} className={`w-12 shrink-0 text-left ${isToday(d) ? 'text-accent' : ''}`}>
               <div className="text-[11px] uppercase text-muted">{formatDate(d, 'EEE')}</div>
               <div className="text-lg font-semibold leading-tight">{formatDate(d, 'd')}</div>
             </button>
@@ -136,9 +142,10 @@ function TimedBlock({ item, short, narrow, onClick }: { item: CalItem; short: bo
   return (
     <button
       onClick={onClick}
-      className={`flex h-full w-full min-w-0 overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${
-        isTask ? 'border-tasks bg-tasks/15' : 'border-calendar bg-calendar/15'
-      } ${short && !narrow ? 'items-center gap-1.5' : 'flex-col'} ${narrow ? 'px-1 text-[11px] leading-tight' : ''} ${item.done ? 'text-muted line-through' : ''}`}
+      className={`flex h-full w-full min-w-0 overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-xs ${short && !narrow ? 'items-center gap-1.5' : 'flex-col'} ${
+        narrow ? 'px-1 text-[11px] leading-tight' : ''
+      } ${item.done ? 'text-muted line-through' : ''}`}
+      style={tint(item, 22)}
     >
       <span className="flex min-w-0 items-center gap-1.5">
         {isTask && <span className={`h-2.5 w-2.5 shrink-0 rounded-full border border-tasks ${item.done ? 'bg-tasks' : ''}`} />}
@@ -198,10 +205,10 @@ export function TimeGrid({
           <div className="w-12 shrink-0" />
           {columns.map(({ day }) => (
             <button key={day.toISOString()} onClick={() => onDay?.(day)} className="min-w-0 flex-1 pb-2 text-center">
-              <div className={`text-[11px] uppercase ${isToday(day) ? 'text-calendar' : 'text-muted'}`}>{formatDate(day, 'EEE')}</div>
+              <div className={`text-[11px] uppercase ${isToday(day) ? 'text-accent' : 'text-muted'}`}>{formatDate(day, 'EEE')}</div>
               <div
                 className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-lg font-semibold ${
-                  isToday(day) ? 'bg-calendar text-bg' : ''
+                  isToday(day) ? 'bg-accent text-bg' : ''
                 }`}
               >
                 {formatDate(day, 'd')}
@@ -296,11 +303,11 @@ export function AgendaView({ from, to, items, onItem }: { from: Date; to: Date; 
     <div className="space-y-4">
       {days.map(({ d, list }) => (
         <section key={d.toISOString()}>
-          <h3 className={`section-title ${isToday(d) ? 'text-calendar' : ''}`}>{formatDate(d, 'EEEE d MMMM')}</h3>
+          <h3 className={`section-title ${isToday(d) ? 'text-accent' : ''}`}>{formatDate(d, 'EEEE d MMMM')}</h3>
           <div className="space-y-1">
             {list.map((i) => (
               <button key={i.kind + i.id} onClick={() => onItem(i)} className="flex w-full items-center gap-3 rounded-lg border border-border px-3 py-2 text-left">
-                <span className={`h-8 w-1 shrink-0 rounded-full ${i.kind === 'task' ? 'bg-tasks' : 'bg-calendar'}`} />
+                <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: itemColor(i) }} />
                 <div className="min-w-0 flex-1">
                   <div className={`truncate text-sm font-medium ${i.done ? 'text-muted line-through' : ''}`}>{i.title}</div>
                   <div className="text-xs text-muted">
