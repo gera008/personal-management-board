@@ -262,126 +262,136 @@ export function ModuleDial({ side }: { side: DialSide }) {
   const hubLit = onOverview && !active;
 
   return (
-    <div
-      ref={dock}
-      role="slider"
-      tabIndex={0}
-      aria-label={t('nav.selector')}
-      aria-valuemin={1}
-      aria-valuemax={N}
-      aria-valuenow={current + 1}
-      aria-valuetext={name}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onKeyDown={onKeyDown}
-      onFocus={wake}
-      onBlur={rest}
-      className="fixed z-40 touch-none select-none overflow-hidden outline-none transition-transform duration-300 ease-out"
-      style={
-        bottom
-          ? {
-              left: '50%',
-              bottom: 0,
-              width: R * 2,
-              height: R + NOTCH,
-              marginLeft: -R,
-              transformOrigin: 'bottom center',
-              transform: `scale(${active ? 1 : idleScale})`,
-            }
-          : {
-              left: 0,
-              top: '50%',
-              width: R + NOTCH,
-              height: R * 2,
-              marginTop: -R,
-              transformOrigin: 'left center',
-              transform: `scale(${active ? 1 : idleScale})`,
-            }
-      }
-    >
-      {/* Pointer */}
+    <>
+      {/* Phones: while turning, blur the page behind the dial so they don't mix. A tap there puts the dial away. */}
+      {bottom && (
+        <div
+          aria-hidden
+          onClick={() => setActive(false)}
+          className={`fixed inset-0 z-[35] bg-bg/60 backdrop-blur-xl transition-opacity duration-300 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        />
+      )}
       <div
-        className="absolute z-10 h-0 w-0"
-        style={
-          bottom
-            ? { left: '50%', top: 14, marginLeft: -7, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '9px solid rgb(var(--accent))' }
-            : { top: '50%', right: 14, marginTop: -7, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid rgb(var(--accent))' }
-        }
-      />
-      <div
-        ref={dial}
-        className="absolute rounded-full border border-border bg-card will-change-transform"
-        style={{ width: R * 2, height: R * 2, ...(bottom ? { left: 0, top: NOTCH } : { left: -R, top: 0 }) }}
-      >
-        <svg viewBox={`0 0 ${R * 2} ${R * 2}`} className="pointer-events-none absolute inset-0 h-full w-full">
-          {g.ticks}
-        </svg>
-        {MODULES.map((m, i) => (
-          <button
-            key={m.to}
-            ref={(el) => (items.current[i] = el)}
-            data-i={i}
-            tabIndex={-1}
-            aria-label={t(m.key)}
-            className="absolute"
-            style={{ width: g.item, height: g.item, ...place(i * STEP, side, R, g.itemR, g.item) }}
-          >
-            <span
-              className={`flex h-full w-full items-center justify-center rounded-full border transition-colors ${
-                i === highlighted ? 'border-transparent bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)]' : 'border-border bg-bg text-muted'
-              }`}
-            >
-              <Icon name={m.icon} size={Math.round(g.item * 0.46)} />
-            </span>
-          </button>
-        ))}
-      </div>
-      {/* Hub: the module's name while turning; a tap opens the Overview. */}
-      <button
-        data-hub
-        tabIndex={-1}
-        aria-label={t('nav.home')}
-        className={`absolute flex flex-col items-center border text-center transition-colors ${
-          hubLit ? 'border-transparent bg-accent text-bg' : 'border-border bg-bg text-fg hover:bg-card'
-        }`}
+        ref={dock}
+        role="slider"
+        tabIndex={0}
+        aria-label={t('nav.selector')}
+        aria-valuemin={1}
+        aria-valuemax={N}
+        aria-valuenow={current + 1}
+        aria-valuetext={name}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onKeyDown={onKeyDown}
+        onFocus={wake}
+        onBlur={rest}
+        className="fixed z-40 touch-none select-none overflow-hidden outline-none transition-transform duration-300 ease-out"
         style={
           bottom
             ? {
                 left: '50%',
                 bottom: 0,
-                width: g.hub * 2,
-                height: g.hub,
-                marginLeft: -g.hub,
-                borderRadius: `${g.hub}px ${g.hub}px 0 0`,
-                borderBottom: 0,
-                justifyContent: 'flex-end',
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+                width: R * 2,
+                height: R + NOTCH,
+                marginLeft: -R,
+                transformOrigin: 'bottom center',
+                transform: `scale(${active ? 1 : idleScale})`,
               }
             : {
                 left: 0,
                 top: '50%',
-                width: g.hub,
-                height: g.hub * 2,
-                marginTop: -g.hub,
-                borderRadius: `0 ${g.hub}px ${g.hub}px 0`,
-                borderLeft: 0,
-                justifyContent: 'center',
-                paddingRight: 8,
+                width: R + NOTCH,
+                height: R * 2,
+                marginTop: -R,
+                transformOrigin: 'left center',
+                transform: `scale(${active ? 1 : idleScale})`,
               }
         }
       >
-        {active ? (
-          <>
-            <b className="text-[15px] font-semibold leading-tight">{name}</b>
-            <small className="mt-0.5 text-[11px] text-muted">{t('nav.tapForOverview')}</small>
-          </>
-        ) : (
-          // Idle the dial is small: just the Overview icon.
-          <Icon name="home" size={Math.round(g.hub * 0.55)} className={bottom ? 'mb-1' : ''} />
-        )}
-      </button>
-    </div>
+        {/* Pointer */}
+        <div
+          className="absolute z-10 h-0 w-0"
+          style={
+            bottom
+              ? { left: '50%', top: 14, marginLeft: -7, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '9px solid rgb(var(--accent))' }
+              : { top: '50%', right: 14, marginTop: -7, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid rgb(var(--accent))' }
+          }
+        />
+        <div
+          ref={dial}
+          className="absolute rounded-full border border-border bg-card will-change-transform"
+          style={{ width: R * 2, height: R * 2, ...(bottom ? { left: 0, top: NOTCH } : { left: -R, top: 0 }) }}
+        >
+          <svg viewBox={`0 0 ${R * 2} ${R * 2}`} className="pointer-events-none absolute inset-0 h-full w-full">
+            {g.ticks}
+          </svg>
+          {MODULES.map((m, i) => (
+            <button
+              key={m.to}
+              ref={(el) => (items.current[i] = el)}
+              data-i={i}
+              tabIndex={-1}
+              aria-label={t(m.key)}
+              className="absolute"
+              style={{ width: g.item, height: g.item, ...place(i * STEP, side, R, g.itemR, g.item) }}
+            >
+              <span
+                className={`flex h-full w-full items-center justify-center rounded-full border transition-colors ${
+                  i === highlighted ? 'border-transparent bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)]' : 'border-border bg-bg text-muted'
+                }`}
+              >
+                <Icon name={m.icon} size={Math.round(g.item * 0.46)} />
+              </span>
+            </button>
+          ))}
+        </div>
+        {/* Hub: the module's name while turning; a tap opens the Overview. */}
+        <button
+          data-hub
+          tabIndex={-1}
+          aria-label={t('nav.home')}
+          className={`absolute flex flex-col items-center border text-center transition-colors ${
+            hubLit ? 'border-transparent bg-accent text-bg' : 'border-border bg-bg text-fg hover:bg-card'
+          }`}
+          style={
+            bottom
+              ? {
+                  left: '50%',
+                  bottom: 0,
+                  width: g.hub * 2,
+                  height: g.hub,
+                  marginLeft: -g.hub,
+                  borderRadius: `${g.hub}px ${g.hub}px 0 0`,
+                  borderBottom: 0,
+                  justifyContent: 'flex-end',
+                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+                }
+              : {
+                  left: 0,
+                  top: '50%',
+                  width: g.hub,
+                  height: g.hub * 2,
+                  marginTop: -g.hub,
+                  borderRadius: `0 ${g.hub}px ${g.hub}px 0`,
+                  borderLeft: 0,
+                  justifyContent: 'center',
+                  paddingRight: 8,
+                }
+          }
+        >
+          {active ? (
+            <>
+              <b className="text-[15px] font-semibold leading-tight">{name}</b>
+              <small className="mt-0.5 text-[11px] text-muted">{t('nav.tapForOverview')}</small>
+            </>
+          ) : (
+            // Idle the dial is small: just the Overview icon.
+            <Icon name="home" size={Math.round(g.hub * 0.55)} className={bottom ? 'mb-1' : ''} />
+          )}
+        </button>
+      </div>
+    </>
   );
 }
