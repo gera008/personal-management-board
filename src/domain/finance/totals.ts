@@ -451,3 +451,17 @@ export function previousPeriod(range: 'week' | 'month' | 'year' | 'custom', from
   if (range === 'year') return { from: addMonths(from, -12), to: from };
   return { from: addDays(from, -differenceInCalendarDays(to, from)), to: from };
 }
+
+/** [from, to) of a week, month or year, `offset` periods from the current one (-1 = the one before). */
+export function periodRange(range: 'week' | 'month' | 'year', now: Date, offset: number, weekStartsOn: 0 | 1): [Date, Date] {
+  if (range === 'week') {
+    const from = addWeeks(startOfWeek(now, { weekStartsOn }), offset);
+    return [from, addWeeks(from, 1)];
+  }
+  if (range === 'month') {
+    const from = addMonths(startOfMonth(now), offset);
+    return [from, addMonths(from, 1)];
+  }
+  const from = addMonths(new Date(now.getFullYear(), 0, 1), offset * 12);
+  return [from, addMonths(from, 12)];
+}

@@ -18,6 +18,7 @@ import {
   dailySpending,
   categoryBreakdown,
   previousPeriod,
+  periodRange,
 } from '../src/domain/finance/totals';
 import { account, category, tx } from './fixtures';
 
@@ -293,5 +294,25 @@ describe('budgets with an adjustable weekly allowance', () => {
     expect(g.week.from).toEqual(new Date(2026, 10, 29));
     expect(g.week.to).toEqual(new Date(2026, 11, 1));
     expect(g.week.limit).toBe(5300); // all that's left
+  });
+});
+
+describe('periodRange', () => {
+  // Oct 31 is the trap: stepping from the day itself would skip shorter months.
+  const now = new Date(2026, 9, 31, 15);
+
+  it('steps through months', () => {
+    expect(periodRange('month', now, 0, 0)).toEqual([new Date(2026, 9, 1), new Date(2026, 10, 1)]);
+    expect(periodRange('month', now, -1, 0)).toEqual([new Date(2026, 8, 1), new Date(2026, 9, 1)]);
+    expect(periodRange('month', now, -10, 0)[0]).toEqual(new Date(2025, 11, 1));
+  });
+
+  it('steps through weeks from the configured start', () => {
+    expect(periodRange('week', now, -1, 0)).toEqual([new Date(2026, 9, 18), new Date(2026, 9, 25)]);
+    expect(periodRange('week', now, 0, 1)[0]).toEqual(new Date(2026, 9, 26));
+  });
+
+  it('steps through years', () => {
+    expect(periodRange('year', now, -1, 0)).toEqual([new Date(2025, 0, 1), new Date(2026, 0, 1)]);
   });
 });

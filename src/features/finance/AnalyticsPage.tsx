@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { addDays, addMonths, addWeeks, addYears, differenceInCalendarMonths, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, subMonths } from 'date-fns';
+import { addDays, addWeeks, differenceInCalendarMonths, isSameDay, startOfDay, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useProfile } from '@/lib/profile';
 import { useThemeColors } from '@/lib/themeColors';
@@ -13,6 +13,7 @@ import {
   dailySpending,
   monthlyTrend,
   monthProjection,
+  periodRange,
   periodSummary,
   pctChange,
   previousPeriod,
@@ -38,6 +39,8 @@ export function AnalyticsPage() {
   const accounts = useAccounts();
   const cats = useCategories();
   const [range, setRange] = useState<Range>('month');
+  // Periods back from the current week, month or year (0 = current, -1 = the one before).
+  const [offset, setOffset] = useState(0);
   const [custom, setCustom] = useState({ from: toDateKey(startOfMonth(subMonths(new Date(), 2))), to: toDateKey(new Date()) });
   const [accountId, setAccountId] = useState<string>('net');
 
@@ -47,20 +50,16 @@ export function AnalyticsPage() {
   const firstDate = txs.data?.length ? startOfMonth(new Date(txs.data[txs.data.length - 1].occurred_at)) : startOfMonth(now);
   const [from, to] = useMemo(() => {
     switch (range) {
-      case 'week': {
-        const s = startOfWeek(now, { weekStartsOn });
-        return [s, addDays(s, 7)];
-      }
+      case 'week':
       case 'month':
-        return [startOfMonth(now), addMonths(startOfMonth(now), 1)];
       case 'year':
-        return [startOfYear(now), addYears(startOfYear(now), 1)];
+        return periodRange(range, now, offset, weekStartsOn);
       case 'all':
         return [firstDate, tomorrow];
       case 'custom':
         return [new Date(`${custom.from}T00:00`), addDays(new Date(`${custom.to}T00:00`), 1)];
     }
-  }, [range, custom, weekStartsOn, firstDate.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [range, offset, custom, weekStartsOn, firstDate.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (txs.isLoading || !txs.data) return <div className="h-64 animate-pulse rounded-3xl bg-surface" />;
   const all = txs.data;
@@ -75,7 +74,8 @@ export function AnalyticsPage() {
   const sum = periodSummary(all, from, to);
   const prevSum = prev ? periodSummary(all, prev.from, prev.to) : null;
   const monthsInPeriod = Math.max(1, differenceInCalendarMonths(addDays(end, -1), from) + 1);
-  const proj = range === 'month' ? monthProjection(all, now) : null;
+  // A projection only makes sense for the month still running.
+  const proj = range === 'month' && offset === 0 ? monthProjection(all, now) : null;
 
   // ¿En qué?
   const breakdown = categoryBreakdown(all, cats.byId, from, to, prev);
@@ -117,7 +117,14 @@ export function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="-mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <Segmented value={range} onChange={setRange} options={RANGES.map((v) => ({ value: v, label: t(`analytics.ranges.${v}`) }))} />
+          <Segmented
+            value={range}
+            onChange={(r) => {
+              setRange(r);
+              setOffset(0);
+            }}
+            options={RANGES.map((v) => ({ value: v, label: t(`analytics.ranges.${v}`) }))}
+          />
         </div>
         {range === 'custom' && (
           <div className="flex items-center gap-1">
@@ -126,9 +133,13 @@ export function AnalyticsPage() {
             <input type="date" className="input py-1" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} aria-label={t('analytics.to')} />
           </div>
         )}
-        <span className="text-xs text-muted">
-          {formatDate(from, 'd MMM yyyy')} – {formatDate(addDays(to, -1), 'd MMM yyyy')}
-        </span>
+        {range === 'week' || range === 'month' || range === 'year' ? (
+          <PeriodNav label={periodLabel(range, from, to)} isCurrent={offset === 0} canGoBack={from > firstDate} onMove={(d) => setOffset(offset + d)} onReset={() => setOffset(0)} />
+        ) : (
+          <span className="ml-auto text-xs text-muted">
+            {formatDate(from, 'd MMM yyyy')} – {formatDate(addDays(to, -1), 'd MMM yyyy')}
+          </span>
+        )}
       </div>
 
       {/* ¿Cuánto? */}
@@ -262,6 +273,31 @@ export function AnalyticsPage() {
           )}
         </div>
       </Question>
+    </div>
+  );
+}
+
+function periodLabel(range: 'week' | 'month' | 'year', from: Date, to: Date) {
+  if (range === 'month') return formatDate(from, 'MMMM yyyy');
+  if (range === 'year') return formatDate(from, 'yyyy');
+  return `${formatDate(from, 'd MMM')} – ${formatDate(addDays(to, -1), 'd MMM yyyy')}`;
+}
+
+/** Arrows to the period before or after. Tapping the label returns to the current one. */
+function PeriodNav({ label, isCurrent, canGoBack, onMove, onReset }: { label: string; isCurrent: boolean; canGoBack: boolean; onMove: (delta: number) => void; onReset: () => void }) {
+  const { t } = useTranslation();
+  const arrow = 'flex h-7 w-7 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent';
+  return (
+    <div className="ml-auto inline-flex items-center gap-1 rounded-full border border-border p-0.5">
+      <button className={arrow} disabled={!canGoBack} onClick={() => onMove(-1)} aria-label={t('common.previous')}>
+        <Icon name="chevronLeft" size={16} />
+      </button>
+      <button className={`min-w-[7.5rem] px-1 text-center text-sm font-semibold capitalize ${isCurrent ? 'cursor-default' : 'hover:underline'}`} onClick={onReset}>
+        {label}
+      </button>
+      <button className={arrow} disabled={isCurrent} onClick={() => onMove(1)} aria-label={t('common.next')}>
+        <Icon name="chevronRight" size={16} />
+      </button>
     </div>
   );
 }

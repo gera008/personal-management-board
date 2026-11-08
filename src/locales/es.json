@@ -293,9 +293,9 @@
   },
   "analytics": {
     "ranges": {
-      "week": "Esta semana",
-      "month": "Este mes",
-      "year": "Este año",
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Año",
       "all": "Todo",
       "custom": "Personalizado"
     },
