@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui';
-import { bezelClick, unlockBezel } from '@/lib/bezelSound';
+import { bezelClick, caseClose, unlockBezel } from '@/lib/bezelSound';
 
 /**
  * Module selector: a dial you turn to pick a module (like a watch crown).
@@ -156,6 +156,13 @@ export function ModuleDial({ side }: { side: DialSide }) {
     [navigate, paint],
   );
 
+  // The center's sound only plays when it actually takes you somewhere.
+  const openOverview = useCallback(() => {
+    if (window.location.pathname === '/') return;
+    caseClose();
+    navigate('/');
+  }, [navigate]);
+
   useLayoutEffect(() => paint(false), [paint, side, R]);
   // Follow navigation that didn't come from the dial (links, back button).
   useEffect(() => {
@@ -214,7 +221,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
       if (d.hub) {
         // The hub opens the Overview.
         goTo(indexForRotation(rot.current), false);
-        if (window.location.pathname !== '/') navigate('/');
+        openOverview();
         setActive(false);
         return;
       }
@@ -249,7 +256,8 @@ export function ModuleDial({ side }: { side: DialSide }) {
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      navigate('/');
+      unlockBezel();
+      openOverview();
       return;
     }
     const next = side === 'bottom' ? ['ArrowRight', 'ArrowDown'] : ['ArrowDown', 'ArrowRight'];

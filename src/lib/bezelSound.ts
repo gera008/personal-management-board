@@ -33,9 +33,43 @@ export function renderClick(sampleRate: number, random: () => number = Math.rand
   return out.map((v) => v / peak);
 }
 
+/** Length of the Overview sound. */
+const CASE_LENGTH_S = 0.32;
+/** Relative to the dial click: it should barely be noticed. */
+const CASE_LEVEL = 0.7;
+
+/** [frequency Hz, amplitude, decay s]. Nothing below ~400 Hz carries the thud: phone speakers can't play it. */
+const CASE_THUD = [
+  [210, 0.55, 0.03],
+  [430, 1, 0.022],
+  [680, 0.6, 0.016],
+] as const;
+/** The faint ring of the metal case after it shuts. */
+const CASE_RING = [
+  [1870, 0.07, 0.085],
+  [2810, 0.05, 0.065],
+  [4120, 0.025, 0.045],
+] as const;
+
+/** The dial's center (Overview): a low, damped thud and a faint metallic ring, like shutting a watch case. */
+export function renderCaseClose(sampleRate: number, random: () => number = Math.random): Float32Array {
+  const out = new Float32Array(Math.round(CASE_LENGTH_S * sampleRate));
+  for (let i = 0; i < out.length; i++) {
+    const t = i / sampleRate;
+    let v = (random() * 2 - 1) * 0.18 * Math.exp(-t / 0.0016); // the contact, softer than the bezel's
+    for (const [f, a, d] of [...CASE_THUD, ...CASE_RING]) v += a * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / d);
+    out[i] = v;
+  }
+  const peak = out.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+  // Fade the last 20 ms so the tail can't end in an audible tick.
+  const fade = Math.round(0.02 * sampleRate);
+  return out.map((v, i) => (v / peak) * Math.min(1, (out.length - 1 - i) / fade));
+}
+
 let ctx: AudioContext | null = null;
 let output: GainNode | null = null;
 let buffers: AudioBuffer[] = [];
+let caseBuffer: AudioBuffer | null = null;
 
 /** Browsers only allow sound after a user gesture, so call this from one. */
 export function unlockBezel() {
@@ -45,13 +79,15 @@ export function unlockBezel() {
       output = ctx.createGain();
       output.gain.value = VOLUME;
       output.connect(ctx.destination);
-      // A few takes, so repeated clicks aren't identical.
       const rate = ctx.sampleRate;
-      buffers = Array.from({ length: 4 }, () => {
-        const b = ctx!.createBuffer(1, Math.round(LENGTH_S * rate), rate);
-        b.copyToChannel(renderClick(rate), 0);
+      const toBuffer = (samples: Float32Array) => {
+        const b = ctx!.createBuffer(1, samples.length, rate);
+        b.copyToChannel(samples, 0);
         return b;
-      });
+      };
+      // A few takes, so repeated clicks aren't identical.
+      buffers = Array.from({ length: 4 }, () => toBuffer(renderClick(rate)));
+      caseBuffer = toBuffer(renderCaseClose(rate).map((v) => v * CASE_LEVEL));
     }
     if (ctx.state === 'suspended') void ctx.resume();
   } catch {
@@ -59,11 +95,22 @@ export function unlockBezel() {
   }
 }
 
-export function bezelClick() {
-  if (!ctx || !output || ctx.state !== 'running') return;
+function play(buffer: AudioBuffer | null | undefined, rate = 1) {
+  if (!ctx || !output || !buffer) return;
   const src = ctx.createBufferSource();
-  src.buffer = buffers[Math.floor(Math.random() * buffers.length)];
-  src.playbackRate.value = PITCH + (Math.random() - 0.5) * 0.02;
+  src.buffer = buffer;
+  src.playbackRate.value = rate;
   src.connect(output);
   src.start();
+}
+
+export function bezelClick() {
+  // Without a gesture yet (wheel only) the context is suspended: drop it rather than save it up.
+  if (ctx?.state !== 'running') return;
+  play(buffers[Math.floor(Math.random() * buffers.length)], PITCH + (Math.random() - 0.5) * 0.02);
+}
+
+/** Always follows a tap on the center, so the context is already unlocked (or about to be). */
+export function caseClose() {
+  play(caseBuffer);
 }

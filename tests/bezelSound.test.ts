@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderClick } from '../src/lib/bezelSound';
+import { renderCaseClose, renderClick } from '../src/lib/bezelSound';
 
 describe('bezel click', () => {
   const rate = 48000;
@@ -26,5 +26,26 @@ describe('bezel click', () => {
       sum += click[i] ** 2;
     }
     expect(diff / sum).toBeGreaterThan(0.1);
+  });
+});
+
+describe('case close (Overview)', () => {
+  const rate = 48000;
+  let seed = 11;
+  const sound = renderCaseClose(rate, () => (seed = (seed * 16807) % 2147483647) / 2147483647);
+  const energy = (from: number, to: number) => sound.slice(Math.round(from * rate), Math.round(to * rate)).reduce((s, v) => s + v * v, 0);
+
+  it('stays under half a second and within full scale', () => {
+    expect(sound.length / rate).toBeLessThan(0.5);
+    expect(Math.max(...sound.map(Math.abs))).toBeLessThanOrEqual(1);
+  });
+
+  it('is a thud with a faint tail, not a chime', () => {
+    expect(energy(0.1, 0.25)).toBeGreaterThan(0);
+    expect(energy(0.1, 0.25)).toBeLessThan(energy(0, 0.05) / 50);
+  });
+
+  it('fades to silence at the end', () => {
+    expect(Math.abs(sound[sound.length - 1])).toBeLessThan(1e-6);
   });
 });
