@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui';
+import { bezelClick, unlockBezel } from '@/lib/bezelSound';
 
 /**
  * Module selector: a dial you turn to pick a module (like a watch crown).
@@ -161,10 +162,13 @@ export function ModuleDial({ side }: { side: DialSide }) {
     if (routeIndex >= 0 && routeIndex !== indexForRotation(rot.current)) goTo(routeIndex, false);
   }, [routeIndex, goTo]);
 
-  // A small tick on phones each time a new module reaches the pointer.
+  // One click (and a small tick where phones allow it) each time a new module reaches the pointer.
   const last = useRef(current);
   useEffect(() => {
-    if (last.current !== current && active) navigator.vibrate?.(8);
+    if (last.current !== current && active) {
+      bezelClick();
+      navigator.vibrate?.(8);
+    }
     last.current = current;
   }, [current, active]);
 
@@ -179,6 +183,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
   const drag = useRef<{ last: number; moved: number; item: number | null; hub: boolean } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    unlockBezel();
     const target = e.target as HTMLElement;
     const btn = target.closest('[data-i]');
     const hub = !!target.closest('[data-hub]');
@@ -229,6 +234,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      unlockBezel();
       wake();
       wheel.current += e.deltaY + e.deltaX;
       if (Math.abs(wheel.current) > 40) {
@@ -250,6 +256,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     const prev = side === 'bottom' ? ['ArrowLeft', 'ArrowUp'] : ['ArrowUp', 'ArrowLeft'];
     if (![...next, ...prev].includes(e.key)) return;
     e.preventDefault();
+    unlockBezel();
     wake();
     goTo((indexForRotation(rot.current) + (next.includes(e.key) ? 1 : N - 1)) % N);
     rest();
