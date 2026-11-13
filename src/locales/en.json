@@ -101,7 +101,14 @@
     "daysBefore_one": "{{count}} day before",
     "daysBefore_other": "{{count}} days before",
     "category": "Category",
-    "noCategory": "No category"
+    "noCategory": "No category",
+    "titlePlaceholder": "Event name",
+    "locationPlaceholder": "Add location",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "minutesShort": "{{count}} min",
+    "hoursShort": "{{count}} h",
+    "hoursMinutesShort": "{{h}} h {{m}}"
   },
   "tasks": {
     "today": "Today",
@@ -129,7 +136,15 @@
     "deleteListWarning": "Deleting a category also deletes its tasks. Events in it are left without a category.",
     "categories": "Categories",
     "reorder": "Reorder",
-    "dragToReorder": "Drag to reorder {{name}}"
+    "dragToReorder": "Drag to reorder {{name}}",
+    "titlePlaceholder": "What needs doing?",
+    "notesPlaceholder": "Add notes",
+    "noTime": "No time",
+    "noDate": "No date",
+    "tomorrow": "Tomorrow",
+    "inAWeek": "In 7 days",
+    "remind": "Remind me",
+    "remindHint": "At the due time (9:00 if no time)"
   },
   "finance": {
     "tabs": {

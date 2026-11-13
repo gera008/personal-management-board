@@ -73,3 +73,16 @@ describe('nextHourTime', () => {
     expect(nextHourTime(new Date(2026, 10, 7, 23, 10))).toBe('00:00');
   });
 });
+
+describe('timeSteps', () => {
+  it('lists the day in 15-minute steps and keeps an off-step value', async () => {
+    const { timeSteps } = await import('../src/domain/dates');
+    const all = timeSteps();
+    expect(all).toHaveLength(96);
+    expect(all.slice(0, 3)).toEqual(['00:00', '00:15', '00:30']);
+    expect(all.at(-1)).toBe('23:45');
+    const kept = timeSteps(15, '10:07');
+    expect(kept).toHaveLength(97);
+    expect(kept.indexOf('10:07')).toBe(kept.indexOf('10:00') + 1);
+  });
+});

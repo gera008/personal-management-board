@@ -101,7 +101,14 @@
     "daysBefore_one": "{{count}} día antes",
     "daysBefore_other": "{{count}} días antes",
     "category": "Categoría",
-    "noCategory": "Sin categoría"
+    "noCategory": "Sin categoría",
+    "titlePlaceholder": "Nombre del evento",
+    "locationPlaceholder": "Agregar lugar",
+    "startTime": "Hora de inicio",
+    "endTime": "Hora de fin",
+    "minutesShort": "{{count}} min",
+    "hoursShort": "{{count}} h",
+    "hoursMinutesShort": "{{h}} h {{m}}"
   },
   "tasks": {
     "today": "Hoy",
@@ -129,7 +136,15 @@
     "deleteListWarning": "Eliminar una categoría también elimina sus tareas. Los eventos con esta categoría se quedan sin categoría.",
     "categories": "Categorías",
     "reorder": "Ordenar",
-    "dragToReorder": "Arrastra para mover {{name}}"
+    "dragToReorder": "Arrastra para mover {{name}}",
+    "titlePlaceholder": "¿Qué tienes que hacer?",
+    "notesPlaceholder": "Agregar notas",
+    "noTime": "Sin hora",
+    "noDate": "Sin fecha",
+    "tomorrow": "Mañana",
+    "inAWeek": "En 7 días",
+    "remind": "Recordarme",
+    "remindHint": "A la hora límite (9:00 si no hay hora)"
   },
   "finance": {
     "tabs": {

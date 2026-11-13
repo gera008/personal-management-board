@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { addHours, endOfDay, format, startOfDay } from 'date-fns';
+import { addHours, addMinutes, differenceInMinutes, endOfDay, format, startOfDay } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate } from '@/lib/data';
 import { syncGoogleSoon } from '@/lib/google';
-import { ErrorText, Field, SaveBar, Sheet } from '@/components/ui';
+import { ErrorText, Group, Row, SaveBar, Sheet, Switch, TimeSelect } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import { planSeriesDelete, planSeriesEdit, type EventFields, type SeriesPlan, type SeriesScope } from '@/domain/eventSeries';
@@ -12,6 +12,7 @@ import { DEFAULT_EVENT_COLOR, type CalendarEvent } from '@/domain/types';
 import { useLists } from '../tasks/shared';
 
 const REMINDERS = [null, 0, 5, 10, 15, 30, 60, 120, 1440];
+const DURATIONS = [15, 30, 45, 60, 90, 120];
 const local = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 
 export interface EventTarget {
@@ -135,6 +136,15 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
     m == null ? t('calendar.noReminder') : m === 0 ? t('calendar.atStart') : m < 60 ? t('calendar.minutesBefore', { count: m }) : m < 1440 ? t('calendar.hoursBefore', { count: m / 60 }) : t('calendar.daysBefore', { count: m / 1440 });
 
   const anchor = f.start.slice(0, 10);
+  const [startDate, startTime] = [f.start.slice(0, 10), f.start.slice(11, 16)];
+  const [endDate, endTime] = [f.end.slice(0, 10), f.end.slice(11, 16)];
+  const duration = f.start && f.end ? differenceInMinutes(new Date(f.end), new Date(f.start)) : 0;
+  /** Moving the start keeps the event's length, so the end follows it. */
+  const setStart = (start: string) => {
+    const keep = duration > 0 ? duration : 60;
+    setF({ ...f, start, end: local(addMinutes(new Date(start), keep)) });
+  };
+  const durationLabel = (m: number) => (m < 60 ? t('calendar.minutesShort', { count: m }) : m % 60 ? t('calendar.hoursMinutesShort', { h: Math.floor(m / 60), m: m % 60 }) : t('calendar.hoursShort', { count: m / 60 }));
   const readonly = !!event?.google_readonly;
   // A one-off copy of a single occurrence can't repeat on its own.
   const canRepeat = !event?.recurrence_parent_id;
@@ -179,12 +189,18 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
         {event?.google_event_id && (
           <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-xs text-muted">{readonly ? t('google.eventReadOnly') : t('google.eventLinked')}</p>
         )}
-        <fieldset disabled={readonly}>
-        <Field label={t('calendar.title')}>
-          <input className="input" required autoFocus={!event} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
-        </Field>
-        <Field label={t('calendar.category')}>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('calendar.category')}>
+        <fieldset disabled={readonly} className="min-w-0">
+          <input
+            className="mb-4 w-full bg-transparent text-[22px] font-semibold tracking-tight outline-none placeholder:text-muted/70"
+            required
+            autoFocus={!event}
+            aria-label={t('calendar.title')}
+            placeholder={t('calendar.titlePlaceholder')}
+            value={f.title}
+            onChange={(e) => setF({ ...f, title: e.target.value })}
+          />
+
+          <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('calendar.category')}>
             {[{ id: null, name: t('calendar.noCategory'), color: DEFAULT_EVENT_COLOR }, ...lists].map((l) => (
               <button
                 key={l.id ?? 'none'}
@@ -192,50 +208,72 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
                 role="radio"
                 aria-checked={f.list_id === l.id}
                 onClick={() => setF({ ...f, list_id: l.id })}
-                className={`chip gap-1.5 py-1.5 ${f.list_id === l.id ? 'border-fg bg-surface text-fg' : 'text-muted'}`}
+                className={`chip shrink-0 gap-1.5 py-1.5 transition ${f.list_id === l.id ? 'border-fg bg-surface text-fg' : 'text-muted hover:text-fg'}`}
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
                 {l.name}
               </button>
             ))}
           </div>
-        </Field>
-        <label className="mb-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.all_day} onChange={(e) => setF({ ...f, all_day: e.target.checked })} />
-          {t('calendar.allDay')}
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label={t('calendar.start')}>
-            {f.all_day ? (
-              <input type="date" className="input" required value={f.start.slice(0, 10)} onChange={(e) => setF({ ...f, start: `${e.target.value}T00:00` })} />
-            ) : (
-              <input type="datetime-local" className="input" required value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} />
-            )}
-          </Field>
-          <Field label={t('calendar.end')}>
-            {f.all_day ? (
-              <input type="date" className="input" required value={f.end.slice(0, 10)} onChange={(e) => setF({ ...f, end: `${e.target.value}T00:00` })} />
-            ) : (
-              <input type="datetime-local" className="input" required value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} />
-            )}
-          </Field>
-        </div>
-        {canRepeat && anchor && <RecurrencePicker value={rule} onChange={setRule} anchor={anchor} />}
-        <Field label={t('calendar.location')}>
-          <input className="input" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} />
-        </Field>
-        <Field label={t('calendar.reminder')}>
-          <select className="input" value={f.reminder} onChange={(e) => setF({ ...f, reminder: e.target.value })}>
-            {REMINDERS.map((m) => (
-              <option key={String(m)} value={m == null ? '' : m}>
-                {reminderLabel(m)}
-              </option>
+
+          <Group>
+            <Row icon="clock" label={t('calendar.allDay')}>
+              <Switch checked={f.all_day} onChange={(all_day) => setF({ ...f, all_day })} label={t('calendar.allDay')} disabled={readonly} />
+            </Row>
+            {[
+              { label: t('calendar.start'), date: startDate, time: startTime, onDate: (d: string) => setStart(`${d}T${startTime}`), onTime: (v: string) => setStart(`${startDate}T${v}`), min: undefined, timeLabel: t('calendar.startTime') },
+              { label: t('calendar.end'), date: endDate, time: endTime, onDate: (d: string) => setF({ ...f, end: `${d}T${endTime}` }), onTime: (v: string) => setF({ ...f, end: `${endDate}T${v}` }), min: startDate, timeLabel: t('calendar.endTime') },
+            ].map((r) => (
+              <div key={r.label} className="flex min-h-[3.25rem] items-center gap-2 px-4 py-2">
+                <span className="w-12 shrink-0 text-[15px] text-muted">{r.label}</span>
+                <div className="flex min-w-0 flex-1 justify-end gap-2">
+                  <input type="date" className="pill min-w-0 flex-1 px-3 sm:max-w-[11rem] sm:flex-none" required min={r.min} aria-label={r.label} value={r.date} onChange={(e) => e.target.value && r.onDate(e.target.value)} />
+                  {!f.all_day && <TimeSelect value={r.time} onChange={(v) => v && r.onTime(v)} aria-label={r.timeLabel} />}
+                </div>
+              </div>
             ))}
-          </select>
-        </Field>
-        <Field label={t('common.notes')}>
-          <textarea className="input min-h-[5rem]" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
-        </Field>
+            {!f.all_day && (
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 py-2.5">
+                {DURATIONS.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setF({ ...f, end: local(addMinutes(new Date(f.start), m)) })}
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${duration === m ? 'bg-calendar text-bg' : 'bg-surface text-muted hover:text-fg'}`}
+                  >
+                    {durationLabel(m)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {canRepeat && anchor && <RecurrencePicker value={rule} onChange={setRule} anchor={anchor} />}
+          </Group>
+
+          <Group>
+            <Row icon="pin">
+              <input className="w-full bg-transparent py-1 text-[15px] outline-none placeholder:text-muted" aria-label={t('calendar.location')} placeholder={t('calendar.locationPlaceholder')} value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} />
+            </Row>
+            <Row icon="bell" label={t('calendar.reminder')}>
+              <select className="pill max-w-[11rem]" aria-label={t('calendar.reminder')} value={f.reminder} onChange={(e) => setF({ ...f, reminder: e.target.value })}>
+                {REMINDERS.map((m) => (
+                  <option key={String(m)} value={m == null ? '' : m}>
+                    {reminderLabel(m)}
+                  </option>
+                ))}
+              </select>
+            </Row>
+          </Group>
+
+          <Group className="mb-1">
+            <textarea
+              rows={3}
+              className="block w-full resize-y bg-transparent px-4 py-3 text-[15px] outline-none placeholder:text-muted"
+              aria-label={t('common.notes')}
+              placeholder={t('common.notes')}
+              value={f.notes}
+              onChange={(e) => setF({ ...f, notes: e.target.value })}
+            />
+          </Group>
         </fieldset>
       </form>
     </Sheet>

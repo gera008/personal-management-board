@@ -73,6 +73,10 @@ body {
   .label {
     @apply mb-1 block text-[13px] text-muted;
   }
+  /* Compact control inside a form row: date and time pickers, small selects. */
+  .pill {
+    @apply inline-flex min-h-[2.25rem] appearance-none items-center rounded-full bg-surface px-3.5 py-1.5 text-center text-[15px] text-fg outline-none transition focus:ring-2 focus:ring-accent/60 disabled:opacity-40;
+  }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[13px];
   }
@@ -92,6 +96,14 @@ body {
   .text-eyebrow {
     @apply text-[13px] text-muted;
   }
+}
+
+/* Horizontal chip rows that scroll without showing a scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Room under the content for the idle module dial at the bottom (phones/tablets). */

@@ -2,7 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { supabase, unwrap } from '@/lib/supabase';
-import { ErrorText, Field, Icon, SaveBar, Sheet, TagInput, TimeInput } from '@/components/ui';
+import { addDays } from 'date-fns';
+import { ErrorText, Group, Icon, Row, SaveBar, Sheet, Switch, TagInput, TimeSelect } from '@/components/ui';
+import { toDateKey } from '@/domain/dates';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import type { Task, TaskList } from '@/domain/types';
@@ -90,6 +92,14 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
     setNewSub('');
   };
 
+  const today = new Date();
+  const quickDates = [
+    { label: t('tasks.today'), value: toDateKey(today) },
+    { label: t('tasks.tomorrow'), value: toDateKey(addDays(today, 1)) },
+    { label: t('tasks.inAWeek'), value: toDateKey(addDays(today, 7)) },
+    { label: t('tasks.noDate'), value: '' },
+  ];
+
   return (
     <Sheet
       open={open}
@@ -99,67 +109,133 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={error ?? remove.error} />
-        <Field label={t('tasks.title')}>
-          <input className="input" required autoFocus={!task} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
-        </Field>
-        <Field label={t('tasks.list')}>
-          <select className="input" required value={f.list_id} onChange={(e) => setF({ ...f, list_id: e.target.value })}>
-            {lists.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label={t('tasks.dueDate')}>
-            <input type="date" className="input" value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} />
-          </Field>
-          <Field label={t('tasks.dueTime')}>
-            <TimeInput disabled={!f.due_date} value={f.due_time} onChange={(due_time) => setF({ ...f, due_time })} />
-          </Field>
+        <div className="mb-4">
+          <input
+            className="w-full bg-transparent text-[22px] font-semibold tracking-tight outline-none placeholder:text-muted/70"
+            required
+            autoFocus={!task}
+            aria-label={t('tasks.title')}
+            placeholder={t('tasks.titlePlaceholder')}
+            value={f.title}
+            onChange={(e) => setF({ ...f, title: e.target.value })}
+          />
+          <textarea
+            rows={Math.min(6, Math.max(1, f.notes.split('\n').length))}
+            className="mt-1 w-full resize-none bg-transparent text-[15px] leading-snug text-fg/90 outline-none placeholder:text-muted/70"
+            aria-label={t('common.notes')}
+            placeholder={t('tasks.notesPlaceholder')}
+            value={f.notes}
+            onChange={(e) => setF({ ...f, notes: e.target.value })}
+          />
         </div>
-        {f.due_date && <RecurrencePicker value={rule} onChange={setRule} anchor={f.due_date} accent="tasks" />}
-        <label className="mb-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" disabled={!f.due_date} checked={f.remind && !!f.due_date} onChange={(e) => setF({ ...f, remind: e.target.checked })} />
-          {t('tasks.remindAtDue')}
-        </label>
-        <Field label={t('tasks.priority')}>
-          <div className="grid grid-cols-4 gap-1">
-            {[0, 1, 2, 3].map((p) => (
-              <button type="button" key={p} onClick={() => setF({ ...f, priority: p })} className={`btn border ${f.priority === p ? 'border-tasks bg-tasks/10 text-tasks' : 'border-border'}`}>
-                {p === 0 ? t('tasks.none') : PRIORITY_FLAGS[p]}
+
+        <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('tasks.list')}>
+          {lists.map((l) => {
+            const on = f.list_id === l.id;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setF({ ...f, list_id: l.id })}
+                className={`chip shrink-0 gap-1.5 py-1.5 transition ${on ? 'border-fg bg-surface text-fg' : 'text-muted hover:text-fg'}`}
+              >
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
+                {l.name}
               </button>
-            ))}
-          </div>
-        </Field>
-        <Field label={t('common.tags')}>
-          <TagInput value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />
-        </Field>
-        <div className="mb-3">
-          <span className="label">{t('tasks.subtasks')}</span>
-          <ul className="space-y-1">
-            {subs.map((s, i) => (
-              <li key={s.id ?? `new-${i}`} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={!!s.completed_at}
-                  onChange={() => setSubs(subs.map((x, j) => (j === i ? { ...x, completed_at: x.completed_at ? null : new Date().toISOString() } : x)))}
-                  aria-label={s.title}
-                />
-                <input className="input py-1" value={s.title} onChange={(e) => setSubs(subs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
-                <button type="button" className="p-1 text-muted" onClick={() => setSubs(subs.filter((_, j) => j !== i))} aria-label={t('common.delete')}>
-                  <Icon name="close" size={16} />
+            );
+          })}
+        </div>
+
+        <Group>
+          <div>
+            <Row icon="calendar" label={t('tasks.dueDate')}>
+              <input type="date" className="pill" aria-label={t('tasks.dueDate')} value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} />
+            </Row>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-3">
+              {quickDates.map((q) => (
+                <button
+                  key={q.label}
+                  type="button"
+                  onClick={() => setF({ ...f, due_date: q.value })}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${f.due_date === q.value ? 'bg-tasks text-bg' : 'bg-surface text-muted hover:text-fg'}`}
+                >
+                  {q.label}
                 </button>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-1 flex gap-2">
+              ))}
+            </div>
+          </div>
+          {f.due_date && (
+            <>
+              <Row icon="clock" label={t('tasks.dueTime')}>
+                <TimeSelect value={f.due_time} onChange={(due_time) => setF({ ...f, due_time })} emptyLabel={t('tasks.noTime')} aria-label={t('tasks.dueTime')} />
+              </Row>
+              <RecurrencePicker value={rule} onChange={setRule} anchor={f.due_date} accent="tasks" />
+              <Row icon="bell" label={<span className="block truncate">{t('tasks.remind')}<span className="block truncate text-[12px] text-muted">{t('tasks.remindHint')}</span></span>}>
+                <Switch checked={f.remind} onChange={(remind) => setF({ ...f, remind })} label={t('tasks.remind')} />
+              </Row>
+            </>
+          )}
+        </Group>
+
+        <Group>
+          <Row icon="flag" label={t('tasks.priority')}>
+            <div className="flex rounded-full bg-surface p-0.5" role="radiogroup" aria-label={t('tasks.priority')}>
+              {[0, 1, 2, 3].map((p) => (
+                <button
+                  type="button"
+                  key={p}
+                  role="radio"
+                  aria-checked={f.priority === p}
+                  aria-label={p === 0 ? t('tasks.none') : PRIORITY_FLAGS[p]}
+                  onClick={() => setF({ ...f, priority: p })}
+                  className={`h-8 min-w-[2.5rem] rounded-full px-2 text-sm font-semibold transition ${f.priority === p ? 'bg-tasks text-bg' : 'text-muted hover:text-fg'}`}
+                >
+                  {p === 0 ? '–' : PRIORITY_FLAGS[p]}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row icon="tag">
+            <TagInput className="w-full bg-transparent py-1 text-[15px] outline-none" value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />
+          </Row>
+        </Group>
+
+        <p className="section-title px-1">{t('tasks.subtasks')}</p>
+        <Group className="mb-1">
+          {subs.map((s, i) => (
+            <div key={s.id ?? `new-${i}`} className="flex min-h-[3rem] items-center gap-3 px-4 py-1.5">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={!!s.completed_at}
+                aria-label={s.title}
+                onClick={() => setSubs(subs.map((x, j) => (j === i ? { ...x, completed_at: x.completed_at ? null : new Date().toISOString() } : x)))}
+                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition ${s.completed_at ? 'border-tasks bg-tasks text-bg' : 'border-line'}`}
+              >
+                {s.completed_at && <Icon name="check" size={12} />}
+              </button>
+              <input
+                className={`min-w-0 flex-1 bg-transparent text-[15px] outline-none ${s.completed_at ? 'text-muted line-through' : ''}`}
+                value={s.title}
+                onChange={(e) => setSubs(subs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+              />
+              <button type="button" className="rounded-full p-1 text-muted hover:text-fg" onClick={() => setSubs(subs.filter((_, j) => j !== i))} aria-label={t('common.delete')}>
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          ))}
+          <div className="flex min-h-[3rem] items-center gap-3 px-4 py-1.5">
+            <button type="button" className="text-tasks" onClick={addSub} aria-label={t('tasks.addSubtask')}>
+              <Icon name="plus" size={18} />
+            </button>
             <input
-              className="input py-1"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
               placeholder={t('tasks.addSubtask')}
               value={newSub}
               onChange={(e) => setNewSub(e.target.value)}
+              onBlur={addSub}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -167,14 +243,8 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
                 }
               }}
             />
-            <button type="button" className="btn-ghost py-1" onClick={addSub} aria-label={t('tasks.addSubtask')}>
-              <Icon name="plus" size={16} />
-            </button>
           </div>
-        </div>
-        <Field label={t('common.notes')}>
-          <textarea className="input min-h-[5rem]" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
-        </Field>
+        </Group>
       </form>
     </Sheet>
   );

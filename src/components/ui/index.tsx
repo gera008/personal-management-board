@@ -2,8 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { addMonths, isSameMonth, startOfMonth } from 'date-fns';
 import { formatDate } from '@/lib/format';
-import { nextHourTime } from '@/domain/dates';
-import { Icon } from './Icon';
+import { nextHourTime, timeSteps } from '@/domain/dates';
+import { Icon, type IconName } from './Icon';
 
 export { Icon } from './Icon';
 
@@ -175,7 +175,7 @@ export function ErrorText({ error }: { error: unknown }) {
   return <p className="mb-3 rounded-lg bg-expense/10 px-3 py-2 text-sm text-expense">{error instanceof Error ? error.message : String(error)}</p>;
 }
 
-export function TagInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+export function TagInput({ value, onChange, placeholder, className = 'input' }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string; className?: string }) {
   const [draft, setDraft] = useState('');
   const add = () => {
     const v = draft.trim();
@@ -183,7 +183,7 @@ export function TagInput({ value, onChange, placeholder }: { value: string[]; on
     setDraft('');
   };
   return (
-    <div className="input flex flex-wrap items-center gap-1.5">
+    <div className={`${className} flex flex-wrap items-center gap-1.5`}>
       {value.map((tag) => (
         <span key={tag} className="chip">
           {tag}
@@ -248,4 +248,78 @@ export function TimeInput({ value, onChange, disabled, className = 'input' }: { 
     if (!value && !disabled) onChange(nextHourTime());
   };
   return <input type="time" className={className} disabled={disabled} value={value} onPointerDown={prefill} onFocus={prefill} onChange={(e) => onChange(e.target.value)} />;
+}
+
+/**
+ * Time picker in 15-minute steps (a list on desktop, a wheel on phones). An
+ * empty field jumps to the next full hour when opened; `emptyLabel` adds a
+ * "no time" choice at the top. A saved time between steps stays selectable.
+ */
+export function TimeSelect({
+  value,
+  onChange,
+  disabled,
+  emptyLabel,
+  className = 'pill',
+  'aria-label': ariaLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  emptyLabel?: string;
+  className?: string;
+  'aria-label'?: string;
+}) {
+  const options = timeSteps(15, value || undefined);
+  const prefill = () => {
+    if (!value && !disabled) onChange(nextHourTime());
+  };
+  return (
+    <select className={className} disabled={disabled} value={value} aria-label={ariaLabel} onPointerDown={prefill} onFocus={prefill} onChange={(e) => onChange(e.target.value)}>
+      {emptyLabel != null && <option value="">{emptyLabel}</option>}
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Rounded block of form rows separated by hairlines. */
+export function Group({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`mb-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-bg/60 ${className}`}>{children}</div>;
+}
+
+/** One line in a Group: icon and label on the left, the control on the right (or filling the row without a label). */
+export function Row({ icon, label, children, className = '' }: { icon?: IconName; label?: ReactNode; children?: ReactNode; className?: string }) {
+  return (
+    <div className={`flex min-h-[3.25rem] items-center gap-3 px-4 py-2 ${className}`}>
+      {icon && <Icon name={icon} size={18} className="shrink-0 text-muted" />}
+      {label != null ? (
+        <>
+          <span className="min-w-0 flex-1 truncate text-[15px]">{label}</span>
+          <div className="flex shrink-0 items-center gap-2">{children}</div>
+        </>
+      ) : (
+        <div className="min-w-0 flex-1">{children}</div>
+      )}
+    </div>
+  );
+}
+
+export function Switch({ checked, onChange, disabled, label }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${checked ? 'bg-accent' : 'bg-surface'}`}
+    >
+      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-fg shadow transition-all ${checked ? 'left-[1.375rem]' : 'left-0.5'}`} />
+    </button>
+  );
 }
