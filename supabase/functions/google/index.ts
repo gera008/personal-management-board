@@ -16,6 +16,17 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { fromGoogleRecurrence, toGoogleRecurrence } from '../_shared/rrule.ts';
 import type { Recurrence } from '../_shared/recurrence.ts';
+import {
+  CATEGORY_PROP,
+  COLOR_PROP,
+  categoryFromGoogle,
+  categoryToGoogle,
+  reminderFromGoogle,
+  reminderToGoogle,
+  type CategoryColor,
+  type GoogleReminders,
+} from '../_shared/gmapping.ts';
+import { syncTasks } from './tasks.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -24,7 +35,9 @@ const CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 const APP_URL = (Deno.env.get('APP_URL') ?? '').replace(/\/$/, '');
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google`;
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+const TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
+const SCOPES = `https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly ${TASKS_SCOPE}`;
+const TASKS_API = 'https://tasks.googleapis.com/tasks/v1';
 const API = 'https://www.googleapis.com/calendar/v3';
 const ALLOWED_RETURN = [APP_URL, 'http://localhost:5173'].filter(Boolean);
 
@@ -63,6 +76,18 @@ function localParts(iso: string, tz: string) {
   return { date: `${g('year')}-${g('month')}-${g('day')}`, time: `${g('hour').replace('24', '00')}${g('minute')}${g('second')}` };
 }
 
+/**
+ * Local date of one occurrence of a Google series, from the occurrence's id
+ * ("<seriesId>_20260803" all-day, "<seriesId>_20260804T010000Z" timed).
+ */
+function instanceDate(instanceId: string, seriesId: string, tz: string): string | null {
+  if (!instanceId.startsWith(`${seriesId}_`)) return null;
+  const s = instanceId.slice(seriesId.length + 1);
+  if (/^\d{8}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s);
+  return m ? localParts(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`, tz).date : null;
+}
+
 const addDays = (key: string, n: number) => new Date(Date.parse(`${key}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 /** Instant of local midnight of a date in a time zone (for all-day events). */
@@ -90,14 +115,20 @@ async function accessToken(refreshToken: string) {
   return body.access_token as string;
 }
 
-async function gapi(token: string, method: string, path: string, body?: unknown) {
-  const res = await fetch(API + path, {
+async function gapi(token: string, method: string, path: string, body?: unknown, base = API) {
+  const res = await fetch(base + path, {
     method,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text; // Google sometimes answers errors in plain text
+  }
+  return { status: res.status, ok: res.ok, data };
 }
 
 // ---------- pull: Google -> app ----------
@@ -115,6 +146,15 @@ interface GEvent {
   recurrence?: string[];
   recurringEventId?: string;
   originalStartTime?: { date?: string; dateTime?: string };
+  colorId?: string;
+  reminders?: GoogleReminders;
+  extendedProperties?: { private?: Record<string, string> };
+}
+
+/** What a sync needs besides the calendar: the user's categories and the calendar's default alerts. */
+interface PullContext {
+  categories: CategoryColor[];
+  defaultReminders: { minutes: number }[];
 }
 
 function times(e: GEvent, tz: string) {
@@ -127,7 +167,14 @@ function times(e: GEvent, tz: string) {
   return { start_at: new Date(e.start!.dateTime!).toISOString(), end_at: new Date(e.end!.dateTime!).toISOString(), all_day: false };
 }
 
-async function pullCalendar(db: SupabaseClient, token: string, userId: string, cal: { calendar_id: string; sync_token: string | null; access_role: string | null }, tz: string) {
+async function pullCalendar(
+  db: SupabaseClient,
+  token: string,
+  userId: string,
+  cal: { calendar_id: string; sync_token: string | null; access_role: string | null },
+  tz: string,
+  ctx: PullContext,
+) {
   const enc = encodeURIComponent(cal.calendar_id);
   const items: GEvent[] = [];
   let pageToken: string | undefined;
@@ -181,11 +228,17 @@ async function pullCalendar(db: SupabaseClient, token: string, userId: string, c
     // Both sides changed since the last sync: the newer change wins.
     if (existing?.needs_push && new Date(existing.updated_at) > new Date(e.updated)) continue;
 
+    // Category: only events we can edit; on read-only calendars it stays the app's choice.
+    const category = readonlyCal
+      ? undefined
+      : categoryFromGoogle({ colorId: e.colorId, categoryProp: e.extendedProperties?.private?.[CATEGORY_PROP], colorProp: e.extendedProperties?.private?.[COLOR_PROP] }, ctx.categories);
     const base = {
       user_id: userId,
       title: e.summary || '(sin título)',
       notes: e.description ?? null,
       location: e.location ?? null,
+      reminder_minutes: reminderFromGoogle(e.reminders, ctx.defaultReminders),
+      ...(category !== undefined ? { list_id: category } : {}),
       ...times(e, tz),
       google_calendar_id: cal.calendar_id,
       google_event_id: e.id,
@@ -210,7 +263,14 @@ async function pullCalendar(db: SupabaseClient, token: string, userId: string, c
     if (e.recurrence?.length) {
       const parsed = fromGoogleRecurrence(e.recurrence);
       if (parsed) {
-        const row = { ...base, recurrence: parsed.rule as Recurrence, exdates: parsed.exdates };
+        // Occurrences edited in Google live as their own rows; the series keeps skipping those dates.
+        let exdates = parsed.exdates;
+        if (existing) {
+          const { data: edited } = await db.from('events').select('google_event_id').eq('recurrence_parent_id', existing.id).not('google_event_id', 'is', null);
+          const dates = (edited ?? []).map((c) => instanceDate(c.google_event_id, e.id, tz)).filter((d): d is string => !!d);
+          exdates = [...new Set([...exdates, ...dates])];
+        }
+        const row = { ...base, recurrence: parsed.rule as Recurrence, exdates };
         if (existing) await db.from('events').update(row).eq('id', existing.id);
         else await db.from('events').insert(row);
         continue;
@@ -223,7 +283,7 @@ async function pullCalendar(db: SupabaseClient, token: string, userId: string, c
       const inst = await gapi(token, 'GET', `/calendars/${enc}/events/${encodeURIComponent(e.id)}/instances?timeMin=${from}&timeMax=${to}&maxResults=500`);
       const rows = ((inst.data?.items ?? []) as GEvent[])
         .filter((i) => i.status !== 'cancelled')
-        .map((i) => ({ ...base, ...times(i, tz), title: i.summary || base.title, google_event_id: i.id, google_etag: i.etag, google_recurring_id: e.id, google_readonly: true, recurrence: null, exdates: [] }));
+        .map((i) => ({ ...base, ...times(i, tz), title: i.summary || base.title, reminder_minutes: reminderFromGoogle(i.reminders ?? e.reminders, ctx.defaultReminders), google_event_id: i.id, google_etag: i.etag, google_recurring_id: e.id, google_readonly: true, recurrence: null, exdates: [] }));
       if (rows.length) await db.from('events').insert(rows);
       continue;
     }
@@ -248,13 +308,22 @@ interface AppEvent {
   all_day: boolean;
   recurrence: Recurrence | null;
   exdates: string[] | null;
+  reminder_minutes: number | null;
+  list_id: string | null;
+  recurrence_parent_id: string | null;
   google_calendar_id: string | null;
   google_event_id: string | null;
   google_readonly: boolean;
 }
 
-function toGoogle(e: AppEvent, tz: string) {
-  const body: Record<string, unknown> = { summary: e.title, description: e.notes ?? '', location: e.location ?? '' };
+function toGoogle(e: AppEvent, tz: string, categories: CategoryColor[]) {
+  const body: Record<string, unknown> = {
+    summary: e.title,
+    description: e.notes ?? '',
+    location: e.location ?? '',
+    reminders: reminderToGoogle(e.reminder_minutes),
+    ...categoryToGoogle(e.list_id, categories),
+  };
   if (e.all_day) {
     const s = localParts(e.start_at, tz).date;
     const last = localParts(e.end_at, tz).date;
@@ -264,11 +333,14 @@ function toGoogle(e: AppEvent, tz: string) {
     body.start = { dateTime: e.start_at, timeZone: tz };
     body.end = { dateTime: e.end_at, timeZone: tz };
   }
-  body.recurrence = e.recurrence ? toGoogleRecurrence(e.recurrence, e.exdates ?? [], { allDay: e.all_day, timeZone: tz, localTime: localParts(e.start_at, tz).time }) : [];
+  // One occurrence of a Google series can't carry a recurrence (Google answers 400).
+  if (!(e.recurrence_parent_id && e.google_event_id)) {
+    body.recurrence = e.recurrence ? toGoogleRecurrence(e.recurrence, e.exdates ?? [], { allDay: e.all_day, timeZone: tz, localTime: localParts(e.start_at, tz).time }) : [];
+  }
   return body;
 }
 
-async function push(db: SupabaseClient, token: string, userId: string, defaultCalendar: string | null, tz: string) {
+async function push(db: SupabaseClient, token: string, userId: string, defaultCalendar: string | null, tz: string, categories: CategoryColor[]) {
   const { data: dels } = await db.from('google_deletions').select('*').eq('user_id', userId);
   for (const d of dels ?? []) {
     const res = await gapi(token, 'DELETE', `/calendars/${encodeURIComponent(d.calendar_id)}/events/${encodeURIComponent(d.event_id)}`);
@@ -277,7 +349,17 @@ async function push(db: SupabaseClient, token: string, userId: string, defaultCa
 
   const { data: dirty } = await db.from('events').select('*').eq('user_id', userId).eq('needs_push', true).limit(200);
   let pushed = 0;
-  for (const e of (dirty ?? []) as AppEvent[]) {
+  const failed: string[] = [];
+  for (const row of (dirty ?? []) as AppEvent[]) {
+    let e = row;
+    // The app skips a date of a series both when it's deleted and when it was edited in
+    // Google (the edited copy lives as its own row). Only deleted dates go to Google as
+    // EXDATE: an EXDATE on an edited occurrence would cancel it there.
+    if (e.recurrence && e.google_event_id && e.exdates?.length) {
+      const { data: edited } = await db.from('events').select('google_event_id').eq('recurrence_parent_id', e.id).not('google_event_id', 'is', null);
+      const keep = new Set((edited ?? []).map((c) => instanceDate(c.google_event_id, e.google_event_id!, tz)).filter(Boolean));
+      if (keep.size) e = { ...e, exdates: e.exdates.filter((d) => !keep.has(d)) };
+    }
     if (e.google_readonly) {
       await db.from('events').update({ needs_push: false, google_synced_at: new Date().toISOString() }).eq('id', e.id);
       continue;
@@ -286,19 +368,47 @@ async function push(db: SupabaseClient, token: string, userId: string, defaultCa
     if (!calendar) continue; // nowhere to push yet
     const enc = encodeURIComponent(calendar);
     const res = e.google_event_id
-      ? await gapi(token, 'PATCH', `/calendars/${enc}/events/${encodeURIComponent(e.google_event_id)}`, toGoogle(e, tz))
-      : await gapi(token, 'POST', `/calendars/${enc}/events`, toGoogle(e, tz));
-    if (!res.ok) throw new Error(`Push "${e.title}": ${res.status} ${res.data?.error?.message ?? ''}`);
+      ? await gapi(token, 'PATCH', `/calendars/${enc}/events/${encodeURIComponent(e.google_event_id)}`, toGoogle(e, tz, categories))
+      : await gapi(token, 'POST', `/calendars/${enc}/events`, toGoogle(e, tz, categories));
+    if (!res.ok) {
+      // One bad event mustn't stop the rest (or the pull); it stays marked and is retried next sync.
+      const why = res.data?.error?.errors?.[0]?.message ?? res.data?.error?.message ?? (typeof res.data === 'string' ? res.data : '');
+      failed.push(`"${e.title}": ${res.status} ${why}`.trim());
+      continue;
+    }
     await db
       .from('events')
       .update({ google_calendar_id: calendar, google_event_id: res.data.id, google_etag: res.data.etag, google_synced_at: new Date().toISOString(), needs_push: false })
       .eq('id', e.id);
     pushed++;
   }
-  return pushed;
+  return { pushed, failed };
 }
 
 // ---------- sync orchestration ----------
+
+/**
+ * Events pushed while the default calendar was the "primary" alias came back
+ * from the pull under the real calendar id as a second row. Keep the app's row
+ * (it has the category and reminder), give it the real id, and drop the copy
+ * without sending a deletion to Google.
+ */
+async function healPrimaryAlias(db: SupabaseClient, userId: string, primaryId: string) {
+  const { data: aliased } = await db.from('events').select('id,google_event_id').eq('user_id', userId).eq('google_calendar_id', 'primary');
+  for (const a of aliased ?? []) {
+    const stamp = { google_synced_at: new Date().toISOString() };
+    const { data: copy } = a.google_event_id
+      ? await db.from('events').select('id,google_etag').eq('user_id', userId).eq('google_calendar_id', primaryId).eq('google_event_id', a.google_event_id).maybeSingle()
+      : { data: null };
+    if (copy) {
+      await db.from('events').update({ recurrence_parent_id: a.id, ...stamp }).eq('recurrence_parent_id', copy.id);
+      // Unlinked first, so deleting it doesn't delete the event in Google.
+      await db.from('events').update({ google_event_id: null, ...stamp }).eq('id', copy.id);
+      await db.from('events').delete().eq('id', copy.id);
+    }
+    await db.from('events').update({ google_calendar_id: primaryId, ...(copy ? { google_etag: copy.google_etag } : {}), ...stamp }).eq('id', a.id);
+  }
+}
 
 async function syncUser(db: SupabaseClient, userId: string) {
   const now = new Date().toISOString();
@@ -308,10 +418,16 @@ async function syncUser(db: SupabaseClient, userId: string) {
     const token = await accessToken(tok.refresh_token);
     const { data: profile } = await db.from('profiles').select('timezone').eq('user_id', userId).maybeSingle();
     const tz = profile?.timezone ?? 'America/Monterrey';
-    const { data: account } = await db.from('google_accounts').select('default_calendar_id').eq('user_id', userId).maybeSingle();
+    const { data: account } = await db.from('google_accounts').select('email,default_calendar_id,tasks_enabled,scopes').eq('user_id', userId).maybeSingle();
+    let defaultCalendar: string | null = account?.default_calendar_id ?? null;
 
     // Refresh the calendar list (names, colors, permissions), keeping the user's choices.
     const list = await gapi(token, 'GET', '/users/me/calendarList?minAccessRole=reader');
+    const defaultReminders = new Map<string, { minutes: number }[]>(
+      ((list.ok ? list.data.items : []) ?? []).map((c: { id: string; defaultReminders?: { minutes: number }[] }) => [c.id, c.defaultReminders ?? []]),
+    );
+    const { data: lists } = await db.from('task_lists').select('id,color').eq('user_id', userId).order('position');
+    const categories = (lists ?? []) as CategoryColor[];
     if (list.ok) {
       const { data: known } = await db.from('google_calendars').select('calendar_id').eq('user_id', userId);
       const knownIds = new Set((known ?? []).map((k) => k.calendar_id));
@@ -320,15 +436,39 @@ async function syncUser(db: SupabaseClient, userId: string) {
         if (knownIds.has(c.id)) await db.from('google_calendars').update(info).eq('user_id', userId).eq('calendar_id', c.id);
         else await db.from('google_calendars').insert({ user_id: userId, calendar_id: c.id, ...info, sync_enabled: !!c.primary });
       }
+      // Never push to the "primary" alias: use the primary calendar's real id.
+      const primaryId: string | undefined = (list.data.items ?? []).find((c: { primary?: boolean }) => c.primary)?.id;
+      if (primaryId) {
+        if (!defaultCalendar || defaultCalendar === 'primary') {
+          defaultCalendar = primaryId;
+          await db.from('google_accounts').update({ default_calendar_id: primaryId, email: account?.email ?? primaryId }).eq('user_id', userId);
+        }
+        await healPrimaryAlias(db, userId, primaryId);
+      }
     }
 
     // Push first, so local edits aren't overwritten by an older Google copy.
-    const pushed = await push(db, token, userId, account?.default_calendar_id ?? null, tz);
+    const { pushed, failed } = await push(db, token, userId, defaultCalendar === 'primary' ? null : defaultCalendar, tz, categories);
     const { data: cals } = await db.from('google_calendars').select('calendar_id,sync_token,access_role').eq('user_id', userId).eq('sync_enabled', true);
-    for (const cal of cals ?? []) await pullCalendar(db, token, userId, cal, tz);
+    for (const cal of cals ?? []) await pullCalendar(db, token, userId, cal, tz, { categories, defaultReminders: defaultReminders.get(cal.calendar_id) ?? [] });
 
-    await db.from('google_accounts').update({ last_sync_at: now, last_error: null }).eq('user_id', userId);
-    return { pushed, calendars: (cals ?? []).length };
+    // Google Tasks, when turned on and allowed. A failure here doesn't undo the calendar sync.
+    let tasks: { lists: number; pushed: number; failed: string[] } | { error: string } | null = null;
+    if (account?.tasks_enabled && (account.scopes ?? '').includes(TASKS_SCOPE)) {
+      try {
+        tasks = await syncTasks(db, (method, path, b) => gapi(token, method, path, b, TASKS_API), userId);
+      } catch (err) {
+        tasks = { error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+    const problems = [
+      ...failed.map((f) => `Calendar ${f}`),
+      ...(tasks && 'failed' in tasks ? tasks.failed.map((f) => `Tasks ${f}`) : []),
+      ...(tasks && 'error' in tasks ? [`Tasks: ${tasks.error}`] : []),
+    ];
+    await db.from('google_accounts').update({ last_sync_at: now, last_error: problems.length ? problems.join('; ') : null }).eq('user_id', userId);
+    // Default alerts per synced calendar, so a sync result shows where reminders come from.
+    return { pushed, failed, tasks, calendars: (cals ?? []).length, defaultAlerts: (cals ?? []).map((c) => (defaultReminders.get(c.calendar_id) ?? []).map((r) => r.minutes)) };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await db.from('google_accounts').update({ last_error: message }).eq('user_id', userId);
@@ -360,8 +500,9 @@ Deno.serve(async (req) => {
     if (!res.ok || !tokens.refresh_token) return back('error');
     await db.from('google_tokens').upsert({ user_id: state.u, refresh_token: tokens.refresh_token, updated_at: new Date().toISOString() });
     // The primary calendar's id is the account email; make it the default for new events.
-    const primary = await gapi(tokens.access_token, 'GET', '/calendars/primary');
-    await db.from('google_accounts').upsert({ user_id: state.u, email: primary.data?.id ?? null, default_calendar_id: primary.data?.id ?? 'primary', last_error: null });
+    // calendarList (not /calendars) is readable with our scopes; its id is the real calendar id, never the "primary" alias.
+    const primary = await gapi(tokens.access_token, 'GET', '/users/me/calendarList/primary');
+    await db.from('google_accounts').upsert({ user_id: state.u, email: primary.data?.id ?? null, default_calendar_id: primary.data?.id ?? 'primary', scopes: tokens.scope ?? null, last_error: null });
     await syncUser(db, state.u);
     return back('connected');
   }
@@ -406,6 +547,15 @@ Deno.serve(async (req) => {
     await db.from('google_calendars').update({ sync_enabled: enabled, sync_token: null }).eq('user_id', user.id).eq('calendar_id', body.calendarId);
     return Response.json(enabled ? await syncUser(db, user.id) : { ok: true }, { headers: cors });
   }
+  if (body.mode === 'set-tasks') {
+    const enabled = !!body.enabled;
+    const { data: account } = await db.from('google_accounts').select('scopes').eq('user_id', user.id).maybeSingle();
+    if (!account) return Response.json({ error: 'Google no está conectado' }, { headers: cors });
+    await db.from('google_accounts').update({ tasks_enabled: enabled }).eq('user_id', user.id);
+    // Connected before Tasks was supported: Google has to be asked for the permission again.
+    if (enabled && !(account.scopes ?? '').includes(TASKS_SCOPE)) return Response.json({ needsReconnect: true }, { headers: cors });
+    return Response.json(enabled ? await syncUser(db, user.id) : { ok: true }, { headers: cors });
+  }
   if (body.mode === 'disconnect') {
     const { data: tok } = await db.from('google_tokens').select('refresh_token').eq('user_id', user.id).maybeSingle();
     if (tok) await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(tok.refresh_token)}`, { method: 'POST' });
@@ -416,6 +566,12 @@ Deno.serve(async (req) => {
     await db.from('events').delete().eq('user_id', user.id).not('google_recurring_id', 'is', null);
     await db.from('events').update({ google_calendar_id: null, google_event_id: null, google_etag: null, google_readonly: false, needs_push: false, google_synced_at: new Date().toISOString() }).eq('user_id', user.id).not('google_event_id', 'is', null);
     await db.from('google_deletions').delete().eq('user_id', user.id);
+    // Tasks stay in the app and stop syncing.
+    const unlinked = { google_synced_at: new Date().toISOString(), needs_push: false };
+    await db.from('task_lists').update({ google_tasklist_id: null, google_etag: null, google_pulled_at: null, ...unlinked }).eq('user_id', user.id).not('google_tasklist_id', 'is', null);
+    await db.from('tasks').update({ google_task_id: null, google_tasklist_id: null, google_etag: null, ...unlinked }).eq('user_id', user.id).not('google_task_id', 'is', null);
+    await db.from('subtasks').update({ google_task_id: null, google_etag: null, ...unlinked }).eq('user_id', user.id).not('google_task_id', 'is', null);
+    await db.from('google_task_deletions').delete().eq('user_id', user.id);
     return Response.json({ ok: true }, { headers: cors });
   }
   return new Response('Unknown mode', { status: 400, headers: cors });

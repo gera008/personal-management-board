@@ -88,10 +88,12 @@ async function runReminders(db: SupabaseClient) {
     const fmtTime = (iso: string) => new Intl.DateTimeFormat(p.language, { timeZone: p.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
     // Events: reminder time reached, event not more than an hour past.
+    // Events linked to Google Calendar get their alert from Google (its reminders are synced), not from here.
     const { data: events } = await db
       .from('events')
       .select('id,title,start_at,reminder_minutes,all_day')
       .eq('user_id', p.user_id)
+      .is('google_event_id', null)
       .is('recurrence', null)
       .not('reminder_minutes', 'is', null)
       .is('reminder_sent_at', null)
@@ -109,6 +111,7 @@ async function runReminders(db: SupabaseClient) {
       .from('events')
       .select('id,title,start_at,reminder_minutes,all_day,recurrence,exdates,reminder_sent_for')
       .eq('user_id', p.user_id)
+      .is('google_event_id', null)
       .not('recurrence', 'is', null)
       .not('reminder_minutes', 'is', null)
       .lte('start_at', new Date(now.getTime() + 8 * 86400_000).toISOString());

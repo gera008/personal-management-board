@@ -639,6 +639,10 @@
     "disconnect": "Disconnect",
     "disconnectConfirm": "Disconnect Google Calendar? Events stay in the app but stop syncing, and nothing is deleted in Google.",
     "disableConfirm": "Stop syncing \"{{name}}\"? Its events are removed from this app only; nothing is deleted in Google.",
+    "tasksTitle": "Sync tasks with Google Tasks",
+    "tasksHelp": "Each category is a list in Google Tasks. Title, notes, date, done and subtasks sync; the time rides hidden in the Google notes. Priority, tags, reminder and repeat stay here only.",
+    "tasksConfirm": "Turn on Google Tasks? Your categories become lists in Google (or link to ones with the same name), your open tasks and those done in the last 30 days are copied, and Google lists you don't have here show up as new categories.",
+    "tasksReconnect": "Grant Google Tasks permission",
     "eventLinked": "Synced with Google Calendar.",
     "eventReadOnly": "From Google Calendar, read-only here. Edit it in Google Calendar.",
     "result": {

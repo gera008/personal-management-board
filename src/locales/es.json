@@ -639,6 +639,10 @@
     "disconnect": "Desconectar",
     "disconnectConfirm": "¿Desconectar Google Calendar? Los eventos se quedan en la app pero dejan de sincronizarse, y no se borra nada en Google.",
     "disableConfirm": "¿Dejar de sincronizar \"{{name}}\"? Sus eventos se quitan solo de esta app; no se borra nada en Google.",
+    "tasksTitle": "Sincronizar tareas con Google Tasks",
+    "tasksHelp": "Cada categoría es una lista en Google Tasks. Se sincronizan título, notas, fecha, completada y subtareas; la hora va escondida en las notas de Google. Prioridad, etiquetas, recordatorio y repetición se quedan solo aquí.",
+    "tasksConfirm": "¿Activar Google Tasks? Tus categorías se crean como listas en Google (o se enlazan con las que tengan el mismo nombre), tus tareas pendientes y las completadas en los últimos 30 días se copian, y las listas de Google que no tengas aquí aparecen como categorías nuevas.",
+    "tasksReconnect": "Dar permiso de Google Tasks",
     "eventLinked": "Sincronizado con Google Calendar.",
     "eventReadOnly": "Viene de Google Calendar y aquí es de solo lectura. Edítalo en Google Calendar.",
     "result": {

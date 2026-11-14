@@ -5,14 +5,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { googleCall } from '@/lib/google';
 import { formatDate } from '@/lib/format';
-import { ErrorText, Icon } from '@/components/ui';
+import { ErrorText, Icon, Switch } from '@/components/ui';
 
 interface GoogleAccount {
   email: string | null;
   default_calendar_id: string | null;
   last_sync_at: string | null;
   last_error: string | null;
+  tasks_enabled: boolean;
+  scopes: string | null;
 }
+
+const TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
 
 interface GoogleCalendar {
   calendar_id: string;
@@ -52,6 +56,8 @@ export function GoogleCalendarSettings() {
     setParams(params, { replace: true });
     qc.invalidateQueries({ queryKey: ['google'] });
     qc.invalidateQueries({ queryKey: ['events'] });
+    qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: ['task_lists'] });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (key: string, fn: () => Promise<unknown>) => {
@@ -62,6 +68,8 @@ export function GoogleCalendarSettings() {
       await fn();
       qc.invalidateQueries({ queryKey: ['google'] });
       qc.invalidateQueries({ queryKey: ['events'] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+      qc.invalidateQueries({ queryKey: ['task_lists'] });
     } catch (err) {
       setError(err);
     } finally {
@@ -77,6 +85,18 @@ export function GoogleCalendarSettings() {
 
   const a = account.data;
   const cals = calendars.data ?? [];
+  const tasksAllowed = (a?.scopes ?? '').includes(TASKS_SCOPE);
+
+  // Turning Tasks on may need Google's permission first: then it goes to the consent screen.
+  const setTasks = (enabled: boolean) =>
+    run('tasks', async () => {
+      if (enabled && !confirm(t('google.tasksConfirm'))) return;
+      const data = await googleCall({ mode: 'set-tasks', enabled });
+      if (data?.needsReconnect) {
+        const auth = await googleCall({ mode: 'auth-url', returnTo: window.location.origin });
+        window.location.href = auth.url;
+      }
+    });
 
   return (
     <section className="card">
@@ -130,6 +150,21 @@ export function GoogleCalendarSettings() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="rounded-2xl bg-surface px-3 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium">{t('google.tasksTitle')}</div>
+                <div className="text-xs text-muted">{t('google.tasksHelp')}</div>
+              </div>
+              <Switch checked={!!a.tasks_enabled && tasksAllowed} onChange={setTasks} disabled={!!busy} label={t('google.tasksTitle')} />
+            </div>
+            {a.tasks_enabled && !tasksAllowed && (
+              <button className="btn-ghost mt-2" onClick={connect} disabled={!!busy}>
+                {t('google.tasksReconnect')}
+              </button>
+            )}
           </div>
 
           <label className="block">

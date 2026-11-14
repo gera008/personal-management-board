@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { supabase, unwrap } from './supabase';
+import { syncGoogleSoon } from './google';
 import type {
   Account,
   AccountValuation,
@@ -49,10 +50,14 @@ const dependents: Partial<Record<TableName, TableName[]>> = {
   categories: ['budgets'],
 };
 
+/** Tables Google Calendar / Google Tasks mirror: a change here is sent to Google soon after. */
+const GOOGLE_SYNCED = new Set<TableName>(['events', 'tasks', 'subtasks', 'task_lists']);
+
 export function useInvalidate() {
   const qc = useQueryClient();
   return (table: TableName) => {
     qc.invalidateQueries({ queryKey: [table] });
+    if (GOOGLE_SYNCED.has(table)) syncGoogleSoon();
     for (const t of dependents[table] ?? []) qc.invalidateQueries({ queryKey: [t] });
   };
 }
