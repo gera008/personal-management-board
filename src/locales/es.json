@@ -246,6 +246,8 @@
     "monthlyLimit": "Límite mensual (MXN)",
     "overBy": "Excedido por {{amount}}",
     "left": "Quedan {{amount}}",
+    "recurringThisMonth": "Total recurrente este mes",
+    "recurringPaidLeft": "{{paid}} pagado · {{left}} por pagar",
     "recurringHelp": "Las mensualidades generan todos los pagos desde el inicio; las suscripciones siguen hasta que las canceles. Cada pago se aplica automáticamente en su fecha.",
     "noSeries": "Aún no hay mensualidades ni suscripciones.",
     "newSeries": "Nuevo recurrente",

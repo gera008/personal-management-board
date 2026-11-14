@@ -9,6 +9,7 @@ import { formatDate, money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Group, Progress, Row, SaveBar, Segmented, Sheet } from '@/components/ui';
 import { installmentProgress, installmentTotal, lastInstallmentDate, remainingPayments, scheduleDates } from '@/domain/recurring/schedule';
 import { toDateKey } from '@/domain/dates';
+import { addMonths, startOfMonth } from 'date-fns';
 import { CURRENCIES, num, type Currency, type Frequency, type RecurringSeries } from '@/domain/types';
 import { categoryName, useAccounts, useCategories } from './hooks';
 import { AmountInput, amountValue } from './AmountInput';
@@ -37,6 +38,46 @@ function useSeriesCounts() {
   });
 }
 
+/**
+ * What the active series charge this month and next (expenses, in MXN), from
+ * their actual payments, so weekly series, final payments and start/end dates count right.
+ */
+function useMonthlyTotals(activeIds: string[]) {
+  const thisMonth = startOfMonth(new Date());
+  const nextMonth = addMonths(thisMonth, 1);
+  const after = addMonths(thisMonth, 2);
+  const rows = useQuery({
+    queryKey: ['transactions', 'series-months', thisMonth.toISOString()],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('transactions')
+          .select('series_id,occurred_at,status,base_amount_mxn')
+          .not('series_id', 'is', null)
+          .eq('type', 'expense')
+          .gte('occurred_at', thisMonth.toISOString())
+          .lt('occurred_at', after.toISOString()),
+      ) as { series_id: string; occurred_at: string; status: string; base_amount_mxn: string }[],
+  });
+  const ids = new Set(activeIds);
+  const now = Date.now();
+  const sum = { current: 0, paid: 0, next: 0, nextCount: 0, currentCount: 0 };
+  for (const r of rows.data ?? []) {
+    if (!ids.has(r.series_id)) continue;
+    const amount = Number(r.base_amount_mxn);
+    const at = new Date(r.occurred_at);
+    if (at < nextMonth) {
+      sum.current += amount;
+      sum.currentCount++;
+      if (r.status === 'applied' || at.getTime() <= now) sum.paid += amount;
+    } else {
+      sum.next += amount;
+      sum.nextCount++;
+    }
+  }
+  return { ...sum, nextMonth, isLoading: rows.isLoading };
+}
+
 export function RecurringPage() {
   const { t } = useTranslation();
   const series = useRows('recurring_series', { filter: (q) => q.order('status').order('next_run_date', { nullsFirst: false }) });
@@ -48,6 +89,7 @@ export function RecurringPage() {
   const accName = (id: string) => accounts.data?.find((a) => a.id === id)?.name ?? '';
   // Only active series are listed; deleted (cancelled) and finished ones drop off.
   const all = (series.data ?? []).filter((s) => s.status === 'active');
+  const totals = useMonthlyTotals(all.map((s) => s.id));
   const groups = [
     { key: 'installment', items: all.filter((s) => s.kind === 'installment' && s.status === 'active') },
     { key: 'subscription', items: all.filter((s) => s.kind === 'subscription' && s.status === 'active') },
@@ -57,6 +99,24 @@ export function RecurringPage() {
     <div className="space-y-4">
       <p className="text-sm text-muted">{t('finance.recurringHelp')}</p>
       {all.length === 0 && <Empty>{t('finance.noSeries')}</Empty>}
+      {all.length > 0 && (
+        <div className="card grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <div className="label">{t('finance.recurringThisMonth')}</div>
+            <div className="truncate text-2xl font-semibold text-expense">{totals.isLoading ? '—' : money(totals.current)}</div>
+            <div className="text-xs text-muted">
+              {totals.current > 0
+                ? t('finance.recurringPaidLeft', { paid: money(totals.paid), left: money(totals.current - totals.paid) })
+                : t('finance.paymentsCount', { count: 0 })}
+            </div>
+          </div>
+          <div className="min-w-0 border-l border-border pl-3">
+            <div className="label capitalize">{formatDate(totals.nextMonth, 'MMMM')}</div>
+            <div className="truncate text-2xl font-semibold">{totals.isLoading ? '—' : money(totals.next)}</div>
+            <div className="text-xs text-muted">{t('finance.paymentsCount', { count: totals.nextCount })}</div>
+          </div>
+        </div>
+      )}
       {groups
         .filter((g) => g.items.length)
         .map((g) => (

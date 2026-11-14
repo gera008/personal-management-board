@@ -246,6 +246,8 @@
     "monthlyLimit": "Monthly limit (MXN)",
     "overBy": "Over by {{amount}}",
     "left": "{{amount}} left",
+    "recurringThisMonth": "Recurring total this month",
+    "recurringPaidLeft": "{{paid}} paid · {{left}} to go",
     "recurringHelp": "Installments generate every payment up front; subscriptions keep going until cancelled. Each payment is applied automatically on its date.",
     "noSeries": "No installments or subscriptions yet.",
     "newSeries": "New recurring",
