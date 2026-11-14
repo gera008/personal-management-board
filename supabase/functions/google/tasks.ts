@@ -86,13 +86,14 @@ const sameTitle = (a: string | null | undefined, b: string | null | undefined) =
 const dueToGoogle = (date: string | null) => (date ? `${date}T00:00:00.000Z` : null);
 const dueFromGoogle = (due: string | undefined) => (due ? due.slice(0, 10) : null);
 
-async function listAll<T>(call: TasksCall, path: string): Promise<T[] | null> {
+/** Every page of a Google Tasks list call; throws with Google's reason when it fails. */
+async function listAll<T>(call: TasksCall, path: string, what: string): Promise<T[]> {
   const out: T[] = [];
   let pageToken: string | undefined;
   for (;;) {
     const sep = path.includes('?') ? '&' : '?';
     const res = await call('GET', `${path}${pageToken ? `${sep}pageToken=${enc(pageToken)}` : ''}`);
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`${what}: ${res.status} ${res.data?.error?.message ?? ''}`.trim());
     out.push(...((res.data?.items ?? []) as T[]));
     pageToken = res.data?.nextPageToken;
     if (!pageToken) return out;
@@ -139,8 +140,7 @@ async function dropLinked(db: SupabaseClient, table: 'tasks' | 'subtasks', id: s
 // ---------- lists ----------
 
 async function syncLists(db: SupabaseClient, call: TasksCall, userId: string, failed: string[]): Promise<AppList[]> {
-  const google = await listAll<{ id: string; title: string; etag: string }>(call, '/users/@me/lists?maxResults=100');
-  if (!google) throw new Error('No se pudieron leer las listas de Google Tasks');
+  const google = await listAll<{ id: string; title: string; etag: string }>(call, '/users/@me/lists?maxResults=100', 'No se pudieron leer las listas de Google Tasks');
   const { data } = await db.from('task_lists').select('id,name,google_tasklist_id,google_pulled_at,needs_push').eq('user_id', userId).order('position');
   const lists = (data ?? []) as AppList[];
   const byId = new Map(google.map((g) => [g.id, g]));
@@ -212,8 +212,7 @@ async function pullList(db: SupabaseClient, call: TasksCall, userId: string, lis
   const params = new URLSearchParams({ maxResults: '100', showCompleted: 'true', showHidden: 'true', showDeleted: 'true' });
   // A little overlap so a change made during the last pull isn't missed.
   if (list.google_pulled_at) params.set('updatedMin', new Date(Date.parse(list.google_pulled_at) - 120_000).toISOString());
-  const items = await listAll<GTask>(call, `/lists/${enc(list.google_tasklist_id!)}/tasks?${params}`);
-  if (!items) throw new Error(`No se pudo leer la lista "${list.name}" de Google Tasks`);
+  const items = await listAll<GTask>(call, `/lists/${enc(list.google_tasklist_id!)}/tasks?${params}`, `No se pudo leer la lista "${list.name}" de Google Tasks`);
   const firstPull = !list.google_pulled_at;
 
   // Parents first, so subtasks find their task.
