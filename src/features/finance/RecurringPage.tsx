@@ -46,11 +46,11 @@ export function RecurringPage() {
   const [sheet, setSheet] = useState<{ series?: RecurringSeries | null } | null>(null);
   const navigate = useNavigate();
   const accName = (id: string) => accounts.data?.find((a) => a.id === id)?.name ?? '';
-  const all = series.data ?? [];
+  // Only active series are listed; deleted (cancelled) and finished ones drop off.
+  const all = (series.data ?? []).filter((s) => s.status === 'active');
   const groups = [
     { key: 'installment', items: all.filter((s) => s.kind === 'installment' && s.status === 'active') },
     { key: 'subscription', items: all.filter((s) => s.kind === 'subscription' && s.status === 'active') },
-    { key: 'finished', items: all.filter((s) => s.status !== 'active') },
   ];
 
   return (
@@ -190,7 +190,12 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
       };
       if (series) {
         unwrap(await supabase.from('recurring_series').update(row).eq('id', series.id));
-        await rpc('reschedule_series', { p_series: series.id });
+        // A new first payment date or frequency moves every payment of the series.
+        if (f.start_date !== series.start_date || f.frequency !== series.frequency) {
+          await rpc('move_series_schedule', { p_series: series.id, p_start: f.start_date, p_frequency: f.frequency });
+        } else {
+          await rpc('reschedule_series', { p_series: series.id });
+        }
       } else {
         const created = unwrap(await supabase.from('recurring_series').insert({ ...row, kind: f.kind, frequency: f.frequency, start_date: f.start_date }).select('id').single()) as { id: string };
         await rpc('materialize_series', { p_series: created.id });
@@ -397,7 +402,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
 
           <Group>
             <Row icon="repeat" label={t('finance.frequency')}>
-              <select className="pill" disabled={editing} aria-label={t('finance.frequency')} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value as Frequency })}>
+              <select className="pill" aria-label={t('finance.frequency')} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value as Frequency })}>
                 {FREQS.map((x) => (
                   <option key={x} value={x}>
                     {t(`finance.freq.${x}`)}
@@ -406,7 +411,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
               </select>
             </Row>
             <Row icon="calendar" label={t('finance.startDate')}>
-              <input type="date" className="pill" required disabled={editing} aria-label={t('finance.startDate')} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
+              <input type="date" className="pill" required aria-label={t('finance.startDate')} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
             </Row>
             {f.kind === 'installment' ? (
               <>
