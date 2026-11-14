@@ -633,5 +633,31 @@
       "cancelled": "Connection cancelled.",
       "error": "Couldn’t connect to Google. Try again."
     }
+  },
+  "invest": {
+    "currentValue": "Current value",
+    "value": "Value",
+    "contributed": "Contributed",
+    "gain": "Gain",
+    "updateValue": "Update value",
+    "editValue": "Edit value",
+    "updatedAgo": "Updated {{when}}",
+    "updatedToday": "Updated today",
+    "neverUpdated": "No value captured yet",
+    "stale": "Not updated",
+    "valueOn": "What is it worth?",
+    "updateHelp": "Enter what {{name}} is worth according to your broker or statement. It doesn't count as income or spending.",
+    "history": "Value history",
+    "noHistory": "Capture your investment's value to see how much it has gained.",
+    "firstValue": "Against what you contributed",
+    "sincePrevious": "Against the previous value",
+    "chartTitle": "Contributed vs value",
+    "range1y": "1 year",
+    "rangeAll": "All",
+    "chartEmpty": "With two captured values you'll see how your investment is doing here.",
+    "gainLastYear": "Gain over the last year",
+    "gainAllTime": "Gain since the start",
+    "movements": "Movements",
+    "movementsHelp": "Record contributions and withdrawals as transfers, and dividends as income."
   }
 }

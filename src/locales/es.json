@@ -633,5 +633,31 @@
       "cancelled": "Se canceló la conexión.",
       "error": "No se pudo conectar con Google. Intenta de nuevo."
     }
+  },
+  "invest": {
+    "currentValue": "Valor actual",
+    "value": "Valor",
+    "contributed": "Aportado",
+    "gain": "Ganancia",
+    "updateValue": "Actualizar valor",
+    "editValue": "Editar valor",
+    "updatedAgo": "Actualizado {{when}}",
+    "updatedToday": "Actualizado hoy",
+    "neverUpdated": "Aún no has capturado su valor",
+    "stale": "Sin actualizar",
+    "valueOn": "¿Cuánto vale?",
+    "updateHelp": "Escribe cuánto vale {{name}} según tu broker o estado de cuenta. No cuenta como ingreso ni gasto.",
+    "history": "Historial de valores",
+    "noHistory": "Captura el valor de tu inversión para ver cuánto ha ganado.",
+    "firstValue": "Contra lo aportado",
+    "sincePrevious": "Contra la captura anterior",
+    "chartTitle": "Aportado vs valor",
+    "range1y": "1 año",
+    "rangeAll": "Todo",
+    "chartEmpty": "Con dos capturas de valor verás aquí cómo va tu inversión.",
+    "gainLastYear": "Ganancia en el último año",
+    "gainAllTime": "Ganancia desde el inicio",
+    "movements": "Movimientos",
+    "movementsHelp": "Las aportaciones y los retiros se registran como transferencias; los dividendos, como ingresos."
   }
 }

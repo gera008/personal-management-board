@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/
 import { supabase, unwrap } from './supabase';
 import type {
   Account,
+  AccountValuation,
   Budget,
   CalendarEvent,
   Category,
@@ -25,6 +26,7 @@ export interface Tables {
   tasks: Task;
   subtasks: Subtask;
   accounts: Account;
+  account_valuations: AccountValuation;
   categories: Category;
   transactions: Transaction;
   recurring_series: RecurringSeries;
@@ -37,6 +39,8 @@ export type TableName = keyof Tables;
 // Which cached queries a write to a table should refresh.
 const dependents: Partial<Record<TableName, TableName[]>> = {
   transactions: ['accounts', 'recurring_series'],
+  // Balances (the accounts query key) start from the latest valuation.
+  account_valuations: ['accounts'],
   recurring_series: ['transactions'],
   tasks: ['subtasks'],
   subtasks: ['tasks'],

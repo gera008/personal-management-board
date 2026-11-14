@@ -13,6 +13,7 @@ import { useAccounts, useBalances, useCategories, usePendingByAccount } from './
 import { AccountSheet } from './AccountsPage';
 import { TxRow } from './FinanceHome';
 import { TransactionSheet } from './TransactionSheet';
+import { InvestmentOverview } from './Investment';
 
 /** One account's movements, a month at a time. */
 export function AccountDetailPage() {
@@ -92,19 +93,29 @@ export function AccountDetailPage() {
         </button>
       </div>
 
-      <div className="card text-center">
-        <div className="label">{t('finance.balance')}</div>
-        <div className={`text-display mt-1 ${withPending < 0 ? 'text-expense' : ''}`}>
-          {money(withPending, account.currency)}
-          <span className="text-unit ml-1.5">{account.currency}</span>
-        </div>
-        {account.currency !== 'MXN' && <div className="text-xs text-muted">{money(withPending * (rates[account.currency] ?? 0))}</div>}
-        {Math.abs(withPending - today) >= 0.005 && (
-          <div className="text-xs text-muted">
-            {t('finance.today')}: {money(today, account.currency)}
+      {account.type === 'investment' ? (
+        <>
+          <InvestmentOverview account={account} />
+          <div>
+            <h3 className="section-title mb-0.5">{t('invest.movements')}</h3>
+            <p className="text-xs text-muted">{t('invest.movementsHelp')}</p>
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <div className="card text-center">
+          <div className="label">{t('finance.balance')}</div>
+          <div className={`text-display mt-1 ${withPending < 0 ? 'text-expense' : ''}`}>
+            {money(withPending, account.currency)}
+            <span className="text-unit ml-1.5">{account.currency}</span>
+          </div>
+          {account.currency !== 'MXN' && <div className="text-xs text-muted">{money(withPending * (rates[account.currency] ?? 0))}</div>}
+          {Math.abs(withPending - today) >= 0.005 && (
+            <div className="text-xs text-muted">
+              {t('finance.today')}: {money(today, account.currency)}
+            </div>
+          )}
+        </div>
+      )}
 
       <MonthPicker month={month} onChange={setMonth} />
 

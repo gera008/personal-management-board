@@ -7,13 +7,15 @@ import { money } from '@/lib/format';
 import { Empty, ErrorText, Fab, Field, SaveBar, Sheet } from '@/components/ui';
 import { ACCOUNT_TYPES, CURRENCIES, num, type Account, type AccountType, type Currency } from '@/domain/types';
 import { balanceSummary } from '@/domain/finance/totals';
-import { useAccounts, useBalances, usePendingByAccount } from './hooks';
+import { isStale } from '@/domain/finance/investments';
+import { useAccounts, useBalanceDetails, useBalances, usePendingByAccount, type BalanceDetail } from './hooks';
 
 export function AccountsPage() {
   const { t } = useTranslation();
   const { rates } = useProfile();
   const accounts = useAccounts();
   const balances = useBalances();
+  const details = useBalanceDetails().data;
   const pending = usePendingByAccount().data ?? new Map<string, number>();
   const [sheet, setSheet] = useState<{ account?: Account | null } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -71,6 +73,7 @@ export function AccountsPage() {
                           {t('finance.today')}: {money(b, a.currency)}
                         </div>
                       )}
+                      {a.type === 'investment' && <InvestmentBadge detail={details?.get(a.id)} />}
                     </div>
                   </button>
                 );
@@ -85,6 +88,25 @@ export function AccountsPage() {
       </label>
       <Fab label={t('finance.newAccount')} onClick={() => setSheet({})} />
       <AccountSheet open={!!sheet} account={sheet?.account} onClose={() => setSheet(null)} position={(accounts.data ?? []).length} />
+    </div>
+  );
+}
+
+/** Gain since the start and a nudge when the value hasn't been updated in a month. */
+function InvestmentBadge({ detail }: { detail?: BalanceDetail }) {
+  const { t } = useTranslation();
+  if (!detail) return null;
+  const gain = detail.balance - detail.book;
+  const pct = detail.book > 0 ? (gain / detail.book) * 100 : null;
+  return (
+    <div className="text-[11px]">
+      {detail.lastValuedAt && pct != null && Math.abs(gain) >= 0.005 && (
+        <span className={gain > 0 ? 'text-income' : 'text-expense'}>
+          {gain > 0 ? '+' : ''}
+          {pct.toFixed(1)}%
+        </span>
+      )}
+      {isStale(detail.lastValuedAt) && <span className="ml-1.5 text-tasks">{t('invest.stale')}</span>}
     </div>
   );
 }

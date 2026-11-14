@@ -132,6 +132,15 @@ export interface Account {
   archived: boolean;
 }
 
+/** What an (investment) account was worth at a moment, captured by hand. Not a transaction. */
+export interface AccountValuation {
+  id: string;
+  account_id: string;
+  valued_at: string;
+  value: Numeric;
+  note: string | null;
+}
+
 export type CategoryType = 'expense' | 'income';
 export interface Category {
   id: string;

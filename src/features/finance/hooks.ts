@@ -4,7 +4,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { computeIndicators, signedAmount } from '@/domain/finance/totals';
-import type { Account, Category, Transaction } from '@/domain/types';
+import type { Account, AccountValuation, Category, Transaction } from '@/domain/types';
 
 const PAGE = 1000; // PostgREST max rows per request
 
@@ -53,6 +53,64 @@ export function useBalances() {
       const rows = unwrap(await supabase.from('account_balances').select('account_id,balance')) as { account_id: string; balance: string }[];
       return new Map(rows.map((r) => [r.account_id, Number(r.balance)]));
     },
+  });
+}
+
+export interface BalanceDetail {
+  /** What the account is worth now (from the latest valuation when there is one). */
+  balance: number;
+  /** Initial balance + applied transactions: for an investment, the net amount contributed. */
+  book: number;
+  lastValue: number | null;
+  lastValuedAt: string | null;
+}
+
+/** Every column of the account_balances view, keyed by account id. */
+export function useBalanceDetails() {
+  return useQuery({
+    queryKey: ['accounts', 'balance-details'],
+    queryFn: async () => {
+      const rows = unwrap(await supabase.from('account_balances').select('account_id,balance,book_balance,last_value,last_valued_at')) as {
+        account_id: string;
+        balance: string;
+        book_balance: string;
+        last_value: string | null;
+        last_valued_at: string | null;
+      }[];
+      return new Map<string, BalanceDetail>(
+        rows.map((r) => [
+          r.account_id,
+          { balance: Number(r.balance), book: Number(r.book_balance), lastValue: r.last_value == null ? null : Number(r.last_value), lastValuedAt: r.last_valued_at },
+        ]),
+      );
+    },
+  });
+}
+
+/** An account's valuations, newest first. */
+export function useValuations(accountId: string) {
+  return useQuery({
+    queryKey: ['account_valuations', accountId],
+    enabled: !!accountId,
+    queryFn: async () =>
+      unwrap(await supabase.from('account_valuations').select('*').eq('account_id', accountId).order('valued_at', { ascending: false })) as AccountValuation[],
+  });
+}
+
+/** Every applied transaction of one account (the fields needed for totals), for its whole history. */
+export function useAccountFlows(accountId: string) {
+  return useQuery({
+    queryKey: ['transactions', 'flows', accountId],
+    enabled: !!accountId,
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('transactions')
+          .select('account_id,type,direction,original_amount,currency,base_amount_mxn,status,occurred_at')
+          .eq('account_id', accountId)
+          .eq('status', 'applied')
+          .order('occurred_at'),
+      ) as Pick<Transaction, 'account_id' | 'type' | 'direction' | 'original_amount' | 'currency' | 'base_amount_mxn' | 'status' | 'occurred_at'>[],
   });
 }
 
