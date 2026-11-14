@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
-import { Empty, ErrorText, Fab, Field, Icon, PageHeader, SaveBar, Sheet } from '@/components/ui';
+import { ColorDots, Empty, ErrorText, Fab, Group, Icon, PageHeader, SaveBar, Sheet, TitleInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { PALETTE, type Task, type TaskList } from '@/domain/types';
 import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
@@ -161,26 +161,37 @@ function ListSheet({ open, list, position, onClose, onDeleted }: { open: boolean
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={save.error ?? remove.error} />
-        {list && <p className="mb-3 text-xs text-muted">{t('tasks.deleteListWarning')}</p>}
-        <Field label={t('common.name')}>
-          <input className="input" required autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
-        <Field label={t('common.color')}>
-          <div className="flex flex-wrap gap-2">
-            {PALETTE.map((c) => (
-              <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`h-8 w-8 rounded-full ${f.color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-bg' : ''}`} style={{ background: c }} aria-label={c} />
-            ))}
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `${f.color}26`, color: f.color }}>
+            <Icon name={f.icon} size={22} />
+          </span>
+          <TitleInput value={f.name} onChange={(name) => setF({ ...f, name })} label={t('common.name')} placeholder={t('tasks.listNamePlaceholder')} autoFocus />
+        </div>
+        <Group>
+          <div className="px-4 py-3">
+            <span className="label">{t('common.color')}</span>
+            <ColorDots colors={PALETTE} value={f.color} onChange={(color) => setF({ ...f, color })} />
           </div>
-        </Field>
-        <Field label={t('common.icon')}>
-          <div className="flex flex-wrap gap-2">
-            {LIST_ICONS.map((i) => (
-              <button type="button" key={i} onClick={() => setF({ ...f, icon: i })} className={`rounded-lg border p-2 ${f.icon === i ? 'border-fg bg-surface' : 'border-border'}`} style={{ color: f.color }} aria-label={i}>
-                <Icon name={i} />
-              </button>
-            ))}
+          <div className="px-4 py-3">
+            <span className="label">{t('common.icon')}</span>
+            <div className="flex flex-wrap gap-2">
+              {LIST_ICONS.map((i) => (
+                <button
+                  type="button"
+                  key={i}
+                  onClick={() => setF({ ...f, icon: i })}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full transition ${f.icon === i ? 'bg-surface ring-2 ring-fg' : 'bg-surface/50 text-muted hover:text-fg'}`}
+                  style={f.icon === i ? { color: f.color } : undefined}
+                  aria-label={i}
+                  aria-pressed={f.icon === i}
+                >
+                  <Icon name={i} size={18} />
+                </button>
+              ))}
+            </div>
           </div>
-        </Field>
+        </Group>
+        {list && <p className="px-1 text-xs text-muted">{t('tasks.deleteListWarning')}</p>}
       </form>
     </Sheet>
   );

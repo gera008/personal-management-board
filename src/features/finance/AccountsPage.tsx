@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { money } from '@/lib/format';
-import { Empty, ErrorText, Fab, Field, SaveBar, Sheet } from '@/components/ui';
+import { Empty, ErrorText, Fab, Group, Row, SaveBar, Sheet, Switch, TitleInput } from '@/components/ui';
 import { ACCOUNT_TYPES, CURRENCIES, num, type Account, type AccountType, type Currency } from '@/domain/types';
 import { balanceSummary } from '@/domain/finance/totals';
 import { isStale } from '@/domain/finance/investments';
@@ -160,50 +160,48 @@ export function AccountSheet({ open, account, onClose, position }: { open: boole
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={save.error} />
         {remove.error && <ErrorText error={t('finance.accountInUse')} />}
-        <Field label={t('common.name')}>
-          <input className="input" required autoFocus={!account} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label={t('finance.accountType')}>
-            <select className="input" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as AccountType })}>
+        <TitleInput className="mb-4" value={f.name} onChange={(name) => setF({ ...f, name })} label={t('common.name')} placeholder={t('finance.accountNamePlaceholder')} autoFocus={!account} />
+        <Group>
+          <Row icon="wallet" label={t('finance.accountType')}>
+            <select className="pill" aria-label={t('finance.accountType')} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as AccountType })}>
               {ACCOUNT_TYPES.map((x) => (
                 <option key={x} value={x}>
                   {t(`finance.accountTypes.${x}`)}
                 </option>
               ))}
             </select>
-          </Field>
-          <Field label={t('finance.currency')}>
-            <select className="input" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })}>
+          </Row>
+          <Row icon="swap" label={t('finance.currency')}>
+            <select className="pill" aria-label={t('finance.currency')} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })}>
               {CURRENCIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
-          </Field>
-        </div>
-        <Field label={t('finance.initialBalance')}>
-          <input className="input" inputMode="decimal" value={f.initial_balance} onChange={(e) => setF({ ...f, initial_balance: e.target.value.replace(',', '.') })} />
-        </Field>
-        {f.type === 'credit_card' && (
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('finance.cutoffDay')}>
-              <input className="input" type="number" min={1} max={31} value={f.cutoff_day} onChange={(e) => setF({ ...f, cutoff_day: e.target.value })} />
-            </Field>
-            <Field label={t('finance.paymentDay')}>
-              <input className="input" type="number" min={1} max={31} value={f.payment_day} onChange={(e) => setF({ ...f, payment_day: e.target.value })} />
-            </Field>
-          </div>
-        )}
-        <label className="mb-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.include_in_total} onChange={(e) => setF({ ...f, include_in_total: e.target.checked })} />
-          {t('finance.includeInTotal')}
-        </label>
-        {account && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={f.archived} onChange={(e) => setF({ ...f, archived: e.target.checked })} />
-            {t('common.archived')}
-          </label>
-        )}
+          </Row>
+          <Row icon="chart" label={t('finance.initialBalance')}>
+            <input className="pill w-32 text-right" inputMode="decimal" aria-label={t('finance.initialBalance')} value={f.initial_balance} onChange={(e) => setF({ ...f, initial_balance: e.target.value.replace(',', '.') })} />
+          </Row>
+          {f.type === 'credit_card' && (
+            <>
+              <Row icon="calendar" label={t('finance.cutoffDay')}>
+                <input className="pill w-16 px-2" type="number" inputMode="numeric" min={1} max={31} aria-label={t('finance.cutoffDay')} value={f.cutoff_day} onChange={(e) => setF({ ...f, cutoff_day: e.target.value })} />
+              </Row>
+              <Row icon="bell" label={t('finance.paymentDay')}>
+                <input className="pill w-16 px-2" type="number" inputMode="numeric" min={1} max={31} aria-label={t('finance.paymentDay')} value={f.payment_day} onChange={(e) => setF({ ...f, payment_day: e.target.value })} />
+              </Row>
+            </>
+          )}
+        </Group>
+        <Group className="mb-1">
+          <Row icon="check" label={t('finance.includeInTotal')}>
+            <Switch checked={f.include_in_total} onChange={(include_in_total) => setF({ ...f, include_in_total })} label={t('finance.includeInTotal')} />
+          </Row>
+          {account && (
+            <Row icon="eyeOff" label={t('common.archived')}>
+              <Switch checked={f.archived} onChange={(archived) => setF({ ...f, archived })} label={t('common.archived')} />
+            </Row>
+          )}
+        </Group>
       </form>
     </Sheet>
   );

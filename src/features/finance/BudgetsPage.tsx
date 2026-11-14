@@ -4,7 +4,8 @@ import { startOfMonth } from 'date-fns';
 import { useRemove, useRows, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { money } from '@/lib/format';
-import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Sheet } from '@/components/ui';
+import { Empty, ErrorText, Fab, Group, Progress, Row, SaveBar, Sheet } from '@/components/ui';
+import { AmountInput, amountValue } from './AmountInput';
 import { budgetProgress } from '@/domain/finance/totals';
 import { num, type Budget } from '@/domain/types';
 import { categoryName, useCategories, useTransactions } from './hooks';
@@ -100,7 +101,8 @@ function BudgetSheet({ open, budget, onClose }: { open: boolean; budget?: Budget
   const hasGeneral = (budgets.data ?? []).some((b) => b.category_id === null);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    await save.mutateAsync({ id: budget?.id, category_id: categoryId === GENERAL ? null : categoryId, monthly_limit_mxn: Number(limit) });
+    if (!(amountValue(limit) > 0)) return;
+    await save.mutateAsync({ id: budget?.id, category_id: categoryId === GENERAL ? null : categoryId, monthly_limit_mxn: amountValue(limit) });
     onClose();
   };
 
@@ -113,29 +115,33 @@ function BudgetSheet({ open, budget, onClose }: { open: boolean; budget?: Budget
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={save.error} />
-        <Field label={t('finance.category')}>
-          <select className="input" required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="" />
-            {/* Only one general budget; editing it keeps the option. */}
-            <option value={GENERAL} disabled={hasGeneral && budget?.category_id !== null}>
-              {t('finance.generalBudgetOption')}
-            </option>
-            {cats.parents('expense').map((p) => (
-              <optgroup key={p.id} label={p.name}>
-                <option value={p.id}>{p.name}</option>
-                {cats.children(p.id).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {'  '}
-                    {p.name} › {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </Field>
-        <Field label={t('finance.monthlyLimit')}>
-          <input className="input" inputMode="decimal" required value={limit} onChange={(e) => setLimit(e.target.value.replace(',', '.'))} />
-        </Field>
+        <p className="text-center text-[13px] text-muted">{t('finance.monthlyLimit')}</p>
+        <div className="mb-4">
+          <AmountInput hero required autoFocus={!budget} value={limit} onChange={setLimit} />
+        </div>
+        <Group className="mb-1">
+          <Row icon="tag" label={t('finance.category')}>
+            <select className="pill max-w-[12rem]" required aria-label={t('finance.category')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="" disabled>
+                {t('finance.chooseCategory')}
+              </option>
+              {/* Only one general budget; editing it keeps the option. */}
+              <option value={GENERAL} disabled={hasGeneral && budget?.category_id !== null}>
+                {t('finance.generalBudgetOption')}
+              </option>
+              {cats.parents('expense').map((p) => (
+                <optgroup key={p.id} label={p.name}>
+                  <option value={p.id}>{p.name}</option>
+                  {cats.children(p.id).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {p.name} › {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </Row>
+        </Group>
       </form>
     </Sheet>
   );

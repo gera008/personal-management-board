@@ -5,7 +5,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { useRemove, useSave } from '@/lib/data';
 import { useThemeColors } from '@/lib/themeColors';
 import { dateLocale, formatDate, money } from '@/lib/format';
-import { Empty, ErrorText, Field, Icon, SaveBar, Segmented, Sheet } from '@/components/ui';
+import { Empty, ErrorText, Group, Icon, Row, SaveBar, Segmented, Sheet } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { currentValue, investmentHistory, isStale, periodGain, valuationChanges } from '@/domain/finance/investments';
 import { num, type Account, type AccountValuation } from '@/domain/types';
@@ -242,18 +242,20 @@ export function ValuationSheet({
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={error ?? remove.error} />
-        <p className="mb-4 text-sm text-muted">{t('invest.updateHelp', { name: account.name })}</p>
-        <Field label={t('invest.valueOn')}>
-          <AmountInput value={f.value} onChange={(value) => setF({ ...f, value })} currency={account.currency} autoFocus={!valuation} required />
-        </Field>
-        <Field label={t('finance.date')}>
-          <input type="date" className="input" required max={today} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
-        </Field>
-        <Field label={t('common.notes')}>
-          <input className="input" placeholder={t('finance.optional')} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
-        </Field>
+        <p className="text-center text-[13px] text-muted">{t('invest.valueOn')}</p>
+        <div className="mb-4">
+          <AmountInput hero value={f.value} onChange={(value) => setF({ ...f, value })} currency={account.currency} autoFocus={!valuation} required />
+        </div>
+        <Group>
+          <Row icon="calendar" label={t('finance.date')}>
+            <input type="date" className="pill" required max={today} aria-label={t('finance.date')} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </Row>
+          <Row icon="edit">
+            <input className="w-full bg-transparent py-1 text-[15px] outline-none placeholder:text-muted" aria-label={t('common.notes')} placeholder={t('invest.notePlaceholder')} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+          </Row>
+        </Group>
         {diff != null && (
-          <div className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm">
+          <div className="mb-3 flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm">
             <span className="text-muted">
               {money(reference, account.currency)} → <span className="font-semibold text-fg">{money(after, account.currency)}</span>
             </span>
@@ -262,6 +264,7 @@ export function ValuationSheet({
             </span>
           </div>
         )}
+        <p className="px-1 text-xs text-muted">{t('invest.updateHelp', { name: account.name })}</p>
       </form>
     </Sheet>
   );

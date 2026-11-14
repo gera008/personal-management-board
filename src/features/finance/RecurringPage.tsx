@@ -6,11 +6,12 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { rpc, useInvalidate, useRows } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { formatDate, money } from '@/lib/format';
-import { Empty, ErrorText, Fab, Field, Progress, SaveBar, Segmented, Sheet } from '@/components/ui';
+import { Empty, ErrorText, Fab, Group, Progress, Row, SaveBar, Segmented, Sheet } from '@/components/ui';
 import { installmentProgress, installmentTotal, lastInstallmentDate, remainingPayments, scheduleDates } from '@/domain/recurring/schedule';
 import { toDateKey } from '@/domain/dates';
 import { CURRENCIES, num, type Currency, type Frequency, type RecurringSeries } from '@/domain/types';
 import { categoryName, useAccounts, useCategories } from './hooks';
+import { AmountInput, amountValue } from './AmountInput';
 
 const FREQS: Frequency[] = ['weekly', 'monthly', 'yearly'];
 
@@ -170,7 +171,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
     setBusy(true);
     setError(null);
     try {
-      const amount = Number(f.amount);
+      const amount = amountValue(f.amount);
       const rate = f.currency === 'MXN' ? 1 : Number(f.rate);
       if (!(amount > 0)) throw new Error(t('finance.amountRequired'));
       if (!(rate > 0)) throw new Error(t('finance.rateMissing'));
@@ -223,7 +224,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
 
   const liquidate = async () => {
     if (!series || !payoff) return;
-    const amount = Number(payoff.amount);
+    const amount = amountValue(payoff.amount);
     if (!(amount > 0)) return setError(new Error(t('finance.amountRequired')));
     setBusy(true);
     setError(null);
@@ -294,26 +295,27 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
       }
     >
       {payoff && series && (
-        <div className="mb-4 space-y-3 rounded-lg border border-border p-3">
-          <p className="text-sm font-medium">{t('finance.payoffTitle')}</p>
-          <p className="text-sm text-muted">{t('finance.payoffLeft', { count: left.count, amount: money(left.total, series.currency) })}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('finance.payoffAmount')}>
-              <input className="input" inputMode="decimal" value={payoff.amount} onChange={(e) => setPayoff({ ...payoff, amount: e.target.value.replace(',', '.') })} />
-            </Field>
-            <Field label={t('finance.date')}>
-              <input type="date" className="input" value={payoff.date} onChange={(e) => e.target.value && setPayoff({ ...payoff, date: e.target.value })} />
-            </Field>
+        <div className="mb-2">
+          <p className="mb-1 text-[15px] font-semibold">{t('finance.payoffTitle')}</p>
+          <p className="mb-4 text-sm text-muted">{t('finance.payoffLeft', { count: left.count, amount: money(left.total, series.currency) })}</p>
+          <p className="text-center text-[13px] text-muted">{t('finance.payoffAmount')}</p>
+          <div className="mb-4">
+            <AmountInput hero currency={series.currency} value={payoff.amount} onChange={(amount) => setPayoff({ ...payoff, amount })} />
           </div>
-          <p className="text-xs text-muted">{t('finance.payoffHelp')}</p>
+          <Group>
+            <Row icon="calendar" label={t('finance.date')}>
+              <input type="date" className="pill" aria-label={t('finance.date')} value={payoff.date} onChange={(e) => e.target.value && setPayoff({ ...payoff, date: e.target.value })} />
+            </Row>
+          </Group>
+          <p className="px-1 text-xs text-muted">{t('finance.payoffHelp')}</p>
         </div>
       )}
       <form id="sheet-form" onSubmit={submit} hidden={!!payoff}>
-        <fieldset disabled={!active}>
+        <fieldset disabled={!active} className="min-w-0">
           <ErrorText error={error} />
           {editing && <p className="mb-3 rounded-2xl bg-surface px-3 py-2 text-xs text-muted">{t('finance.editSeriesHelp')}</p>}
           <Segmented
-            className="mb-3 w-full"
+            className="mb-2 w-full"
             value={f.kind}
             onChange={(kind) => !editing && setF({ ...f, kind })}
             options={[
@@ -322,7 +324,7 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
             ]}
           />
           <Segmented
-            className="mb-3 w-full"
+            className="mb-4 w-full"
             value={f.type}
             onChange={(type) => setF({ ...f, type, category_id: '', subcategory_id: '' })}
             options={[
@@ -330,95 +332,106 @@ export function SeriesSheet({ open, series, onClose }: { open: boolean; series?:
               { value: 'income', label: t('finance.types.income') },
             ]}
           />
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Field label={t('finance.amountEach')}>
-              <input className="input" inputMode="decimal" required value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value.replace(',', '.') })} />
-            </Field>
-            <Field label={t('finance.currency')}>
-              <select className="input" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency, rate: String(e.target.value === 'MXN' ? 1 : rates[e.target.value as Currency] ?? '') })}>
+
+          <p className="text-center text-[13px] text-muted">{t('finance.amountEach')}</p>
+          <div className="mb-4">
+            <AmountInput hero className={f.type === 'expense' ? 'text-expense' : 'text-income'} required autoFocus={!series} currency={f.currency} value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} />
+            <div className="mt-1 flex justify-center">
+              <select
+                className="pill py-1 text-sm"
+                aria-label={t('finance.currency')}
+                value={f.currency}
+                onChange={(e) => setF({ ...f, currency: e.target.value as Currency, rate: String(e.target.value === 'MXN' ? 1 : rates[e.target.value as Currency] ?? '') })}
+              >
                 {CURRENCIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
-            </Field>
+            </div>
           </div>
-          {f.currency !== 'MXN' && (
-            <Field label={t('finance.rateTo', { currency: f.currency })}>
-              <input className="input" inputMode="decimal" required value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
-            </Field>
-          )}
-          <Field label={t('finance.account')}>
-            <select className="input" required value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value })}>
-              <option value="" />
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+
+          <Group>
+            <Row icon="wallet" label={t('finance.account')}>
+              <select className="pill max-w-[11rem]" required aria-label={t('finance.account')} value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value })}>
+                <option value="" disabled>
+                  {t('finance.chooseAccount')}
                 </option>
-              ))}
-            </select>
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('finance.category')}>
-              <select className="input" value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value, subcategory_id: '' })}>
-                <option value="">—</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row icon="tag" label={t('finance.category')}>
+              <select className="pill max-w-[11rem]" aria-label={t('finance.category')} value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value, subcategory_id: '' })}>
+                <option value="">{t('finance.uncategorized')}</option>
                 {cats.parents(f.type).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-            </Field>
-            <Field label={t('finance.subcategory')}>
-              <select className="input" value={f.subcategory_id} disabled={!f.category_id} onChange={(e) => setF({ ...f, subcategory_id: e.target.value })}>
-                <option value="">—</option>
-                {f.category_id &&
-                  cats.children(f.category_id).map((c) => (
+            </Row>
+            {f.category_id && cats.children(f.category_id).length > 0 && (
+              <Row label={<span className="pl-[1.875rem]">{t('finance.subcategory')}</span>}>
+                <select className="pill max-w-[11rem]" aria-label={t('finance.subcategory')} value={f.subcategory_id} onChange={(e) => setF({ ...f, subcategory_id: e.target.value })}>
+                  <option value="">—</option>
+                  {cats.children(f.category_id).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
-              </select>
-            </Field>
-          </div>
-          <Field label={t('finance.note')}>
-            <input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={t('finance.seriesNotePlaceholder')} />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t('finance.frequency')}>
-              <select className="input" disabled={editing} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value as Frequency })}>
+                </select>
+              </Row>
+            )}
+            {f.currency !== 'MXN' && (
+              <Row icon="swap" label={t('finance.rateTo', { currency: f.currency })}>
+                <input className="pill w-24" inputMode="decimal" required aria-label={t('finance.rateTo', { currency: f.currency })} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
+              </Row>
+            )}
+            <Row icon="edit">
+              <input className="w-full bg-transparent py-1 text-[15px] outline-none placeholder:text-muted" aria-label={t('finance.note')} placeholder={t('finance.seriesNotePlaceholder')} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+            </Row>
+          </Group>
+
+          <Group>
+            <Row icon="repeat" label={t('finance.frequency')}>
+              <select className="pill" disabled={editing} aria-label={t('finance.frequency')} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value as Frequency })}>
                 {FREQS.map((x) => (
                   <option key={x} value={x}>
                     {t(`finance.freq.${x}`)}
                   </option>
                 ))}
               </select>
-            </Field>
-            <Field label={t('finance.startDate')}>
-              <input type="date" className="input" required disabled={editing} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
-            </Field>
-          </div>
-          {f.kind === 'installment' ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t('finance.totalPayments')}>
-                <input type="number" min={1} max={600} className="input" required value={f.total_count} onChange={(e) => setF({ ...f, total_count: e.target.value })} />
-              </Field>
-              <Field label={t('finance.finalAmount')}>
-                <input className="input" inputMode="decimal" placeholder={t('finance.optional')} value={f.final_amount} onChange={(e) => setF({ ...f, final_amount: e.target.value.replace(',', '.') })} />
-              </Field>
-            </div>
-          ) : (
-            <Field label={t('finance.endDateOptional')}>
-              <input type="date" className="input" value={f.end_date} min={f.start_date} onChange={(e) => setF({ ...f, end_date: e.target.value })} />
-            </Field>
-          )}
-          <div className="rounded-2xl bg-surface px-3 py-2 text-xs text-muted">
+            </Row>
+            <Row icon="calendar" label={t('finance.startDate')}>
+              <input type="date" className="pill" required disabled={editing} aria-label={t('finance.startDate')} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
+            </Row>
+            {f.kind === 'installment' ? (
+              <>
+                <Row icon="list" label={t('finance.totalPayments')}>
+                  <input type="number" inputMode="numeric" min={1} max={600} className="pill w-20" required aria-label={t('finance.totalPayments')} value={f.total_count} onChange={(e) => setF({ ...f, total_count: e.target.value })} />
+                </Row>
+                <Row icon="flag" label={t('finance.finalAmount')}>
+                  <input className="pill w-28 text-right" inputMode="decimal" aria-label={t('finance.finalAmount')} placeholder={t('finance.optional')} value={f.final_amount} onChange={(e) => setF({ ...f, final_amount: e.target.value.replace(',', '.') })} />
+                </Row>
+              </>
+            ) : (
+              <Row icon="flag" label={t('finance.endDateOptional')}>
+                <input type="date" className="pill" aria-label={t('finance.endDateOptional')} value={f.end_date} min={f.start_date} onChange={(e) => setF({ ...f, end_date: e.target.value })} />
+              </Row>
+            )}
+          </Group>
+
+          <div className="rounded-2xl bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
             {t('finance.firstDates')}: {preview.map((d) => formatDate(d, 'd MMM yyyy')).join(', ')}
             {f.kind === 'installment' && Number(f.total_count) > 0 && (
               <>
                 <br />
                 {t('finance.lastPayment')}: {formatDate(lastInstallmentDate(f.start_date, f.frequency, Number(f.total_count)), 'd MMM yyyy')}
                 {Number(f.final_amount) > 0 && ` (${money(Number(f.final_amount), f.currency)})`} · {t('finance.total')}:{' '}
-                {money(installmentTotal(Number(f.amount || 0), Number(f.total_count), Number(f.final_amount) > 0 ? Number(f.final_amount) : null), f.currency)}
+                {money(installmentTotal(amountValue(f.amount) || 0, Number(f.total_count), Number(f.final_amount) > 0 ? Number(f.final_amount) : null), f.currency)}
               </>
             )}
           </div>

@@ -292,13 +292,16 @@ export function Group({ children, className = '' }: { children: ReactNode; class
 }
 
 /** One line in a Group: icon and label on the left, the control on the right (or filling the row without a label). */
-export function Row({ icon, label, children, className = '' }: { icon?: IconName; label?: ReactNode; children?: ReactNode; className?: string }) {
+export function Row({ icon, label, hint, children, className = '' }: { icon?: IconName; label?: ReactNode; hint?: ReactNode; children?: ReactNode; className?: string }) {
   return (
     <div className={`flex min-h-[3.25rem] items-center gap-3 px-4 py-2 ${className}`}>
       {icon && <Icon name={icon} size={18} className="shrink-0 text-muted" />}
       {label != null ? (
         <>
-          <span className="min-w-0 flex-1 truncate text-[15px]">{label}</span>
+          <span className="min-w-0 flex-1 text-[15px]">
+            <span className="block truncate">{label}</span>
+            {hint && <span className="block text-[12px] leading-snug text-muted">{hint}</span>}
+          </span>
           <div className="flex shrink-0 items-center gap-2">{children}</div>
         </>
       ) : (
@@ -321,5 +324,40 @@ export function Switch({ checked, onChange, disabled, label }: { checked: boolea
     >
       <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-fg shadow transition-all ${checked ? 'left-[1.375rem]' : 'left-0.5'}`} />
     </button>
+  );
+}
+
+/** Large borderless first field of a form (a task's title, a habit's name…). */
+export function TitleInput({ value, onChange, placeholder, label, autoFocus, className = '' }: { value: string; onChange: (v: string) => void; placeholder: string; label: string; autoFocus?: boolean; className?: string }) {
+  return (
+    <input
+      className={`w-full min-w-0 bg-transparent text-[22px] font-semibold tracking-tight outline-none placeholder:text-muted/70 ${className}`}
+      required
+      autoFocus={autoFocus}
+      aria-label={label}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+/** Row of color swatches; the chosen one gets a ring. */
+export function ColorDots({ colors, value, onChange }: { colors: readonly string[]; value: string; onChange: (c: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2.5" role="radiogroup">
+      {colors.map((c) => (
+        <button
+          type="button"
+          key={c}
+          role="radio"
+          aria-checked={value === c}
+          aria-label={c}
+          onClick={() => onChange(c)}
+          className={`h-8 w-8 rounded-full transition ${value === c ? 'scale-110 ring-2 ring-fg ring-offset-2 ring-offset-card' : ''}`}
+          style={{ background: c }}
+        />
+      ))}
+    </div>
   );
 }

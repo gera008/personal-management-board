@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { money } from '@/lib/format';
-import { ErrorText, Field, SaveBar, Segmented, Sheet } from '@/components/ui';
+import { ErrorText, Group, Row, SaveBar, Segmented, Sheet, Switch } from '@/components/ui';
 import { CURRENCIES, num, type Currency, type Transaction, type TxType } from '@/domain/types';
 import { useAccounts, useCategories } from './hooks';
 import { AmountInput, amountValue } from './AmountInput';
@@ -209,6 +209,10 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
   };
 
   const catType = f.type === 'income' ? 'income' : 'expense';
+  const quickDates = [
+    { label: t('finance.today'), value: format(new Date(), 'yyyy-MM-dd') },
+    { label: t('finance.yesterday'), value: format(addDays(new Date(), -1), 'yyyy-MM-dd') },
+  ];
   const accent = f.type === 'expense' ? 'text-expense' : f.type === 'income' ? 'text-income' : 'text-transfer';
 
   return (
@@ -229,49 +233,55 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
         />
         {accounts.length === 0 && <p className="mb-3 text-sm text-expense">{t('finance.needAccount')}</p>}
 
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Field label={f.type === 'transfer' && crossCurrency ? `${t('finance.amount')} (${fromAcc?.currency})` : t('finance.amount')}>
-            <AmountInput className={`text-lg font-semibold ${accent}`} required autoFocus={!tx} currency={f.type === 'transfer' ? fromAcc?.currency : f.currency} value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} />
-          </Field>
-          {f.type !== 'transfer' && (
-            <Field label={t('finance.currency')}>
-              <select className="input" value={f.currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
+        <div className="mb-4">
+          <AmountInput hero className={accent} required autoFocus={!tx} currency={f.type === 'transfer' ? fromAcc?.currency : f.currency} value={f.amount} onChange={(amount) => setF((x) => ({ ...x, amount }))} />
+          <div className="mt-1 flex justify-center">
+            {f.type === 'transfer' ? (
+              fromAcc && <span className="text-sm text-muted">{fromAcc.currency}</span>
+            ) : (
+              <select className="pill py-1 text-sm" aria-label={t('finance.currency')} value={f.currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
                 {CURRENCIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
-            </Field>
-          )}
+            )}
+          </div>
         </div>
-        {f.type !== 'transfer' && f.currency !== 'MXN' && (
-          <Field label={t('finance.rateTo', { currency: f.currency })}>
-            <div className="flex items-center gap-2">
-              <input className="input" inputMode="decimal" required value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
-              <span className="shrink-0 text-sm text-muted">= {money(round2((amountValue(f.amount) || 0) * Number(f.rate || 0)))}</span>
+
+        <Group>
+          <div>
+            <Row icon="calendar" label={t('finance.date')}>
+              <input type="date" className="pill" required aria-label={t('finance.date')} value={f.occurred_at} onChange={(e) => setF({ ...f, occurred_at: e.target.value })} />
+            </Row>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-3">
+              {quickDates.map((q) => (
+                <button
+                  key={q.label}
+                  type="button"
+                  onClick={() => setF({ ...f, occurred_at: q.value })}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${f.occurred_at === q.value ? 'bg-fg text-bg' : 'bg-surface text-muted hover:text-fg'}`}
+                >
+                  {q.label}
+                </button>
+              ))}
             </div>
-          </Field>
-        )}
+          </div>
 
-        <Field label={t('finance.date')}>
-          <input type="date" className="input" required value={f.occurred_at} onChange={(e) => setF({ ...f, occurred_at: e.target.value })} />
-        </Field>
-
-        {f.type === 'transfer' ? (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t('finance.from')}>
-                <select className="input" required value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, to_amount: '' })}>
-                  <option value="" />
+          {f.type === 'transfer' ? (
+            <>
+              <Row icon="arrowUp" label={t('finance.from')}>
+                <select className="pill max-w-[11rem]" required aria-label={t('finance.from')} value={f.account_id} onChange={(e) => setF({ ...f, account_id: e.target.value, to_amount: '' })}>
+                  <option value="">{t('finance.chooseAccount')}</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label={t('finance.to')}>
-                <select className="input" required value={f.to_account_id} onChange={(e) => setF({ ...f, to_account_id: e.target.value, to_amount: '' })}>
-                  <option value="" />
+              </Row>
+              <Row icon="arrowDown" label={t('finance.to')}>
+                <select className="pill max-w-[11rem]" required aria-label={t('finance.to')} value={f.to_account_id} onChange={(e) => setF({ ...f, to_account_id: e.target.value, to_amount: '' })}>
+                  <option value="">{t('finance.chooseAccount')}</option>
                   {accounts
                     .filter((a) => a.id !== f.account_id)
                     .map((a) => (
@@ -280,75 +290,88 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
                       </option>
                     ))}
                 </select>
-              </Field>
-            </div>
-            {crossCurrency && (
-              <Field label={`${t('finance.amountReceived')} (${toAcc?.currency})`}>
-                <AmountInput required currency={toAcc?.currency} value={f.to_amount} onChange={(to_amount) => setF((x) => ({ ...x, to_amount }))} />
-                {amountValue(f.amount) > 0 && amountValue(f.to_amount) > 0 && (
-                  <span className="mt-1 block text-xs text-muted">
-                    1 {fromAcc?.currency} = {(amountValue(f.to_amount) / amountValue(f.amount)).toFixed(4)} {toAcc?.currency}
+              </Row>
+              {crossCurrency && (
+                <div className="px-4 py-3">
+                  <span className="label">
+                    {t('finance.amountReceived')} ({toAcc?.currency})
                   </span>
-                )}
-              </Field>
-            )}
-          </>
-        ) : (
-          <>
-            <Field label={t('finance.account')}>
-              <select className="input" required value={f.account_id} onChange={(e) => setAccount(e.target.value)}>
-                <option value="" disabled>
-                  {t('finance.chooseAccount')}
-                </option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.currency})
+                  <AmountInput required currency={toAcc?.currency} value={f.to_amount} onChange={(to_amount) => setF((x) => ({ ...x, to_amount }))} />
+                  {amountValue(f.amount) > 0 && amountValue(f.to_amount) > 0 && (
+                    <span className="mt-1 block text-xs text-muted">
+                      1 {fromAcc?.currency} = {(amountValue(f.to_amount) / amountValue(f.amount)).toFixed(4)} {toAcc?.currency}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Row icon="wallet" label={t('finance.account')}>
+                <select className="pill max-w-[11rem]" required aria-label={t('finance.account')} value={f.account_id} onChange={(e) => setAccount(e.target.value)}>
+                  <option value="" disabled>
+                    {t('finance.chooseAccount')}
                   </option>
-                ))}
-              </select>
-            </Field>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t('finance.category')}>
-                <select className="input" value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value, subcategory_id: '' })}>
-                  <option value="">—</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.currency})
+                    </option>
+                  ))}
+                </select>
+              </Row>
+              <Row icon="tag" label={t('finance.category')}>
+                <select className="pill max-w-[11rem]" aria-label={t('finance.category')} value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value, subcategory_id: '' })}>
+                  <option value="">{t('finance.uncategorized')}</option>
                   {cats.parents(catType).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label={t('finance.subcategory')}>
-                <select className="input" value={f.subcategory_id} disabled={!f.category_id} onChange={(e) => setF({ ...f, subcategory_id: e.target.value })}>
-                  <option value="">—</option>
-                  {f.category_id &&
-                    cats.children(f.category_id).map((c) => (
+              </Row>
+              {f.category_id && cats.children(f.category_id).length > 0 && (
+                <Row label={<span className="pl-[1.875rem]">{t('finance.subcategory')}</span>}>
+                  <select className="pill max-w-[11rem]" aria-label={t('finance.subcategory')} value={f.subcategory_id} onChange={(e) => setF({ ...f, subcategory_id: e.target.value })}>
+                    <option value="">—</option>
+                    {cats.children(f.category_id).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
-                </select>
-              </Field>
-            </div>
-          </>
-        )}
+                  </select>
+                </Row>
+              )}
+              {f.currency !== 'MXN' && (
+                <Row icon="swap" label={t('finance.rateTo', { currency: f.currency })} hint={`= ${money(round2((amountValue(f.amount) || 0) * Number(f.rate || 0)))}`}>
+                  <input className="pill w-24" inputMode="decimal" required aria-label={t('finance.rateTo', { currency: f.currency })} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
+                </Row>
+              )}
+            </>
+          )}
+        </Group>
 
         {f.type === 'expense' && (
-          <label className="mb-3 flex items-start gap-2 rounded-lg border border-border px-3 py-2 text-sm">
-            <input type="checkbox" className="mt-0.5" checked={f.paid_for_others} onChange={(e) => setF({ ...f, paid_for_others: e.target.checked })} />
-            <span>
-              <span className="font-medium">{t('finance.paidForOthers')}</span>
-              <span className="block text-xs text-muted">{t('finance.paidForOthersHelp')}</span>
-            </span>
-          </label>
+          <Group>
+            <Row icon="users" label={t('finance.paidForOthers')} hint={t('finance.paidForOthersHelp')}>
+              <Switch checked={f.paid_for_others} onChange={(paid_for_others) => setF({ ...f, paid_for_others })} label={t('finance.paidForOthers')} />
+            </Row>
+          </Group>
         )}
-        <Field label={t('finance.note')}>
-          <input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder={t('finance.notePlaceholder')} />
-        </Field>
-        <Field label={t('finance.description')}>
-          <textarea className="input min-h-[4rem]" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
-        </Field>
-        {f.occurred_at > format(new Date(), 'yyyy-MM-dd') && <p className="text-xs text-muted">{t('finance.willBePending')}</p>}
+
+        <Group className="mb-1">
+          <Row icon="edit">
+            <input className="w-full bg-transparent py-1 text-[15px] outline-none placeholder:text-muted" aria-label={t('finance.note')} placeholder={t('finance.notePlaceholder')} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+          </Row>
+          <textarea
+            rows={2}
+            className="block w-full resize-y bg-transparent px-4 py-3 text-[15px] outline-none placeholder:text-muted"
+            aria-label={t('finance.description')}
+            placeholder={t('finance.description')}
+            value={f.description}
+            onChange={(e) => setF({ ...f, description: e.target.value })}
+          />
+        </Group>
+        {f.occurred_at > format(new Date(), 'yyyy-MM-dd') && <p className="mt-2 text-xs text-muted">{t('finance.willBePending')}</p>}
       </form>
     </Sheet>
   );

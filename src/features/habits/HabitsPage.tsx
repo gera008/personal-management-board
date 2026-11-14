@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/format';
 import { useRemove, useSave } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { Heatmap } from '@/components/Heatmap';
-import { Empty, ErrorText, Fab, Field, Icon, MonthPicker, Progress, SaveBar, Segmented, Sheet, TagInput, TimeInput } from '@/components/ui';
+import { ColorDots, Empty, ErrorText, Fab, Group, Icon, MonthPicker, Progress, Row, SaveBar, Segmented, Sheet, Switch, TagInput, TimeSelect, TitleInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { canLogOn, computeStreaks, habitHeatmap, isSuccess, logMap, monthlyCompletion, weeklyCompletion } from '@/domain/habits/streaks';
 import { PALETTE, num, type Habit, type HabitFrequency } from '@/domain/types';
@@ -366,7 +366,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
     onClose();
   };
 
-  const weekdayLabels = Array.from({ length: 7 }, (_, i) => new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));
+  const weekdayLabels = Array.from({ length: 7 }, (_, i) => formatDate(new Date(2026, 10, 1 + i), 'EEEEE'));
 
   return (
     <Sheet
@@ -377,11 +377,12 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
     >
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={save.error} />
-        <Field label={t('common.name')}>
-          <input className="input" required autoFocus={!habit} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
+        <div className="mb-4 flex items-center gap-3">
+          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: isBad ? 'rgb(var(--slip))' : f.color }} />
+          <TitleInput value={f.name} onChange={(name) => setF({ ...f, name })} label={t('common.name')} placeholder={t('habits.namePlaceholder')} autoFocus={!habit} />
+        </div>
         <Segmented
-          className="mb-1 w-full"
+          className="mb-1.5 w-full"
           value={f.kind}
           onChange={(kind) => setF({ ...f, kind })}
           options={[
@@ -389,87 +390,91 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
             { value: 'bad', label: t('habits.bad') },
           ]}
         />
-        <p className="mb-3 text-xs text-muted">{isBad ? t('habits.badHelp') : t('habits.goodHelp')}</p>
+        <p className="mb-4 px-1 text-xs text-muted">{isBad ? t('habits.badHelp') : t('habits.goodHelp')}</p>
 
         {!isBad && (
-          <>
-            <Segmented
-              className="mb-3 w-full"
-              value={f.type}
-              onChange={(type) => setF({ ...f, type })}
-              options={[
-                { value: 'boolean', label: t('habits.yesNo') },
-                { value: 'numeric', label: t('habits.numeric') },
-              ]}
-            />
-            {f.type === 'numeric' && (
-              <div className="grid grid-cols-2 gap-2">
-                <Field label={t('habits.target')}>
-                  <input className="input" inputMode="decimal" required value={f.target_value} onChange={(e) => setF({ ...f, target_value: e.target.value })} />
-                </Field>
-                <Field label={t('habits.unit')}>
-                  <input className="input" placeholder={t('habits.unitPlaceholder')} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} />
-                </Field>
-              </div>
-            )}
-            <Field label={t('habits.frequency')}>
-              <select className="input" value={f.freq} onChange={(e) => setF({ ...f, freq: e.target.value as FreqType })}>
-                {(['daily', 'weekdays', 'times_per_week', 'every_n_days'] as FreqType[]).map((x) => (
-                  <option key={x} value={x}>
-                    {t(`habits.freq.${x}`)}
-                  </option>
-                ))}
+          <Group>
+            <Row icon="chart" label={t('habits.measure')}>
+              <select className="pill" aria-label={t('habits.measure')} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as Habit['type'] })}>
+                <option value="boolean">{t('habits.yesNo')}</option>
+                <option value="numeric">{t('habits.numeric')}</option>
               </select>
-            </Field>
-            {f.freq === 'weekdays' && (
-              <div className="mb-3 grid grid-cols-7 gap-1">
-                {weekdayLabels.map((label, d) => (
-                  <button
-                    type="button"
-                    key={d}
-                    onClick={() => setF({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d] })}
-                    className={`rounded-lg border py-1.5 text-sm ${f.days.includes(d) ? 'border-habit bg-habit/10 text-habit' : 'border-border'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+            </Row>
+            {f.type === 'numeric' && (
+              <Row icon="target" label={t('habits.targetShort')}>
+                <input className="pill w-16 px-2" inputMode="decimal" required aria-label={t('habits.target')} placeholder="8" value={f.target_value} onChange={(e) => setF({ ...f, target_value: e.target.value })} />
+                <input className="pill w-24" aria-label={t('habits.unit')} placeholder={t('habits.unitPlaceholder')} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} />
+              </Row>
             )}
-            {(f.freq === 'times_per_week' || f.freq === 'every_n_days') && (
-              <Field label={f.freq === 'times_per_week' ? t('habits.timesPerWeek') : t('habits.everyNDays')}>
-                <input type="number" min={1} max={f.freq === 'times_per_week' ? 7 : 365} className="input" value={f.n} onChange={(e) => setF({ ...f, n: e.target.value })} />
-              </Field>
-            )}
-            <Field label={t('common.color')}>
-              <div className="flex gap-2">
-                {PALETTE.map((c) => (
-                  <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`h-8 w-8 rounded-full ${f.color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-bg' : ''}`} style={{ background: c }} aria-label={c} />
-                ))}
-              </div>
-            </Field>
-          </>
+            <div>
+              <Row icon="repeat" label={t('habits.frequency')}>
+                <select className="pill max-w-[11rem]" aria-label={t('habits.frequency')} value={f.freq} onChange={(e) => setF({ ...f, freq: e.target.value as FreqType })}>
+                  {(['daily', 'weekdays', 'times_per_week', 'every_n_days'] as FreqType[]).map((x) => (
+                    <option key={x} value={x}>
+                      {t(`habits.freq.${x}`)}
+                    </option>
+                  ))}
+                </select>
+              </Row>
+              {f.freq === 'weekdays' && (
+                <div className="flex justify-between gap-1 px-4 pb-3 pl-[2.875rem]">
+                  {weekdayLabels.map((label, d) => {
+                    const on = f.days.includes(d);
+                    return (
+                      <button
+                        type="button"
+                        key={d}
+                        aria-pressed={on}
+                        onClick={() => setF({ ...f, days: on ? f.days.filter((x) => x !== d) : [...f.days, d] })}
+                        className={`h-9 w-9 rounded-full text-sm font-medium capitalize transition ${on ? 'bg-habit text-bg' : 'bg-surface text-muted'}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {(f.freq === 'times_per_week' || f.freq === 'every_n_days') && (
+                <div className="flex items-center gap-2 px-4 pb-3 pl-[2.875rem] text-sm">
+                  <span className="text-muted">{f.freq === 'times_per_week' ? t('habits.timesPerWeek') : t('habits.everyNDays')}</span>
+                  <input type="number" inputMode="numeric" min={1} max={f.freq === 'times_per_week' ? 7 : 365} className="pill w-16 px-2" value={f.n} onChange={(e) => setF({ ...f, n: e.target.value })} />
+                </div>
+              )}
+            </div>
+          </Group>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <Field label={t('habits.goalDays')}>
-            <input type="number" min={1} className="input" placeholder="66" value={f.goal_days} onChange={(e) => setF({ ...f, goal_days: e.target.value })} />
-          </Field>
-          <Field label={t('habits.startDate')}>
-            <input type="date" className="input" required value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
-          </Field>
-        </div>
-        <Field label={t('habits.reminder')}>
-          <TimeInput value={f.reminder_time} onChange={(reminder_time) => setF({ ...f, reminder_time })} />
-        </Field>
-        <Field label={t('common.tags')}>
-          <TagInput value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />
-        </Field>
-        {habit && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={f.archived} onChange={(e) => setF({ ...f, archived: e.target.checked })} />
-            {t('common.archived')}
-          </label>
+        <Group>
+          <Row icon="calendar" label={t('habits.startShort')}>
+            <input type="date" className="pill" required aria-label={t('habits.startDate')} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} />
+          </Row>
+          <Row icon="flag" label={t('habits.goalDays')}>
+            <input type="number" inputMode="numeric" min={1} className="pill w-20" aria-label={t('habits.goalDays')} placeholder="66" value={f.goal_days} onChange={(e) => setF({ ...f, goal_days: e.target.value })} />
+          </Row>
+          <Row icon="bell" label={t('habits.reminderShort')}>
+            <TimeSelect value={f.reminder_time} onChange={(reminder_time) => setF({ ...f, reminder_time })} emptyLabel={t('habits.noReminder')} aria-label={t('habits.reminder')} />
+          </Row>
+        </Group>
+
+        {!isBad && (
+          <Group>
+            <div className="px-4 py-3">
+              <span className="label">{t('common.color')}</span>
+              <ColorDots colors={PALETTE} value={f.color} onChange={(color) => setF({ ...f, color })} />
+            </div>
+          </Group>
         )}
+
+        <Group className="mb-1">
+          <Row icon="tag">
+            <TagInput className="w-full bg-transparent py-1 text-[15px] outline-none" value={f.tags} onChange={(tags) => setF({ ...f, tags })} placeholder={t('common.addTag')} />
+          </Row>
+          {habit && (
+            <Row icon="eyeOff" label={t('common.archived')}>
+              <Switch checked={f.archived} onChange={(archived) => setF({ ...f, archived })} label={t('common.archived')} />
+            </Row>
+          )}
+        </Group>
       </form>
     </Sheet>
   );

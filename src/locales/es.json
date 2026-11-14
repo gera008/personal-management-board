@@ -8,7 +8,8 @@
     "settings": "Ajustes",
     "health": "Salud",
     "selector": "Selector de módulos",
-    "tapForOverview": "Toca aquí para ir al Resumen"
+    "tapForOverview": "Toca aquí para ir al Resumen",
+    "clickForOverview": "Clic aquí para ir al Resumen"
   },
   "common": {
     "add": "Agregar",
@@ -144,7 +145,8 @@
     "tomorrow": "Mañana",
     "inAWeek": "En 7 días",
     "remind": "Recordarme",
-    "remindHint": "A la hora límite (9:00 si no hay hora)"
+    "remindHint": "A la hora límite (9:00 si no hay hora)",
+    "listNamePlaceholder": "Nombre de la categoría"
   },
   "finance": {
     "tabs": {
@@ -304,7 +306,10 @@
     "generalBudgetOption": "General (todos los gastos)",
     "perMonth": "{{amount}} / mes",
     "thisWeek": "Esta semana",
-    "thisMonthBudget": "Este mes"
+    "thisMonthBudget": "Este mes",
+    "yesterday": "Ayer",
+    "chooseCategory": "Elige una categoría",
+    "accountNamePlaceholder": "Nombre de la cuenta"
   },
   "analytics": {
     "ranges": {
@@ -482,7 +487,13 @@
     "monthBad": "{{clean}} limpios · ✕ {{slips}} caídas",
     "monthHintGood": "Toca un día: ✓ hecho → ✕ no lo hice → vacío.",
     "monthHintBad": "Toca un día para marcar o quitar una caída. Los días sin caída cuentan como limpios.",
-    "monthHintNumeric": "Toca un día para escribir su valor o marcar que no lo hiciste."
+    "monthHintNumeric": "Toca un día para escribir su valor o marcar que no lo hiciste.",
+    "namePlaceholder": "Ej. Leer 20 minutos",
+    "measure": "Se mide",
+    "noReminder": "Sin recordatorio",
+    "targetShort": "Meta",
+    "startShort": "Inicio",
+    "reminderShort": "Recordatorio"
   },
   "settings": {
     "title": "Ajustes",
@@ -658,6 +669,7 @@
     "gainLastYear": "Ganancia en el último año",
     "gainAllTime": "Ganancia desde el inicio",
     "movements": "Movimientos",
-    "movementsHelp": "Las aportaciones y los retiros se registran como transferencias; los dividendos, como ingresos."
+    "movementsHelp": "Las aportaciones y los retiros se registran como transferencias; los dividendos, como ingresos.",
+    "notePlaceholder": "Nota (opcional)"
   }
 }

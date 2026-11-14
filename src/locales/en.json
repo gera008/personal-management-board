@@ -8,7 +8,8 @@
     "settings": "Settings",
     "health": "Health",
     "selector": "Module selector",
-    "tapForOverview": "Tap here for the Overview"
+    "tapForOverview": "Tap here for the Overview",
+    "clickForOverview": "Click here for the Overview"
   },
   "common": {
     "add": "Add",
@@ -144,7 +145,8 @@
     "tomorrow": "Tomorrow",
     "inAWeek": "In 7 days",
     "remind": "Remind me",
-    "remindHint": "At the due time (9:00 if no time)"
+    "remindHint": "At the due time (9:00 if no time)",
+    "listNamePlaceholder": "Category name"
   },
   "finance": {
     "tabs": {
@@ -304,7 +306,10 @@
     "generalBudgetOption": "General (all expenses)",
     "perMonth": "{{amount}} / month",
     "thisWeek": "This week",
-    "thisMonthBudget": "This month"
+    "thisMonthBudget": "This month",
+    "yesterday": "Yesterday",
+    "chooseCategory": "Choose a category",
+    "accountNamePlaceholder": "Account name"
   },
   "analytics": {
     "ranges": {
@@ -482,7 +487,13 @@
     "monthBad": "{{clean}} clean · ✕ {{slips}} slips",
     "monthHintGood": "Tap a day: ✓ done → ✕ didn’t do it → empty.",
     "monthHintBad": "Tap a day to mark or remove a slip. Days without one count as clean.",
-    "monthHintNumeric": "Tap a day to type its value or mark it as not done."
+    "monthHintNumeric": "Tap a day to type its value or mark it as not done.",
+    "namePlaceholder": "E.g. Read 20 minutes",
+    "measure": "Measured as",
+    "noReminder": "No reminder",
+    "targetShort": "Target",
+    "startShort": "Start",
+    "reminderShort": "Reminder"
   },
   "settings": {
     "title": "Settings",
@@ -658,6 +669,7 @@
     "gainLastYear": "Gain over the last year",
     "gainAllTime": "Gain since the start",
     "movements": "Movements",
-    "movementsHelp": "Record contributions and withdrawals as transfers, and dividends as income."
+    "movementsHelp": "Record contributions and withdrawals as transfers, and dividends as income.",
+    "notePlaceholder": "Note (optional)"
   }
 }

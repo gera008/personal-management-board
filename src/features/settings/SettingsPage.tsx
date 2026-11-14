@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
-import { ErrorText, Icon, PageHeader, Segmented } from '@/components/ui';
+import { ErrorText, Icon, PageHeader, Segmented, TimeSelect } from '@/components/ui';
 import { currentSubscription, disablePush, enablePush, isIosBrowserTab, pushSupported, sendTestPush } from '@/lib/push';
 import { exportAllJson, exportTransactionsCsv } from '@/lib/exporter';
 import { GoogleCalendarSettings } from './GoogleCalendarSettings';
@@ -239,7 +239,7 @@ function Notifications({ digestTime, onDigest }: { digestTime: string; onDigest:
       )}
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className="text-sm">{t('settings.digestTime')}</span>
-        <input type="time" className="input max-w-[8rem]" value={digestTime.slice(0, 5)} onChange={(e) => e.target.value && onDigest(e.target.value)} />
+        <TimeSelect className="input max-w-[8rem]" value={digestTime.slice(0, 5)} onChange={(v) => v && onDigest(v)} />
       </div>
     </section>
   );

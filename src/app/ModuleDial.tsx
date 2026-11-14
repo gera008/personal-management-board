@@ -189,6 +189,20 @@ export function ModuleDial({ side }: { side: DialSide }) {
   };
   const drag = useRef<{ last: number; moved: number; item: number | null; hub: boolean } | null>(null);
 
+  // With a mouse, resting the cursor on the dial brings it forward; leaving lets it rest again.
+  const hovering = useRef(false);
+  const onPointerEnter = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    hovering.current = true;
+    unlockBezel();
+    wake();
+  };
+  const onPointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    hovering.current = false;
+    if (!drag.current) rest();
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     unlockBezel();
     const target = e.target as HTMLElement;
@@ -231,7 +245,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     } else {
       goTo(indexForRotation(rot.current)); // snap to the nearest module
     }
-    rest();
+    if (!hovering.current) rest();
   };
 
   // ----- Mouse wheel and keyboard -----
@@ -248,7 +262,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
         goTo((indexForRotation(rot.current) + (wheel.current > 0 ? 1 : N - 1)) % N);
         wheel.current = 0;
       }
-      rest();
+      if (!hovering.current) rest();
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
@@ -272,6 +286,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
 
   const bottom = side === 'bottom';
   const name = t(MODULES[current].key);
+  const finePointer = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
   // On the Overview (or Settings) no module is lit until you start turning.
   const highlighted = active || routeIndex >= 0 ? current : -1;
   const hubLit = onOverview && !active;
@@ -295,6 +310,8 @@ export function ModuleDial({ side }: { side: DialSide }) {
         aria-valuemax={N}
         aria-valuenow={current + 1}
         aria-valuetext={name}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -392,14 +409,18 @@ export function ModuleDial({ side }: { side: DialSide }) {
                   borderRadius: `0 ${g.hub}px ${g.hub}px 0`,
                   borderLeft: 0,
                   justifyContent: 'center',
-                  paddingRight: 8,
+                  // Keep the label clear of the curved edge and the module buttons.
+                  paddingLeft: Math.round(g.hub * 0.08),
+                  paddingRight: Math.round(g.hub * 0.2),
                 }
           }
         >
           {active ? (
             <>
-              <b className="text-[15px] font-semibold leading-tight">{name}</b>
-              <small className="mt-0.5 text-[11px] text-muted">{t('nav.tapForOverview')}</small>
+              <b className="max-w-full truncate text-[15px] font-semibold leading-tight">{name}</b>
+              <small className="mt-1 text-[10.5px] leading-snug text-muted [text-wrap:balance]" style={{ maxWidth: bottom ? g.hub * 1.3 : g.hub * 0.72 }}>
+                {finePointer ? t('nav.clickForOverview') : t('nav.tapForOverview')}
+              </small>
             </>
           ) : (
             // Idle the dial is small: just the Overview icon.
