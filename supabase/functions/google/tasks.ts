@@ -10,7 +10,7 @@
 // (see _shared/gmapping.ts). Google Tasks has no sync token, so each list
 // remembers when it was last pulled and asks for what changed since.
 //
-// Order: lists, deletions, pull (Google -> app), then push (app -> Google).
+// Order: deletions, lists, pull (Google -> app), then push (app -> Google).
 // Pulling first lets the first sync of a list link tasks that already exist on
 // both sides (same title and date) instead of duplicating them. When both sides
 // changed a task since the last sync, the newer change wins.
@@ -199,6 +199,7 @@ async function syncLists(db: SupabaseClient, call: TasksCall, userId: string, fa
 async function pushDeletions(db: SupabaseClient, call: TasksCall, userId: string) {
   const { data: dels } = await db.from('google_task_deletions').select('*').eq('user_id', userId).order('id');
   for (const d of dels ?? []) {
+    // Lists before the tasks inside them don't matter: deleting a list deletes its tasks.
     const path = d.task_id ? `/lists/${enc(d.tasklist_id)}/tasks/${enc(d.task_id)}` : `/users/@me/lists/${enc(d.tasklist_id)}`;
     const res = await call('DELETE', path);
     if (res.ok || res.status === 404 || res.status === 410) await db.from('google_task_deletions').delete().eq('id', d.id);
@@ -381,8 +382,10 @@ async function pushTasks(db: SupabaseClient, call: TasksCall, userId: string, li
 
 export async function syncTasks(db: SupabaseClient, call: TasksCall, userId: string) {
   const failed: string[] = [];
-  const lists = await syncLists(db, call, userId, failed);
+  // Deletions first: a list deleted in the app must be gone from Google before
+  // Google's lists are read, or it would come back as a new category.
   await pushDeletions(db, call, userId);
+  const lists = await syncLists(db, call, userId, failed);
   for (const l of lists) await pullList(db, call, userId, l);
   const pushed = await pushTasks(db, call, userId, lists, failed);
   return { lists: lists.length, pushed, failed };
