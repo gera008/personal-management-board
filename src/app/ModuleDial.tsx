@@ -23,6 +23,10 @@ const N = MODULES.length;
 const STEP = 360 / N;
 const NOTCH = 24; // room for the pointer outside the dial
 const IDLE_MS = 1600;
+/** Touch turns the dial faster than the finger so a short swipe is enough. */
+const TOUCH_GAIN = 1.8;
+/** A turn this far (degrees) from where it started is enough to reach the next module. */
+const ADVANCE_DEG = 18;
 /** Idle size in pixels (pointer to the far edge), whatever the active size is. */
 const IDLE_EXTENT = 110;
 
@@ -142,6 +146,11 @@ export function ModuleDial({ side }: { side: DialSide }) {
     window.clearTimeout(idle.current);
     idle.current = window.setTimeout(() => setActive(false), IDLE_MS);
   }, []);
+  // The mouse left: put the dial away right now, no waiting.
+  const sleep = useCallback(() => {
+    window.clearTimeout(idle.current);
+    setActive(false);
+  }, []);
   useEffect(() => () => window.clearTimeout(idle.current), []);
 
   // Turn to a module by the shortest way and open it.
@@ -187,7 +196,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
     // Clockwise degrees from the pointer direction (up, or right on the left edge).
     return ((side === 'bottom' ? Math.atan2(dx, -dy) : Math.atan2(dy, dx)) * 180) / Math.PI;
   };
-  const drag = useRef<{ last: number; moved: number; item: number | null; hub: boolean } | null>(null);
+  const drag = useRef<{ last: number; moved: number; start: number; gain: number; item: number | null; hub: boolean } | null>(null);
 
   // With a mouse, resting the cursor on the dial brings it forward; leaving lets it rest again.
   const hovering = useRef(false);
@@ -200,7 +209,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
   const onPointerLeave = (e: React.PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
     hovering.current = false;
-    if (!drag.current) rest();
+    if (!drag.current) sleep();
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -210,7 +219,14 @@ export function ModuleDial({ side }: { side: DialSide }) {
     const hub = !!target.closest('[data-hub]');
     // Idle, a tap on the hub goes straight to the Overview without opening the dial.
     if (!hub || active) wake();
-    drag.current = { last: angle(e), moved: 0, item: btn ? Number(btn.getAttribute('data-i')) : null, hub };
+    drag.current = {
+      last: angle(e),
+      moved: 0,
+      start: rot.current,
+      gain: e.pointerType === 'mouse' ? 1 : TOUCH_GAIN,
+      item: btn ? Number(btn.getAttribute('data-i')) : null,
+      hub,
+    };
     dock.current?.setPointerCapture(e.pointerId);
     paint(false);
   };
@@ -221,13 +237,13 @@ export function ModuleDial({ side }: { side: DialSide }) {
     let delta = a - d.last;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
-    rot.current += delta;
+    rot.current += delta * d.gain;
     d.last = a;
     d.moved += Math.abs(delta);
     if (d.moved >= 3) wake();
     paint(false);
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
@@ -243,9 +259,17 @@ export function ModuleDial({ side }: { side: DialSide }) {
       if (d.item != null) goTo(d.item);
       else goTo(indexForRotation(rot.current), false);
     } else {
-      goTo(indexForRotation(rot.current)); // snap to the nearest module
+      // Snap to the nearest module, but a short swipe still reaches the next one.
+      const from = indexForRotation(d.start);
+      let to = indexForRotation(rot.current);
+      const net = rot.current - d.start;
+      if (to === from && Math.abs(net) >= ADVANCE_DEG) to = (from + (net < 0 ? 1 : N - 1)) % N;
+      goTo(to);
     }
-    if (!hovering.current) rest();
+    if (!hovering.current) {
+      if (e.pointerType === 'mouse') sleep();
+      else rest();
+    }
   };
 
   // ----- Mouse wheel and keyboard -----
@@ -319,7 +343,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
         onKeyDown={onKeyDown}
         onFocus={wake}
         onBlur={rest}
-        className="fixed z-40 touch-none select-none overflow-hidden outline-none transition-transform duration-300 ease-out"
+        className="fixed z-40 touch-none select-none overflow-hidden outline-none transition-transform duration-200 ease-out"
         style={
           bottom
             ? {
