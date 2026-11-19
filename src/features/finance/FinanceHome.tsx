@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { addMonths, startOfMonth } from 'date-fns';
 import { money, formatDate } from '@/lib/format';
@@ -12,7 +12,7 @@ import { TransactionSheet } from './TransactionSheet';
 export function FinanceHome() {
   const { t } = useTranslation();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
-  const [sheet, setSheet] = useState<{ tx?: Transaction | null } | null>(null);
+  const [sheet, setSheet] = useState<{ tx?: Transaction | null; date?: string } | null>(null);
   const txs = useTransactions(month, addMonths(month, 1));
   const accounts = useAccounts();
   const cats = useCategories();
@@ -44,7 +44,9 @@ export function FinanceHome() {
           return (
             <section key={day}>
               <div className="mb-1 flex items-baseline justify-between">
-                <h3 className="section-title mb-0 capitalize">{formatDate(day, 'EEEE d MMM yyyy')}</h3>
+                <DayHeader day={day} onAdd={() => setSheet({ date: day })}>
+                  {formatDate(day, 'EEEE d MMM yyyy')}
+                </DayHeader>
                 <span className={`text-xs ${net < 0 ? 'text-expense' : net > 0 ? 'text-income' : 'text-muted'}`}>{money(net, 'MXN', { sign: true })}</span>
               </div>
               <div className="card divide-y divide-border px-3 py-0">
@@ -58,8 +60,27 @@ export function FinanceHome() {
       )}
 
       <Fab label={t('finance.newTransaction')} onClick={() => setSheet({})} />
-      <TransactionSheet open={!!sheet} onClose={() => setSheet(null)} tx={sheet?.tx} />
+      <TransactionSheet open={!!sheet} onClose={() => setSheet(null)} tx={sheet?.tx} date={sheet?.date} />
     </div>
+  );
+}
+
+/** A day's heading in a list of movements; tapping it adds an entry on that day. */
+export function DayHeader({ day, onAdd, children, className = 'mb-0' }: { day: string; onAdd: () => void; children: ReactNode; className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      title={t('finance.addOnDate', { date: formatDate(day, 'd MMM') })}
+      aria-label={t('finance.addOnDate', { date: formatDate(day, 'd MMM yyyy') })}
+      className={`section-title group -mx-1.5 flex items-center gap-1.5 rounded-lg px-1.5 capitalize transition hover:bg-surface hover:text-fg ${className}`}
+    >
+      {children}
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-surface text-muted opacity-60 transition group-hover:bg-fg group-hover:text-bg group-hover:opacity-100">
+        <Icon name="plus" size={12} />
+      </span>
+    </button>
   );
 }
 
@@ -95,6 +116,8 @@ export function TxRow({ tx, accById, cats, onOpen, showDate, other }: { tx: Tran
     : [categoryName(cats, tx.category_id, ''), tx.subcategory_id ? categoryName(cats, tx.subcategory_id, '') : '', acc?.name].filter(Boolean).join(' · ');
   const tone = tx.type === 'expense' ? 'text-expense' : tx.type === 'income' ? 'text-income' : 'text-transfer';
   const amount = num(tx.original_amount);
+  const adjustments = Array.isArray(tx.adjustments) ? tx.adjustments : [];
+  const fullAmount = amount - adjustments.reduce((s, a) => s + num(a.amount), 0);
   return (
     <button onClick={onOpen} className="flex w-full items-center gap-3 py-2.5 text-left">
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface ${tone}`}>
@@ -114,6 +137,11 @@ export function TxRow({ tx, accById, cats, onOpen, showDate, other }: { tx: Tran
           {showDate && `${formatDate(tx.occurred_at, 'd MMM')} · `}
           {subtitle}
         </div>
+        {adjustments.length > 0 && (
+          <div className="truncate text-xs text-muted">
+            {t('finance.fullAmount')} {money(fullAmount, tx.currency)} · {t('finance.adjustmentsCount', { count: adjustments.length })}
+          </div>
+        )}
       </div>
       <div className="text-right">
         <div className={`text-sm font-semibold ${tone}`}>

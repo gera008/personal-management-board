@@ -5,8 +5,8 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate } from '@/lib/data';
 import { useProfile } from '@/lib/profile';
 import { money } from '@/lib/format';
-import { ErrorText, Group, Row, SaveBar, Segmented, Sheet, Switch } from '@/components/ui';
-import { CURRENCIES, num, type Currency, type Transaction, type TxType } from '@/domain/types';
+import { ErrorText, Group, Icon, Row, SaveBar, Segmented, Sheet, Switch } from '@/components/ui';
+import { CURRENCIES, num, type Currency, type Transaction, type TxAdjustment, type TxType } from '@/domain/types';
 import { useAccounts, useCategories } from './hooks';
 import { AmountInput, amountValue } from './AmountInput';
 
@@ -38,9 +38,33 @@ interface Form {
   note: string;
   description: string;
   paid_for_others: boolean;
+  adjustments: AdjustmentForm[];
 }
 
-export function TransactionSheet({ open, onClose, tx, accountId }: { open: boolean; onClose: () => void; tx?: Transaction | null; /** Preselects this account for a new entry (opened from an account's page). */ accountId?: string }) {
+/** One amount inside the entry. sign -1 lowers it (paid back to you), +1 raises it (extra cost). */
+interface AdjustmentForm {
+  sign: 1 | -1;
+  label: string;
+  amount: string;
+}
+
+const adjustmentsOf = (tx?: Transaction | null): TxAdjustment[] => (Array.isArray(tx?.adjustments) ? tx!.adjustments! : []);
+
+export function TransactionSheet({
+  open,
+  onClose,
+  tx,
+  accountId,
+  date,
+}: {
+  open: boolean;
+  onClose: () => void;
+  tx?: Transaction | null;
+  /** Preselects this account for a new entry (opened from an account's page). */
+  accountId?: string;
+  /** Prefills the date (yyyy-MM-dd) of a new entry (opened from a day in a list). */
+  date?: string;
+}) {
   const { t } = useTranslation();
   const { rates } = useProfile();
   const accounts = (useAccounts().data ?? []).filter((a) => !a.archived || a.id === tx?.account_id);
@@ -66,6 +90,7 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
       note: '',
       description: '',
       paid_for_others: false,
+      adjustments: [],
     };
   }
 
@@ -76,15 +101,17 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
     if (!tx) {
       // No account is preselected (so nothing lands in the wrong one by accident), except when opened from an account's page.
       const chosen = accountId ? accounts.find((a) => a.id === accountId) : undefined;
-      setF({ ...blank(), account_id: chosen?.id ?? '', currency: chosen?.currency ?? 'MXN', rate: String(chosen ? rateFor(chosen.currency) : 1) });
+      setF({ ...blank(), ...(date ? { occurred_at: date } : {}), account_id: chosen?.id ?? '', currency: chosen?.currency ?? 'MXN', rate: String(chosen ? rateFor(chosen.currency) : 1) });
       return;
     }
+    const adj = adjustmentsOf(tx);
     const base: Form = {
       type: tx.type,
       occurred_at: format(new Date(tx.occurred_at), 'yyyy-MM-dd'),
       account_id: tx.account_id,
       to_account_id: '',
-      amount: String(num(tx.original_amount)),
+      // The field holds the full price; the stored amount is the net after adjustments.
+      amount: String(round2(num(tx.original_amount) - adj.reduce((s, a) => s + num(a.amount), 0))),
       to_amount: '',
       currency: tx.currency,
       rate: String(num(tx.exchange_rate)),
@@ -93,6 +120,7 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
       note: tx.note ?? '',
       description: tx.description ?? '',
       paid_for_others: tx.paid_for_others ?? false,
+      adjustments: adj.map((a) => ({ sign: num(a.amount) < 0 ? -1 : 1, label: a.label, amount: String(Math.abs(num(a.amount))) })),
     };
     setF(base);
     if (tx.type === 'transfer' && tx.transfer_pair_id) {
@@ -123,6 +151,14 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
     setF({ ...f, account_id: id, ...(a ? { currency: a.currency, rate: String(rateFor(a.currency)) } : {}) });
   };
   const setCurrency = (c: Currency) => setF({ ...f, currency: c, rate: String(rateFor(c)) });
+
+  // Adjustments with an amount, signed; the entry counts only the net.
+  const adjustments: TxAdjustment[] = f.adjustments
+    .map((a) => ({ label: a.label.trim(), amount: round2(a.sign * (amountValue(a.amount) || 0)) }))
+    .filter((a) => a.amount !== 0);
+  const netAmount = round2((amountValue(f.amount) || 0) + adjustments.reduce((s, a) => s + a.amount, 0));
+  const setAdjustment = (i: number, patch: Partial<AdjustmentForm>) =>
+    setF((x) => ({ ...x, adjustments: x.adjustments.map((a, j) => (j === i ? { ...a, ...patch } : a)) }));
 
   // Suggest the destination amount from settings rates when currencies differ.
   useEffect(() => {
@@ -164,6 +200,8 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
       } else {
         const rate = f.currency === 'MXN' ? 1 : Number(f.rate);
         if (!(rate > 0)) throw new Error(t('finance.rateMissing'));
+        if (f.adjustments.some((a) => a.amount.trim() && !(amountValue(a.amount) > 0))) throw new Error(t('finance.amountRequired'));
+        if (!(netAmount > 0)) throw new Error(t('finance.netMustBePositive'));
         const row = {
           type: f.type,
           direction: null,
@@ -174,12 +212,14 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
           subcategory_id: f.subcategory_id || null,
           note: f.note || null,
           description: f.description || null,
-          original_amount: amount,
+          original_amount: netAmount,
           currency: f.currency,
           exchange_rate: rate,
-          base_amount_mxn: round2(amount * rate),
+          base_amount_mxn: round2(netAmount * rate),
           status,
           paid_for_others: f.type === 'expense' && f.paid_for_others,
+          // Sent only when there is something to store or clear, so plain entries don't depend on the column.
+          ...(adjustments.length || adjustmentsOf(tx).length ? { adjustments } : {}),
         };
         if (tx?.type === 'transfer') {
           // Converting a transfer into income/expense: drop both sides first.
@@ -342,13 +382,60 @@ export function TransactionSheet({ open, onClose, tx, accountId }: { open: boole
                 </Row>
               )}
               {f.currency !== 'MXN' && (
-                <Row icon="swap" label={t('finance.rateTo', { currency: f.currency })} hint={`= ${money(round2((amountValue(f.amount) || 0) * Number(f.rate || 0)))}`}>
+                <Row icon="swap" label={t('finance.rateTo', { currency: f.currency })} hint={`= ${money(round2(netAmount * Number(f.rate || 0)))}`}>
                   <input className="pill w-24" inputMode="decimal" required aria-label={t('finance.rateTo', { currency: f.currency })} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(',', '.') })} />
                 </Row>
               )}
             </>
           )}
         </Group>
+
+        {f.type !== 'transfer' && (
+          <Group>
+            <Row icon="plus" label={t('finance.adjustments')} hint={t('finance.adjustmentsHelp')} />
+            {f.adjustments.map((a, i) => (
+              <div key={i} className="flex items-center gap-2 px-4 py-2">
+                <button
+                  type="button"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-base font-semibold ${a.sign < 0 ? 'text-income' : 'text-expense'}`}
+                  title={a.sign < 0 ? t('finance.adjustmentLower') : t('finance.adjustmentRaise')}
+                  aria-label={a.sign < 0 ? t('finance.adjustmentLower') : t('finance.adjustmentRaise')}
+                  onClick={() => setAdjustment(i, { sign: a.sign < 0 ? 1 : -1 })}
+                >
+                  {a.sign < 0 ? '−' : '+'}
+                </button>
+                <input
+                  className="min-w-0 flex-1 bg-transparent py-1 text-[15px] outline-none placeholder:text-muted"
+                  aria-label={t('finance.adjustmentLabel')}
+                  placeholder={t('finance.adjustmentLabelPlaceholder')}
+                  value={a.label}
+                  onChange={(e) => setAdjustment(i, { label: e.target.value })}
+                />
+                <input
+                  className="pill w-28 text-right"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  aria-label={t('finance.amount')}
+                  value={a.amount}
+                  onChange={(e) => setAdjustment(i, { amount: e.target.value.replace(',', '.') })}
+                />
+                <button type="button" className="shrink-0 rounded-lg p-1 text-muted hover:text-fg" aria-label={t('finance.removeAdjustment')} onClick={() => setF((x) => ({ ...x, adjustments: x.adjustments.filter((_, j) => j !== i) }))}>
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => setF((x) => ({ ...x, adjustments: [...x.adjustments, { sign: -1, label: '', amount: '' }] }))}>
+                + {t('finance.addAdjustment')}
+              </button>
+              {adjustments.length > 0 && (
+                <span className={`text-sm font-semibold ${netAmount > 0 ? accent : 'text-expense'}`}>
+                  {t('finance.netAmount')}: {money(netAmount, f.currency)}
+                </span>
+              )}
+            </div>
+          </Group>
+        )}
 
         {f.type === 'expense' && (
           <Group>

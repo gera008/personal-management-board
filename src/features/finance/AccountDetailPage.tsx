@@ -11,7 +11,7 @@ import { isoToDateKey } from '@/domain/dates';
 import { num, type Transaction } from '@/domain/types';
 import { useAccounts, useBalances, useCategories, usePendingByAccount } from './hooks';
 import { AccountSheet } from './AccountsPage';
-import { TxRow } from './FinanceHome';
+import { DayHeader, TxRow } from './FinanceHome';
 import { TransactionSheet } from './TransactionSheet';
 import { InvestmentOverview } from './Investment';
 
@@ -25,7 +25,7 @@ export function AccountDetailPage() {
   const pending = usePendingByAccount().data;
   const cats = useCategories();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
-  const [txSheet, setTxSheet] = useState<{ tx?: Transaction | null } | null>(null);
+  const [txSheet, setTxSheet] = useState<{ tx?: Transaction | null; date?: string } | null>(null);
   const [editing, setEditing] = useState(false);
 
   const all = accounts.data ?? [];
@@ -141,7 +141,9 @@ export function AccountDetailPage() {
       ) : (
         groups.map(([day, list]) => (
           <section key={day}>
-            <h3 className="section-title mb-1 capitalize">{formatDate(day, 'EEEE d MMM')}</h3>
+            <DayHeader day={day} className="mb-1" onAdd={() => setTxSheet({ date: day })}>
+              {formatDate(day, 'EEEE d MMM')}
+            </DayHeader>
             <div className="card divide-y divide-border px-3 py-0">
               {list.map((x) => (
                 <TxRow key={x.id} tx={x} accById={accById} cats={cats.byId} other={otherName(x)} onOpen={() => setTxSheet({ tx: x })} />
@@ -152,7 +154,7 @@ export function AccountDetailPage() {
       )}
 
       <Fab label={t('finance.newTransaction')} onClick={() => setTxSheet({})} />
-      <TransactionSheet open={!!txSheet} onClose={() => setTxSheet(null)} tx={txSheet?.tx} accountId={id} />
+      <TransactionSheet open={!!txSheet} onClose={() => setTxSheet(null)} tx={txSheet?.tx} accountId={id} date={txSheet?.date} />
       <AccountSheet open={editing} account={account} onClose={() => setEditing(false)} position={all.length} />
     </div>
   );

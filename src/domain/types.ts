@@ -171,6 +171,13 @@ export interface Transaction {
   series_index: number | null;
   transfer_pair_id: string | null;
   paid_for_others: boolean;
+  /** Amounts inside this entry: negative lowers it (paid back to you), positive raises it. original_amount is the net. */
+  adjustments?: TxAdjustment[] | null;
+}
+
+export interface TxAdjustment {
+  label: string;
+  amount: number;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';
