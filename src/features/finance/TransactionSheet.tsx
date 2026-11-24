@@ -200,6 +200,7 @@ export function TransactionSheet({
       } else {
         const rate = f.currency === 'MXN' ? 1 : Number(f.rate);
         if (!(rate > 0)) throw new Error(t('finance.rateMissing'));
+        if (f.type === 'expense' && !f.category_id) throw new Error(t('finance.categoryRequired'));
         if (f.adjustments.some((a) => a.amount.trim() && !(amountValue(a.amount) > 0))) throw new Error(t('finance.amountRequired'));
         if (!(netAmount > 0)) throw new Error(t('finance.netMustBePositive'));
         const row = {
@@ -361,7 +362,13 @@ export function TransactionSheet({
               </Row>
               <Row icon="tag" label={t('finance.category')}>
                 <select className="pill max-w-[11rem]" aria-label={t('finance.category')} value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value, subcategory_id: '' })}>
-                  <option value="">{t('finance.uncategorized')}</option>
+                  {f.type === 'expense' ? (
+                    <option value="" disabled>
+                      {t('finance.chooseCategory')}
+                    </option>
+                  ) : (
+                    <option value="">{t('finance.uncategorized')}</option>
+                  )}
                   {cats.parents(catType).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}

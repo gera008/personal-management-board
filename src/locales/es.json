@@ -221,6 +221,7 @@
     "partOfSeries": "Es parte de una serie recurrente. Edita la serie para cambiar los pagos futuros.",
     "needAccount": "Primero crea una cuenta.",
     "amountRequired": "Ingresa un monto mayor a 0.",
+    "categoryRequired": "Elige una categoría para el gasto.",
     "rateMissing": "Define un tipo de cambio (Ajustes › Monedas).",
     "transferAccounts": "Elige dos cuentas distintas.",
     "newAccount": "Nueva cuenta",

@@ -205,7 +205,7 @@ function HabitHeatmap({ habit, interactive }: { habit: Habit; interactive?: bool
     log.mutate(isSuccess(habit, map, date) ? { habit, date, remove: true } : { habit, date, value: 1 });
   };
 
-  return <Heatmap values={values} weekStartsOn={weekStartsOn} color={habit.kind === 'bad' ? 'var(--slip)' : 'var(--habit)'} onSelect={interactive ? toggle : undefined} />;
+  return <Heatmap values={values} weekStartsOn={weekStartsOn} onSelect={interactive ? toggle : undefined} />;
 }
 
 function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose: () => void; onEdit: (h: Habit) => void }) {
@@ -248,7 +248,7 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
               {Math.min(s.current, habit.goal_days)}/{habit.goal_days} {unit}
             </span>
           </div>
-          <Progress ratio={s.current / habit.goal_days} color={habit.kind === 'bad' ? 'bg-slip' : 'bg-habit'} />
+          <Progress ratio={s.current / habit.goal_days} color="bg-habit" />
         </div>
       )}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -269,7 +269,7 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
           <ul className="space-y-1 text-sm">
             {recentNotes.map((l) => (
               <li key={l.id}>
-                <span className="text-muted">{l.date}</span> {l.is_slip && <span className="text-slip">✕</span>} {l.note}
+                <span className="text-muted">{l.date}</span> {l.is_slip && <span className="text-expense">✕</span>} {l.note}
               </li>
             ))}
           </ul>
@@ -378,7 +378,7 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
       <form id="sheet-form" onSubmit={submit}>
         <ErrorText error={save.error} />
         <div className="mb-4 flex items-center gap-3">
-          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: isBad ? 'rgb(var(--slip))' : f.color }} />
+          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: f.color }} />
           <TitleInput value={f.name} onChange={(name) => setF({ ...f, name })} label={t('common.name')} placeholder={t('habits.namePlaceholder')} autoFocus={!habit} />
         </div>
         <Segmented
@@ -456,14 +456,12 @@ function HabitForm({ open, habit, onClose, position }: { open: boolean; habit?: 
           </Row>
         </Group>
 
-        {!isBad && (
-          <Group>
-            <div className="px-4 py-3">
-              <span className="label">{t('common.color')}</span>
-              <ColorDots colors={PALETTE} value={f.color} onChange={(color) => setF({ ...f, color })} />
-            </div>
-          </Group>
-        )}
+        <Group>
+          <div className="px-4 py-3">
+            <span className="label">{t('common.color')}</span>
+            <ColorDots colors={PALETTE} value={f.color} onChange={(color) => setF({ ...f, color })} />
+          </div>
+        </Group>
 
         <Group className="mb-1">
           <Row icon="tag">

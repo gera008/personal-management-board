@@ -28,9 +28,9 @@ export function HabitMonth({ habit, month }: { habit: Habit; month: Date }) {
   for (let d = startOfWeek(startOfMonth(month), { weekStartsOn }); d <= endOfWeek(endOfMonth(month), { weekStartsOn }); d = addDays(d, 1)) days.push(d);
   const summary = monthSummary(habit, map, month, today);
   const isBad = habit.kind === 'bad';
-  // Bad habits: clean days wear the habit's own color (softly), slips are red.
-  const color = isBad ? 'rgb(var(--slip))' : habit.color;
-  const cleanColor = habit.color;
+  // Every habit uses one color scale: success (done, or a clean day of a
+  // habit to quit) is filled with the habit's color; a miss or slip is an ✕.
+  const color = habit.color;
 
   const tap = (date: string, state: DayState) => {
     const action = nextTap(habit, state);
@@ -57,7 +57,7 @@ export function HabitMonth({ habit, month }: { habit: Habit; month: Date }) {
               key={key}
               day={d.getDate()}
               state={state}
-              color={state === 'clean' || state === 'pending' ? cleanColor : color}
+              color={color}
               isToday={key === today}
               selected={editing === key}
               label={habit.type === 'numeric' && (state === 'done' || state === 'partial') ? String(value) : undefined}
@@ -100,17 +100,13 @@ function DayCell({
   aria: string;
 }) {
   const disabled = state === 'future' || state === 'beforeStart' || state === 'notDue';
-  const filled = state === 'done';
-  const style: React.CSSProperties =
-    state === 'done'
-      ? { background: color, borderColor: color, color: 'rgb(var(--bg))' }
-      : state === 'partial'
-        ? { borderColor: color, background: `color-mix(in srgb, ${color} 30%, transparent)` }
-        : state === 'clean'
-          ? { background: `color-mix(in srgb, ${color} 28%, transparent)`, borderColor: 'transparent' }
-          : state === 'slip'
-            ? { background: 'rgb(var(--slip))', borderColor: 'rgb(var(--slip))', color: 'rgb(var(--bg))' }
-            : {};
+  const filled = state === 'done' || state === 'clean';
+  const missed = state === 'missed' || state === 'slip';
+  const style: React.CSSProperties = filled
+    ? { background: color, borderColor: color, color: 'rgb(var(--bg))' }
+    : state === 'partial'
+      ? { borderColor: color, background: `color-mix(in srgb, ${color} 30%, transparent)` }
+      : {};
   return (
     <button
       type="button"
@@ -119,12 +115,12 @@ function DayCell({
       aria-label={aria}
       className={`relative flex aspect-square flex-col items-center justify-center rounded-lg border text-xs transition ${
         disabled ? 'border-transparent opacity-35' : 'border-border hover:border-current'
-      } ${state === 'missed' ? 'border-expense/60 text-expense' : ''} ${isToday ? 'ring-1 ring-current ring-offset-1 ring-offset-bg' : ''} ${selected ? 'ring-2 ring-current' : ''}`}
+      } ${missed ? 'border-expense/60 text-expense' : ''} ${isToday ? 'ring-1 ring-current ring-offset-1 ring-offset-bg' : ''} ${selected ? 'ring-2 ring-current' : ''}`}
       style={style}
     >
-      <span className={`absolute left-1 top-0.5 text-[10px] ${filled || state === 'slip' ? 'opacity-80' : 'text-muted'}`}>{day}</span>
-      {state === 'done' && !label && <Icon name="check" size={16} />}
-      {(state === 'missed' || state === 'slip') && <Icon name="close" size={16} />}
+      <span className={`absolute left-1 top-0.5 text-[10px] ${filled ? 'opacity-80' : 'text-muted'}`}>{day}</span>
+      {filled && !label && <Icon name="check" size={16} />}
+      {missed && <Icon name="close" size={16} />}
       {label && <span className="text-sm font-semibold">{label}</span>}
     </button>
   );

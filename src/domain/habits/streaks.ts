@@ -151,7 +151,7 @@ export function habitHeatmap(h: Habit, logs: LogMap, from: string, to: string): 
   const out = new Map<string, number | null>();
   for (const d of daysBetween(from, to)) {
     if (d < h.start_date) out.set(d, null);
-    else if (h.kind === 'bad') out.set(d, logs.get(d)?.is_slip ? -1 : 1);
+    else if (h.kind === 'bad') out.set(d, logs.get(d)?.is_slip ? 0 : 1); // same scale as good habits: clean = done, slip = missed
     else if (h.frequency.type === 'times_per_week') out.set(d, logs.has(d) ? dayProgress(h, logs, d) : 0);
     else out.set(d, isScheduled(h, d) ? dayProgress(h, logs, d) : null);
   }

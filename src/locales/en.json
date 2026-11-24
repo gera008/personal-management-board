@@ -221,6 +221,7 @@
     "partOfSeries": "Part of a recurring series. Edit the series to change future payments.",
     "needAccount": "Create an account first.",
     "amountRequired": "Enter an amount greater than 0.",
+    "categoryRequired": "Pick a category for the expense.",
     "rateMissing": "Set an exchange rate (Settings › Currencies).",
     "transferAccounts": "Choose two different accounts.",
     "newAccount": "New account",

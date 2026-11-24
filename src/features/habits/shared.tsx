@@ -68,7 +68,7 @@ export function HabitTodayRow({ habit, logs, date, onOpen }: { habit: Habit; log
 
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: isBad ? 'rgb(var(--slip))' : habit.color }} />
+      <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: habit.color }} />
       <button onClick={onOpen} className="min-w-0 flex-1 text-left">
         <div className="truncate text-sm font-medium">{habit.name}</div>
         <div className="text-xs text-muted">
@@ -87,7 +87,7 @@ export function HabitTodayRow({ habit, logs, date, onOpen }: { habit: Habit; log
       {isBad ? (
         <button
           onClick={() => (slipped ? log.mutate({ habit, date: day, remove: true }) : log.mutate({ habit, date: day, isSlip: true }))}
-          className={`btn border text-xs ${slipped ? 'border-slip bg-slip text-bg' : 'border-slip/50 text-slip'}`}
+          className={`btn border text-xs ${slipped ? 'border-expense bg-expense text-bg' : 'border-expense/50 text-expense'}`}
         >
           {slipped ? t('habits.slipped') : t('habits.slip')}
         </button>
