@@ -113,6 +113,9 @@ export interface Task {
   recurrence: (Recurrence & { anchor?: string }) | null;
   recurrence_index: number;
   recurrence_parent_id: string | null;
+  created_at?: string;
+  /** Bumped by a trigger on every edit; used to spot forgotten undated tasks. */
+  updated_at?: string;
   subtasks?: Subtask[];
 }
 

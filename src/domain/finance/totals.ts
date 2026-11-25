@@ -39,6 +39,25 @@ const inRange = (tx: Transaction, from: Date, to: Date) => {
 
 const isApplied = (tx: Transaction) => tx.status === 'applied';
 
+/**
+ * The applied movements of one type in [from, to) that a chart adds up, newest
+ * first, so a tap on a bar or a category can list what's behind its total.
+ */
+export function movementsIn(txs: Transaction[], type: Transaction['type'], from: Date, to: Date, match: (tx: Transaction) => boolean = () => true): Transaction[] {
+  return txs
+    .filter((t) => t.type === type && isApplied(t) && inRange(t, from, to) && match(t))
+    .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+}
+
+export const expensesIn = (txs: Transaction[], from: Date, to: Date, match?: (tx: Transaction) => boolean) => movementsIn(txs, 'expense', from, to, match);
+
+/** Applied movements of one account in [from, to), transfers included, newest first. */
+export function accountMovementsIn(txs: Transaction[], accountId: string, from: Date, to: Date): Transaction[] {
+  return txs
+    .filter((t) => t.account_id === accountId && isApplied(t) && inRange(t, from, to))
+    .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+}
+
 /** Sum of applied expenses (MXN) in [from, to). Transfers never count as spending. */
 export function totalExpenses(txs: Transaction[], from: Date, to: Date): number {
   return round2(

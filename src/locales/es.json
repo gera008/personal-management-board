@@ -146,7 +146,14 @@
     "inAWeek": "En 7 días",
     "remind": "Recordarme",
     "remindHint": "A la hora límite (9:00 si no hay hora)",
-    "listNamePlaceholder": "Nombre de la categoría"
+    "listNamePlaceholder": "Nombre de la categoría",
+    "staleWeeks_one": "Sin tocar hace {{count}} semana",
+    "staleWeeks_other": "Sin tocar hace {{count}} semanas",
+    "staleMonths_one": "Sin tocar hace {{count}} mes",
+    "staleMonths_other": "Sin tocar hace {{count}} meses",
+    "staleHint": "Sin fecha y sin cambios en un buen rato. ¿Le pones fecha o la borras?",
+    "moreUndated_one": "+{{count}} más sin fecha",
+    "moreUndated_other": "+{{count}} más sin fecha"
   },
   "finance": {
     "tabs": {
@@ -385,7 +392,14 @@
     "perDayHelp": "La línea punteada es el promedio diario hasta hoy.",
     "fixed": "Fijos (recurrentes)",
     "variable": "Variables",
-    "shared": "Gastos compartidos"
+    "shared": "Gastos compartidos",
+    "movements_one": "{{count}} movimiento",
+    "movements_other": "{{count}} movimientos",
+    "tapToSee": "Toca un día para ver sus movimientos.",
+    "incomeAndExpenses": "Ingresos y gastos",
+    "noMovements": "No hay movimientos aquí.",
+    "tapMonth": "Toca un mes para ver sus movimientos.",
+    "tapWeek": "Toca una semana para ver sus gastos."
   },
   "import": {
     "title": "Importar desde Excel",
@@ -501,9 +515,9 @@
       "pending": "hoy"
     },
     "monthGood": "✓ {{done}} hechos · ✕ {{missed}} sin hacer · {{rate}}% del mes",
-    "monthBad": "{{clean}} limpios · ✕ {{slips}} caídas",
+    "monthBad": "✓ {{clean}} limpios · ✕ {{slips}} caídas · {{rate}}% del mes",
     "monthHintGood": "Toca un día: ✓ hecho → ✕ no lo hice → vacío.",
-    "monthHintBad": "Toca un día para marcar o quitar una caída. Los días sin caída cuentan como limpios.",
+    "monthHintBad": "Toca un día: ✓ limpio → ✕ caída. Los días sin caída cuentan como limpios.",
     "monthHintNumeric": "Toca un día para escribir su valor o marcar que no lo hiciste.",
     "namePlaceholder": "Ej. Leer 20 minutos",
     "measure": "Se mide",

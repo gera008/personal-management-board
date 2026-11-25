@@ -5,6 +5,7 @@ import { useRemove, useSave } from '@/lib/data';
 import { ColorDots, Empty, ErrorText, Fab, Group, Icon, PageHeader, SaveBar, Sheet, TitleInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { PALETTE, type Task, type TaskList } from '@/domain/types';
+import { isUndatedTask } from '@/domain/tasks';
 import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
 import { TaskSheet } from './TaskSheet';
 import { CategoryNav } from './CategoryNav';
@@ -43,6 +44,14 @@ export function TasksPage() {
   const open = visible.filter((x) => !x.completed_at);
   const done = view === 'today' ? [] : visible.filter((x) => x.completed_at);
   const tags = [...new Set(all.flatMap((x) => x.tags))].sort();
+  // Today also lists undated tasks, least recently touched first, so they don't get lost.
+  let undated: Task[] = [];
+  if (view === 'today') {
+    undated = all.filter(isUndatedTask);
+    if (tagFilter) undated = undated.filter((x) => x.tags.includes(tagFilter));
+    undated.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''));
+  }
+
 
   const select = (id: string) => {
     params.set('list', id);
@@ -92,6 +101,18 @@ export function TasksPage() {
             {open.map((x) => (
               <TaskRow key={x.id} task={x} list={view === 'today' || view === 'all' ? listById.get(x.list_id) : undefined} onOpen={() => setTaskSheet({ task: x })} />
             ))}
+          </div>
+        )}
+        {undated.length > 0 && (
+          <div className="mt-6">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('tasks.noDate')} <span className="font-normal">· {undated.length}</span>
+            </h3>
+            <div className="divide-y divide-border">
+              {undated.map((x) => (
+                <TaskRow key={x.id} task={x} list={listById.get(x.list_id)} onOpen={() => setTaskSheet({ task: x })} />
+              ))}
+            </div>
           </div>
         )}
         {done.length > 0 && (

@@ -72,7 +72,7 @@ export function HabitMonth({ habit, month }: { habit: Habit; month: Date }) {
 
       <p className="mt-3 text-xs text-muted">
         {isBad
-          ? t('habits.monthBad', { clean: summary.clean, slips: summary.slips })
+          ? t('habits.monthBad', { clean: summary.clean, slips: summary.slips, rate: Math.round(summary.rate * 100) })
           : t('habits.monthGood', { done: summary.done, missed: summary.missed, rate: Math.round(summary.rate * 100) })}
       </p>
       <p className="mt-1 text-[11px] text-muted">{isBad ? t('habits.monthHintBad') : habit.type === 'numeric' ? t('habits.monthHintNumeric') : t('habits.monthHintGood')}</p>

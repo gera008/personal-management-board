@@ -4,7 +4,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate, useRows } from '@/lib/data';
 import { formatDate } from '@/lib/format';
 import { toDateKey } from '@/domain/dates';
-import { nextTaskInstance } from '@/domain/tasks';
+import { nextTaskInstance, staleDays } from '@/domain/tasks';
 import { Icon } from '@/components/ui';
 import type { Task, TaskList } from '@/domain/types';
 
@@ -75,6 +75,7 @@ export function TaskRow({ task, list, onOpen }: { task: Task; list?: TaskList; o
   const today = toDateKey(new Date());
   const overdue = !task.completed_at && task.due_date && task.due_date < today;
   const subs = task.subtasks ?? [];
+  const stale = staleDays(task);
   return (
     <div className="flex items-start gap-3 py-2.5">
       <button
@@ -97,6 +98,11 @@ export function TaskRow({ task, list, onOpen }: { task: Task; list?: TaskList; o
             <span className={overdue ? 'text-expense' : ''}>
               {formatDate(task.due_date, 'd MMM')}
               {task.due_time ? ` ${task.due_time.slice(0, 5)}` : ''}
+            </span>
+          )}
+          {stale != null && (
+            <span className="text-tasks" title={t('tasks.staleHint')}>
+              {stale >= 60 ? t('tasks.staleMonths', { count: Math.floor(stale / 30) }) : t('tasks.staleWeeks', { count: Math.floor(stale / 7) })}
             </span>
           )}
           {task.reminder_at && <Icon name="bell" size={12} />}

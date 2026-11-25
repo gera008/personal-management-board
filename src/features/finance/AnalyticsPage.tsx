@@ -1,27 +1,48 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { addDays, addWeeks, differenceInCalendarMonths, isSameDay, startOfDay, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { addDays, addMonths, addWeeks, differenceInCalendarMonths, isSameDay, startOfDay, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useProfile } from '@/lib/profile';
 import { useThemeColors } from '@/lib/themeColors';
 import { formatDate, money, pct } from '@/lib/format';
-import { Empty, Icon, Segmented } from '@/components/ui';
+import { Empty, Icon, Segmented, Sheet } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import {
   balanceEvolution,
   categoryBreakdown,
+  accountMovementsIn,
   dailySpending,
+  expensesIn,
   monthlyTrend,
+  movementsIn,
   monthProjection,
   periodRange,
   periodSummary,
   pctChange,
   previousPeriod,
+  signedAmount,
   weekdaySpending,
+  topCategoryId,
   weeklySpending,
   type CategoryBreakdown,
 } from '@/domain/finance/totals';
+import { num, type Account, type Category, type Transaction } from '@/domain/types';
 import { categoryName, useAccounts, useCategories, useTransactions } from './hooks';
+import { TxRow } from './FinanceHome';
+import { TransactionSheet } from './TransactionSheet';
+
+/**
+ * What a tapped chart element stands for: a title and how to pick the
+ * movements behind it. Picking from the live list keeps it current after an edit.
+ * `total` says how they add up: spending, income, income minus spending, or an
+ * account's own balance change.
+ */
+type Drill = {
+  title: string;
+  subtitle?: string;
+  pick: (all: Transaction[]) => Transaction[];
+  total: 'expense' | 'income' | 'net' | { account: Account };
+};
 
 type Range = 'week' | 'month' | 'year' | 'all' | 'custom';
 const RANGES: Range[] = ['week', 'month', 'year', 'all', 'custom'];
@@ -43,6 +64,7 @@ export function AnalyticsPage() {
   const [offset, setOffset] = useState(0);
   const [custom, setCustom] = useState({ from: toDateKey(startOfMonth(subMonths(new Date(), 2))), to: toDateKey(new Date()) });
   const [accountId, setAccountId] = useState<string>('net');
+  const [drill, setDrill] = useState<Drill | null>(null);
 
   const now = new Date();
   const tomorrow = addDays(startOfDay(now), 1);
@@ -95,10 +117,31 @@ export function AnalyticsPage() {
   const maxWeekday = Math.max(...weekday.map((w) => w.average), 1);
   const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + weekStartsOn) % 7);
   const accs = accounts.data ?? [];
+  const periodText = range === 'week' || range === 'month' || range === 'year' ? periodLabel(range, from, to) : `${formatDate(from, 'd MMM yyyy')} – ${formatDate(addDays(to, -1), 'd MMM yyyy')}`;
+  const show = (title: string, pick: Drill['pick'], total: Drill['total'] = 'expense', subtitle?: string) =>
+    setDrill({ title, pick, total, subtitle: subtitle ?? capitalize(periodText) });
+  const expenses = (title: string, f: Date, tt: Date, match?: (x: Transaction) => boolean, subtitle?: string) => show(title, (a) => expensesIn(a, f, tt, match), 'expense', subtitle);
+  const incomeAndExpenses = (f: Date, tt: Date) => (a: Transaction[]) =>
+    [...movementsIn(a, 'income', f, tt), ...expensesIn(a, f, tt)].sort((x, y) => y.occurred_at.localeCompare(x.occurred_at));
+  // A week as the chart counts it: clipped to the period.
+  const weekDrill = (start: Date) => {
+    const f = start < from ? from : start;
+    const tt = addWeeks(start, 1) > end ? end : addWeeks(start, 1);
+    expenses(t('analytics.weekOf', { date: formatDate(start, 'd MMM yyyy') }), f, tt, undefined, '');
+  };
+  const monthDrill = (month: string, kind: 'all' | 'net' | string) => {
+    const f = new Date(`${month}-01T00:00`);
+    const tt = addMonths(f, 1);
+    const title = capitalize(formatDate(f, 'MMMM yyyy'));
+    if (kind === 'all' || kind === 'net') return show(title, incomeAndExpenses(f, tt), 'net', t('analytics.incomeAndExpenses'));
+    const acc = accs.find((x) => x.id === kind);
+    if (acc) show(title, (a) => accountMovementsIn(a, acc.id, f, tt), { account: acc }, acc.name);
+  };
   const evolution = short
     ? []
     : balanceEvolution(accs, all, rates, addDays(end, -1), monthsInPeriod).map((p) => ({
         label: formatDate(`${p.month}-01`, 'MMM yy'),
+        month: p.month,
         value: accountId === 'net' ? p.netWorth : p.byAccount[accountId] ?? 0,
       }));
   const selectedAcc = accs.find((a) => a.id === accountId);
@@ -146,10 +189,10 @@ export function AnalyticsPage() {
       <Question title={t('analytics.q.howMuch')}>
         <section className="card space-y-3">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Tile label={t('analytics.expenses')} value={money(sum.expense)} delta={vsPrev(sum.expense, prevSum?.expense, true)} />
-            <Tile label={t('analytics.income')} value={money(sum.income)} delta={vsPrev(sum.income, prevSum?.income, false)} />
+            <Tile label={t('analytics.expenses')} value={money(sum.expense)} delta={vsPrev(sum.expense, prevSum?.expense, true)} onClick={() => expenses(t('analytics.expenses'), from, to)} />
+            <Tile label={t('analytics.income')} value={money(sum.income)} delta={vsPrev(sum.income, prevSum?.income, false)} onClick={() => show(t('analytics.income'), (a) => movementsIn(a, 'income', from, to), 'income')} />
             <div className="col-span-2 sm:col-span-1">
-              <Tile label={t('analytics.net')} value={money(sum.net, 'MXN', { sign: true })} tone={sum.net < 0 ? 'text-expense' : 'text-income'} />
+              <Tile label={t('analytics.net')} value={money(sum.net, 'MXN', { sign: true })} tone={sum.net < 0 ? 'text-expense' : 'text-income'} onClick={() => show(t('analytics.net'), incomeAndExpenses(from, to), 'net')} />
             </div>
           </div>
           <div className={`grid grid-cols-2 gap-2 ${proj ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
@@ -160,9 +203,14 @@ export function AnalyticsPage() {
             )}
             {proj && <Tile label={t('analytics.projected')} value={money(proj.projected)} />}
             <Tile label={t('analytics.savingsRate')} value={sum.savingsRate == null ? '—' : `${Math.round(sum.savingsRate)}%`} tone={sum.savingsRate != null && sum.savingsRate < 0 ? 'text-expense' : ''} />
-            <Tile label={t('analytics.shared')} value={money(sum.paidForOthers)} />
+            <Tile label={t('analytics.shared')} value={money(sum.paidForOthers)} onClick={() => expenses(t('analytics.shared'), from, to, (x) => x.paid_for_others)} />
           </div>
-          <FixedVsVariable fixed={sum.fixed} variable={sum.variable} />
+          <FixedVsVariable
+            fixed={sum.fixed}
+            variable={sum.variable}
+            onFixed={() => expenses(t('analytics.fixed'), from, to, (x) => !!x.series_id)}
+            onVariable={() => expenses(t('analytics.variable'), from, to, (x) => !x.series_id)}
+          />
         </section>
       </Question>
 
@@ -172,7 +220,16 @@ export function AnalyticsPage() {
           {breakdown.length === 0 ? (
             <p className="text-sm text-muted">{t('finance.noSpending')}</p>
           ) : (
-            <CategoryList items={breakdown} name={(id) => categoryName(cats.byId, id, t('finance.uncategorized'))} subName={(id, parent) => (id === parent ? t('analytics.noSubcategory') : categoryName(cats.byId, id, t('finance.uncategorized')))} compareLabel={range === 'all' ? null : t(`analytics.vsPrevious.${range}`)} />
+            <CategoryList
+              items={breakdown}
+              name={(id) => categoryName(cats.byId, id, t('finance.uncategorized'))}
+              subName={(id, parent) => (id === parent ? t('analytics.noSubcategory') : categoryName(cats.byId, id, t('finance.uncategorized')))}
+              compareLabel={range === 'all' ? null : t(`analytics.vsPrevious.${range}`)}
+              onSub={(parent, sub, title) =>
+                // Same grouping as the breakdown: an expense without a subcategory sits under its category.
+                expenses(title, from, to, (x) => topCategoryId(x, cats.byId) === parent && (x.subcategory_id ?? x.category_id) === sub, `${categoryName(cats.byId, parent, t('finance.uncategorized'))} · ${capitalize(periodText)}`)
+              }
+            />
           )}
         </section>
       </Question>
@@ -181,9 +238,18 @@ export function AnalyticsPage() {
       <Question title={t('analytics.q.when')}>
         <div className="grid gap-4 md:grid-cols-2">
           {short ? (
-            <ChartCard title={t('analytics.perDay')} className="md:col-span-2" help={t('analytics.perDayHelp')}>
+            <ChartCard title={t('analytics.perDay')} className="md:col-span-2" help={`${t('analytics.perDayHelp')} ${t('analytics.tapToSee')}`}>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={days.map((d) => ({ ...d, label: formatDate(d.day, range === 'week' ? 'EEE d' : 'd') }))} margin={{ left: 0, right: 8 }}>
+                <BarChart
+                  data={days.map((d) => ({ ...d, label: formatDate(d.day, range === 'week' ? 'EEE d' : 'd') }))}
+                  margin={{ left: 0, right: 8 }}
+                  // A tap anywhere in a day's column (even an empty one) lists that day's expenses.
+                  onClick={(e) => {
+                    const d = e?.activeTooltipIndex != null ? days[e.activeTooltipIndex] : undefined;
+                    if (d) expenses(capitalize(formatDate(d.day, 'PPPP')), d.day, addDays(d.day, 1), undefined, '');
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <CartesianGrid vertical={false} stroke={colors.border} />
                   <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={8} />
                   <YAxis {...axis} tickFormatter={compact} width={52} />
@@ -195,9 +261,18 @@ export function AnalyticsPage() {
             </ChartCard>
           ) : (
             <>
-              <ChartCard title={t('analytics.trend')} className="md:col-span-2">
+              <ChartCard title={t('analytics.trend')} className="md:col-span-2" help={t('analytics.tapMonth')}>
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={trend} barGap={2} margin={{ left: 0, right: 8 }}>
+                  <BarChart
+                    data={trend}
+                    barGap={2}
+                    margin={{ left: 0, right: 8 }}
+                    onClick={(e) => {
+                      const p = e?.activeTooltipIndex != null ? trend[e.activeTooltipIndex] : undefined;
+                      if (p) monthDrill(p.month, 'all');
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <CartesianGrid vertical={false} stroke={colors.border} />
                     <XAxis dataKey="label" {...axis} />
                     <YAxis {...axis} tickFormatter={compact} width={52} />
@@ -209,13 +284,26 @@ export function AnalyticsPage() {
                 </ResponsiveContainer>
               </ChartCard>
 
-              <ChartCard title={t('analytics.weekly')} className="md:col-span-2" help={t('analytics.weeklyHelp')}>
+              <ChartCard title={t('analytics.weekly')} className="md:col-span-2" help={`${t('analytics.weeklyHelp')} ${t('analytics.tapWeek')}`}>
                 <div className="mb-3 grid grid-cols-2 gap-2">
                   <Tile label={t('analytics.weeklyAverage')} value={money(weekAvg)} />
-                  <Tile label={t('analytics.highestWeek')} value={topWeek ? money(topWeek.total) : '—'} sub={topWeek ? t('analytics.weekOf', { date: formatDate(topWeek.start, 'd MMM yy') }) : undefined} />
+                  <Tile
+                    label={t('analytics.highestWeek')}
+                    value={topWeek ? money(topWeek.total) : '—'}
+                    sub={topWeek ? t('analytics.weekOf', { date: formatDate(topWeek.start, 'd MMM yy') }) : undefined}
+                    onClick={topWeek ? () => weekDrill(topWeek.start) : undefined}
+                  />
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={weeks} margin={{ left: 0, right: 8 }}>
+                  <BarChart
+                    data={weeks}
+                    margin={{ left: 0, right: 8 }}
+                    onClick={(e) => {
+                      const w = e?.activeTooltipIndex != null ? weeks[e.activeTooltipIndex] : undefined;
+                      if (w) weekDrill(w.start);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <CartesianGrid vertical={false} stroke={colors.border} />
                     <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
                     <YAxis {...axis} tickFormatter={compact} width={52} />
@@ -235,11 +323,17 @@ export function AnalyticsPage() {
                   const w = weekday[d];
                   const a = w.average / maxWeekday;
                   return (
-                    <div key={d} className="text-center" title={`${money(w.average)} / ${t('analytics.day')}`}>
+                    <button
+                      key={d}
+                      className="rounded-md text-center hover:bg-surface"
+                      title={`${money(w.average)} / ${t('analytics.day')}`}
+                      // Every expense on that weekday in the period (the tile shows their daily average).
+                      onClick={() => expenses(capitalize(formatDate(addDays(new Date(2026, 10, 1), d), 'EEEE')), from, end, (x) => new Date(x.occurred_at).getDay() === d)}
+                    >
                       <div className="mb-1 aspect-square rounded-md" style={{ background: w.average ? `rgb(var(--expense) / ${0.15 + a * 0.85})` : 'rgb(var(--surface))' }} />
                       <div className="text-[11px] text-muted">{formatDate(addDays(new Date(2026, 10, 1), d), 'EEE')}</div>
                       <div className="text-[11px] font-medium">{money(w.average, 'MXN', { compact: true })}</div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -249,6 +343,7 @@ export function AnalyticsPage() {
           {!short && (
             <ChartCard
               title={t('analytics.balance')}
+              help={t('analytics.tapMonth')}
               right={
                 <select className="input max-w-[11rem] py-1 text-sm" value={accountId} onChange={(e) => setAccountId(e.target.value)} aria-label={t('finance.account')}>
                   <option value="net">{t('analytics.netWorth')}</option>
@@ -261,7 +356,15 @@ export function AnalyticsPage() {
               }
             >
               <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={evolution} margin={{ left: 0, right: 8, top: 8 }}>
+                <LineChart
+                  data={evolution}
+                  margin={{ left: 0, right: 8, top: 8 }}
+                  onClick={(e) => {
+                    const p = e?.activeTooltipIndex != null ? evolution[e.activeTooltipIndex] : undefined;
+                    if (p) monthDrill(p.month, accountId);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <CartesianGrid vertical={false} stroke={colors.border} />
                   <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={16} />
                   <YAxis {...axis} tickFormatter={(v: number) => money(v, selectedAcc?.currency ?? 'MXN', { compact: true })} width={56} />
@@ -273,9 +376,71 @@ export function AnalyticsPage() {
           )}
         </div>
       </Question>
+
+      <DrillSheet drill={drill} onClose={() => setDrill(null)} all={all} accounts={accs} cats={cats.byId} />
     </div>
   );
 }
+
+/**
+ * The movements behind a tapped tile, category or bar, with their total.
+ * Tapping one opens it for editing; closing that returns here.
+ */
+function DrillSheet({ drill, onClose, all, accounts, cats }: { drill: Drill | null; onClose: () => void; all: Transaction[]; accounts: Account[]; cats: Map<string, Category> }) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const accById = new Map(accounts.map((a) => [a.id, a]));
+  const txs = drill ? drill.pick(all) : [];
+  const kind = drill?.total;
+  const mxn = (x: Transaction) => num(x.base_amount_mxn);
+  const total =
+    kind === 'expense'
+      ? txs.reduce((s, x) => s + mxn(x), 0)
+      : kind === 'income'
+        ? txs.reduce((s, x) => s + mxn(x), 0)
+        : kind === 'net'
+          ? txs.reduce((s, x) => s + (x.type === 'income' ? mxn(x) : -mxn(x)), 0)
+          : kind
+            ? txs.reduce((s, x) => s + signedAmount(x, kind.account.currency), 0)
+            : 0;
+  const currency = kind && typeof kind === 'object' ? kind.account.currency : 'MXN';
+  const signed = kind === 'net' || typeof kind === 'object';
+  const tone = kind === 'expense' || (signed && total < 0) ? 'text-expense' : 'text-income';
+  // Name of the other account of a transfer, for "From → To".
+  const counterpart = (x: Transaction) => {
+    const other = all.find((y) => y.transfer_pair_id === x.transfer_pair_id && y.id !== x.id);
+    return other ? accById.get(other.account_id)?.name : undefined;
+  };
+  return (
+    <>
+      <Sheet open={!!drill && !editing} onClose={onClose} title={drill?.title ?? ''}>
+        {drill && (
+          <>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <span className="truncate text-xs text-muted">
+                {drill.subtitle ? `${drill.subtitle} · ` : ''}
+                {t('analytics.movements', { count: txs.length })}
+              </span>
+              <span className={`text-base font-semibold ${tone}`}>{money(total, currency, { sign: signed })}</span>
+            </div>
+            {txs.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">{t('analytics.noMovements')}</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {txs.map((x) => (
+                  <TxRow key={x.id} tx={x} accById={accById} cats={cats} other={x.type === 'transfer' ? counterpart(x) : undefined} onOpen={() => setEditing(x)} showDate />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </Sheet>
+      <TransactionSheet open={!!editing} onClose={() => setEditing(null)} tx={editing} />
+    </>
+  );
+}
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function periodLabel(range: 'week' | 'month' | 'year', from: Date, to: Date) {
   if (range === 'month') return formatDate(from, 'MMMM yyyy');
@@ -317,11 +482,14 @@ function CategoryList({
   name,
   subName,
   compareLabel,
+  onSub,
 }: {
   items: CategoryBreakdown[];
   name: (id: string | null) => string;
   subName: (id: string | null, parent: string | null) => string;
   compareLabel: string | null;
+  /** A subcategory was tapped: list the expenses behind it. */
+  onSub: (parent: string | null, sub: string | null, title: string) => void;
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const max = Math.max(...items.map((c) => c.amount), 1);
@@ -348,14 +516,20 @@ function CategoryList({
             </button>
             {expanded && (
               <ul className="ml-5 mt-2 space-y-1">
-                {c.subs.map((s) => (
-                  <li key={s.categoryId ?? 'none'} className="flex items-center gap-2 text-xs">
-                    <span className="flex-1 truncate">{subName(s.categoryId, c.categoryId)}</span>
-                    <span className="text-muted">×{s.count}</span>
-                    <span className="w-20 text-right font-medium">{money(s.amount)}</span>
-                    <span className="w-10 text-right text-muted">{Math.round((s.amount / c.amount) * 100)}%</span>
-                  </li>
-                ))}
+                {c.subs.map((s) => {
+                  const label = subName(s.categoryId, c.categoryId);
+                  return (
+                    <li key={s.categoryId ?? 'none'}>
+                      <button className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg px-2 py-1 text-left text-xs hover:bg-surface" onClick={() => onSub(c.categoryId, s.categoryId, s.categoryId === c.categoryId ? name(c.categoryId) : label)}>
+                        <span className="flex-1 truncate">{label}</span>
+                        <span className="text-muted">×{s.count}</span>
+                        <span className="w-20 text-right font-medium">{money(s.amount)}</span>
+                        <span className="w-10 text-right text-muted">{Math.round((s.amount / c.amount) * 100)}%</span>
+                        <Icon name="chevronRight" size={12} className="shrink-0 text-muted" />
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </li>
@@ -366,7 +540,7 @@ function CategoryList({
 }
 
 /** Share of spending that is committed (recurring series) versus day-to-day. */
-function FixedVsVariable({ fixed, variable }: { fixed: number; variable: number }) {
+function FixedVsVariable({ fixed, variable, onFixed, onVariable }: { fixed: number; variable: number; onFixed: () => void; onVariable: () => void }) {
   const { t } = useTranslation();
   const total = fixed + variable;
   if (!total) return null;
@@ -374,16 +548,16 @@ function FixedVsVariable({ fixed, variable }: { fixed: number; variable: number 
   return (
     <div>
       <div className="mb-1 flex justify-between text-[11px] text-muted">
-        <span>
+        <button className="hover:text-fg" onClick={onFixed}>
           {t('analytics.fixed')} · {money(fixed)} ({Math.round(share)}%)
-        </span>
-        <span>
+        </button>
+        <button className="hover:text-fg" onClick={onVariable}>
           {t('analytics.variable')} · {money(variable)} ({Math.round(100 - share)}%)
-        </span>
+        </button>
       </div>
       <div className="flex h-2 gap-0.5 overflow-hidden rounded-full">
-        {fixed > 0 && <div className="h-full bg-muted/60" style={{ width: `${share}%` }} />}
-        {variable > 0 && <div className="h-full flex-1 bg-expense" />}
+        {fixed > 0 && <button className="h-full bg-muted/60" style={{ width: `${share}%` }} onClick={onFixed} aria-label={t('analytics.fixed')} />}
+        {variable > 0 && <button className="h-full flex-1 bg-expense" onClick={onVariable} aria-label={t('analytics.variable')} />}
       </div>
     </div>
   );
@@ -404,13 +578,14 @@ function ChartCard({ title, children, className = '', right, help }: { title: st
   );
 }
 
-function Tile({ label, value, sub, tone = '', delta }: { label: string; value: string; sub?: string; tone?: string; delta?: { text: string; tone: string } }) {
+function Tile({ label, value, sub, tone = '', delta, onClick }: { label: string; value: string; sub?: string; tone?: string; delta?: { text: string; tone: string }; onClick?: () => void }) {
+  const Box = onClick ? 'button' : 'div';
   return (
-    <div className="min-w-0 rounded-2xl bg-surface p-3">
+    <Box className={`block w-full min-w-0 rounded-2xl bg-surface p-3 text-left ${onClick ? 'transition hover:bg-line' : ''}`} onClick={onClick}>
       <div className="truncate text-[11px] text-muted">{label}</div>
       <div className={`truncate text-base font-semibold ${tone}`}>{value}</div>
       {delta && <div className={`truncate text-[11px] ${delta.tone}`}>{delta.text}</div>}
       {sub && <div className="truncate text-[11px] text-muted">{sub}</div>}
-    </div>
+    </Box>
   );
 }

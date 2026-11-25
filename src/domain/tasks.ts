@@ -19,3 +19,15 @@ export function nextTaskInstance(task: Task): Pick<Task, 'due_date' | 'recurrenc
   return { due_date: due, recurrence_index: countBefore(anchor, task.recurrence, due) + 1, reminder_at };
 }
 
+/** Open and without a due date: never shown in Today or the calendar on their own. */
+export const isUndatedTask = (t: Task) => !t.completed_at && !t.due_date;
+
+/** Undated tasks untouched for this many days get a "stale" marker. */
+export const STALE_DAYS = 14;
+
+/** Whole days since an undated task was last edited, or null when it isn't stale. */
+export function staleDays(t: Task, now = Date.now()): number | null {
+  if (!isUndatedTask(t) || !t.updated_at) return null;
+  const days = Math.floor((now - Date.parse(t.updated_at)) / 86_400_000);
+  return days >= STALE_DAYS ? days : null;
+}

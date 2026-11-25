@@ -10,6 +10,7 @@ import type { WidgetId } from '@/domain/types';
 import { useCalendarItems, type CalItem } from '../calendar/items';
 import { MonthGrid, WeekList, monthRange, weekRange } from '../calendar/views';
 import { TaskRow, isTodayTask, useLists, useTasks } from '../tasks/shared';
+import { isUndatedTask } from '@/domain/tasks';
 import { Indicators } from '../finance/Indicators';
 import { LayoutEditor } from './LayoutEditor';
 import { CombinedHeatmap, HabitTodayRow, todaysHabits, useHabitLogs, useHabits } from '../habits/shared';
@@ -175,7 +176,14 @@ function TasksWidget() {
   const navigate = useNavigate();
   const listById = new Map((lists.data ?? []).map((l) => [l.id, l]));
   const today = toDateKey(new Date());
-  const visible = (tasks.data ?? []).filter((x) => !x.completed_at && (filter === 'today' ? isTodayTask(x, today) : filter === 'all' || x.list_id === filter)).slice(0, 8);
+  const LIMIT = 8;
+  const all = tasks.data ?? [];
+  const visible = all.filter((x) => !x.completed_at && (filter === 'today' ? isTodayTask(x, today) : filter === 'all' || x.list_id === filter)).slice(0, LIMIT);
+  // Today fills its spare rows with undated tasks (least recently touched first), like the Tasks page.
+  const undated =
+    filter === 'today' ? all.filter(isUndatedTask).sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? '')) : [];
+  const undatedShown = undated.slice(0, Math.max(0, LIMIT - visible.length));
+  const undatedHidden = undated.length - undatedShown.length;
   return (
     <Card title={t('nav.tasks')} to="/tasks">
       <div className="-mx-1 mb-1 flex gap-1 overflow-x-auto px-1 pb-1">
@@ -192,6 +200,25 @@ function TasksWidget() {
           {visible.map((x) => (
             <TaskRow key={x.id} task={x} list={listById.get(x.list_id)} onOpen={() => navigate(`/tasks?task=${x.id}`)} />
           ))}
+        </div>
+      )}
+      {undated.length > 0 && (
+        <div className="mt-2">
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+            {t('tasks.noDate')} <span className="font-normal">· {undated.length}</span>
+          </h4>
+          {undatedShown.length > 0 && (
+            <div className="divide-y divide-border">
+              {undatedShown.map((x) => (
+                <TaskRow key={x.id} task={x} list={listById.get(x.list_id)} onOpen={() => navigate(`/tasks?task=${x.id}`)} />
+              ))}
+            </div>
+          )}
+          {undatedHidden > 0 && (
+            <Link to="/tasks" className="text-xs text-muted hover:text-fg">
+              {t('tasks.moreUndated', { count: undatedHidden })}
+            </Link>
+          )}
         </div>
       )}
     </Card>

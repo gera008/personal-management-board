@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextTaskInstance } from '../src/domain/tasks';
+import { isUndatedTask, nextTaskInstance, staleDays } from '../src/domain/tasks';
 import type { Task } from '../src/domain/types';
 
 const task = (p: Partial<Task>): Task => ({
@@ -49,5 +49,19 @@ describe('nextTaskInstance', () => {
 
   it('uses the due date as anchor when none is stored', () => {
     expect(nextTaskInstance(task({ due_date: '2026-11-17', recurrence: { freq: 'monthly', interval: 1 } }))?.due_date).toBe('2026-12-17');
+  });
+});
+
+describe('undated tasks', () => {
+  const now = Date.parse('2026-11-24T12:00:00Z');
+  it('only counts open tasks without a date', () => {
+    expect(isUndatedTask(task({ due_date: null }))).toBe(true);
+    expect(isUndatedTask(task({ due_date: '2026-11-30' }))).toBe(false);
+    expect(isUndatedTask(task({ due_date: null, completed_at: '2026-11-01T00:00:00Z' }))).toBe(false);
+  });
+  it('flags them as stale after two weeks without changes', () => {
+    expect(staleDays(task({ due_date: null, updated_at: '2026-11-15T12:00:00Z' }), now)).toBeNull();
+    expect(staleDays(task({ due_date: null, updated_at: '2026-11-10T12:00:00Z' }), now)).toBe(14);
+    expect(staleDays(task({ due_date: '2026-11-30', updated_at: '2026-01-01T00:00:00Z' }), now)).toBeNull();
   });
 });

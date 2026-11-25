@@ -211,7 +211,7 @@ export function monthSummary(h: Habit, logs: LogMap, month: Date, today: string)
     if (s === 'done') out.done++;
     else if (s === 'missed') out.missed++;
     else if (s === 'slip') out.slips++;
-    else if (s === 'clean' || s === 'pending') out.clean++;
+    else if (s === 'clean') out.clean++; // today stays open until it ends
   }
   return out;
 }

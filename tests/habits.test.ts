@@ -95,10 +95,10 @@ describe('bad habits ("días sin")', () => {
     expect(computeStreaks(b, l, '2026-10-10').current).toBe(0);
   });
 
-  it('marks slips as -1 in the heatmap', () => {
+  it('shows slips like a missed day in the heatmap (same scale as good habits)', () => {
     const l = logMap(logs('h1', ['2026-10-02'], { is_slip: true }), 'h1');
     const m = habitHeatmap(b, l, '2026-10-01', '2026-10-03');
-    expect([...m.values()]).toEqual([1, -1, 1]);
+    expect([...m.values()]).toEqual([1, 0, 1]);
   });
 });
 
@@ -174,6 +174,6 @@ describe('month view', () => {
     expect(['2026-11-01', '2026-11-02', today].map((d) => dayState(bad, slips, d, today))).toEqual(['clean', 'slip', 'pending']);
     expect(nextTap(bad, 'clean')).toEqual({ isSlip: true });
     expect(nextTap(bad, 'slip')).toEqual({ remove: true });
-    expect(monthSummary(bad, slips, new Date(2026, 10, 1), today)).toMatchObject({ slips: 1, clean: 3 });
+    expect(monthSummary(bad, slips, new Date(2026, 10, 1), today)).toMatchObject({ slips: 1, clean: 2 }); // today is still open, not clean yet
   });
 });

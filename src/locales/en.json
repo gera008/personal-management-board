@@ -146,7 +146,14 @@
     "inAWeek": "In 7 days",
     "remind": "Remind me",
     "remindHint": "At the due time (9:00 if no time)",
-    "listNamePlaceholder": "Category name"
+    "listNamePlaceholder": "Category name",
+    "staleWeeks_one": "Untouched for {{count}} week",
+    "staleWeeks_other": "Untouched for {{count}} weeks",
+    "staleMonths_one": "Untouched for {{count}} month",
+    "staleMonths_other": "Untouched for {{count}} months",
+    "staleHint": "No date and no changes in a while. Give it a date or delete it?",
+    "moreUndated_one": "+{{count}} more without a date",
+    "moreUndated_other": "+{{count}} more without a date"
   },
   "finance": {
     "tabs": {
@@ -385,7 +392,14 @@
     "perDayHelp": "The dashed line is the daily average so far.",
     "fixed": "Fixed (recurring)",
     "variable": "Variable",
-    "shared": "Shared expenses"
+    "shared": "Shared expenses",
+    "movements_one": "{{count}} entry",
+    "movements_other": "{{count}} entries",
+    "tapToSee": "Tap a day to see its entries.",
+    "incomeAndExpenses": "Income and expenses",
+    "noMovements": "No entries here.",
+    "tapMonth": "Tap a month to see its entries.",
+    "tapWeek": "Tap a week to see its expenses."
   },
   "import": {
     "title": "Import from Excel",
@@ -501,9 +515,9 @@
       "pending": "today"
     },
     "monthGood": "✓ {{done}} done · ✕ {{missed}} not done · {{rate}}% of the month",
-    "monthBad": "{{clean}} clean · ✕ {{slips}} slips",
+    "monthBad": "✓ {{clean}} clean · ✕ {{slips}} slips · {{rate}}% of the month",
     "monthHintGood": "Tap a day: ✓ done → ✕ didn’t do it → empty.",
-    "monthHintBad": "Tap a day to mark or remove a slip. Days without one count as clean.",
+    "monthHintBad": "Tap a day: ✓ clean → ✕ slip. Days without a slip count as clean.",
     "monthHintNumeric": "Tap a day to type its value or mark it as not done.",
     "namePlaceholder": "E.g. Read 20 minutes",
     "measure": "Measured as",
