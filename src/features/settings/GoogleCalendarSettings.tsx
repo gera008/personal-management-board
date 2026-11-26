@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { googleCall } from '@/lib/google';
+import { googleReturnTo, openExternalAuth } from '@/lib/native';
 import { formatDate } from '@/lib/format';
 import { ErrorText, Icon, Switch } from '@/components/ui';
 
@@ -79,8 +80,8 @@ export function GoogleCalendarSettings() {
 
   const connect = () =>
     run('connect', async () => {
-      const data = await googleCall({ mode: 'auth-url', returnTo: window.location.origin });
-      window.location.href = data.url;
+      const data = await googleCall({ mode: 'auth-url', returnTo: googleReturnTo() });
+      await openExternalAuth(data.url);
     });
 
   const a = account.data;
@@ -93,8 +94,8 @@ export function GoogleCalendarSettings() {
       if (enabled && !confirm(t('google.tasksConfirm'))) return;
       const data = await googleCall({ mode: 'set-tasks', enabled });
       if (data?.needsReconnect) {
-        const auth = await googleCall({ mode: 'auth-url', returnTo: window.location.origin });
-        window.location.href = auth.url;
+        const auth = await googleCall({ mode: 'auth-url', returnTo: googleReturnTo() });
+        await openExternalAuth(auth.url);
       }
     });
 

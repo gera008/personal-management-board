@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { isConfigured, supabase } from '@/lib/supabase';
 import { ErrorText } from '@/components/ui';
 import { demoAvailable, signInDemo } from '@/lib/demo';
+import { emailRedirect } from '@/lib/native';
 
 export function AuthGate({ children }: { children: (session: Session) => ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -48,11 +49,11 @@ function Login() {
     setNotice('');
     try {
       if (mode === 'magic') {
-        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: emailRedirect() } });
         if (error) throw error;
         setNotice(t('auth.checkEmail'));
       } else if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: emailRedirect() } });
         if (error) throw error;
         if (!data.session) setNotice(t('auth.checkEmail'));
       } else {

@@ -39,7 +39,8 @@ const TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
 const SCOPES = `https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly ${TASKS_SCOPE}`;
 const TASKS_API = 'https://tasks.googleapis.com/tasks/v1';
 const API = 'https://www.googleapis.com/calendar/v3';
-const ALLOWED_RETURN = [APP_URL, 'http://localhost:5173'].filter(Boolean);
+// mios://google is the iPhone app: Google's consent screen hands the result back to it.
+const ALLOWED_RETURN = [APP_URL, 'http://localhost:5173', 'mios://google'].filter(Boolean);
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
