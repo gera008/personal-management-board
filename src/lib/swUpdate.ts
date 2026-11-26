@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { registerSW } from 'virtual:pwa-register';
 
 /**
@@ -9,6 +10,8 @@ import { registerSW } from 'virtual:pwa-register';
  * someone mid-form.
  */
 export function keepAppUpdated() {
+  // Inside the iPhone app the files ship with the app itself: no service worker.
+  if (Capacitor.isNativePlatform()) return;
   if (!('serviceWorker' in navigator)) return;
   registerSW({
     immediate: true,
