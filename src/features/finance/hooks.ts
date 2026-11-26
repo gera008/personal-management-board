@@ -117,7 +117,8 @@ export function useAccountFlows(accountId: string) {
 /**
  * Net effect of pending (future) transactions per account, in the account's currency.
  * Balance + this = what the account will be once everything scheduled is applied
- * (e.g. a credit card's total debt including future installments).
+ * (e.g. a credit card's total debt including future installments). Future months
+ * of a subscription are left out: they aren't owed until they're charged.
  */
 export function usePendingByAccount() {
   const accounts = useAccounts();
@@ -126,11 +127,15 @@ export function usePendingByAccount() {
     enabled: !!accounts.data,
     queryFn: async () => {
       const rows = unwrap(
-        await supabase.from('transactions').select('account_id,type,direction,original_amount,currency,base_amount_mxn').eq('status', 'pending'),
-      ) as Pick<Transaction, 'account_id' | 'type' | 'direction' | 'original_amount' | 'currency' | 'base_amount_mxn'>[];
+        await supabase
+          .from('transactions')
+          .select('account_id,type,direction,original_amount,currency,base_amount_mxn,series:recurring_series(kind)')
+          .eq('status', 'pending'),
+      ) as unknown as (Pick<Transaction, 'account_id' | 'type' | 'direction' | 'original_amount' | 'currency' | 'base_amount_mxn'> & { series: { kind: string } | null })[];
       const currency = new Map((accounts.data ?? []).map((a) => [a.id, a.currency]));
       const m = new Map<string, number>();
-      for (const r of rows) m.set(r.account_id, (m.get(r.account_id) ?? 0) + signedAmount(r, currency.get(r.account_id)));
+      // A subscription's upcoming months aren't owed yet: each one counts only once it's charged.
+      for (const r of rows) if (r.series?.kind !== 'subscription') m.set(r.account_id, (m.get(r.account_id) ?? 0) + signedAmount(r, currency.get(r.account_id)));
       return m;
     },
   });
