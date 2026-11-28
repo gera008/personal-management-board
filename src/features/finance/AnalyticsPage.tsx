@@ -159,7 +159,7 @@ export function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="-mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="no-scrollbar -mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <Segmented
             value={range}
             onChange={(r) => {
@@ -331,8 +331,8 @@ export function AnalyticsPage() {
                       onClick={() => expenses(capitalize(formatDate(addDays(new Date(2026, 10, 1), d), 'EEEE')), from, end, (x) => new Date(x.occurred_at).getDay() === d)}
                     >
                       <div className="mb-1 aspect-square rounded-md" style={{ background: w.average ? `rgb(var(--expense) / ${0.15 + a * 0.85})` : 'rgb(var(--surface))' }} />
-                      <div className="text-[11px] text-muted">{formatDate(addDays(new Date(2026, 10, 1), d), 'EEE')}</div>
-                      <div className="text-[11px] font-medium">{money(w.average, 'MXN', { compact: true })}</div>
+                      <div className="text-xs text-muted">{formatDate(addDays(new Date(2026, 10, 1), d), 'EEE')}</div>
+                      <div className="text-xs font-medium">{money(w.average, 'MXN', { compact: true })}</div>
                     </button>
                   );
                 })}
@@ -495,7 +495,7 @@ function CategoryList({
   const max = Math.max(...items.map((c) => c.amount), 1);
   return (
     <ol className="divide-y divide-border">
-      {compareLabel && <li className="pb-2 text-right text-[11px] text-muted">% {compareLabel}</li>}
+      {compareLabel && <li className="pb-2 text-right text-xs text-muted">% {compareLabel}</li>}
       {items.map((c) => {
         const key = c.categoryId ?? 'none';
         const expanded = open === key;
@@ -547,7 +547,7 @@ function FixedVsVariable({ fixed, variable, onFixed, onVariable }: { fixed: numb
   const share = (fixed / total) * 100;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-[11px] text-muted">
+      <div className="mb-1 flex justify-between text-xs text-muted">
         <button className="hover:text-fg" onClick={onFixed}>
           {t('analytics.fixed')} · {money(fixed)} ({Math.round(share)}%)
         </button>
@@ -582,10 +582,10 @@ function Tile({ label, value, sub, tone = '', delta, onClick }: { label: string;
   const Box = onClick ? 'button' : 'div';
   return (
     <Box className={`block w-full min-w-0 rounded-2xl bg-surface p-3 text-left ${onClick ? 'transition hover:bg-line' : ''}`} onClick={onClick}>
-      <div className="truncate text-[11px] text-muted">{label}</div>
+      <div className="truncate text-xs text-muted">{label}</div>
       <div className={`truncate text-base font-semibold ${tone}`}>{value}</div>
-      {delta && <div className={`truncate text-[11px] ${delta.tone}`}>{delta.text}</div>}
-      {sub && <div className="truncate text-[11px] text-muted">{sub}</div>}
+      {delta && <div className={`truncate text-xs ${delta.tone}`}>{delta.text}</div>}
+      {sub && <div className="truncate text-xs text-muted">{sub}</div>}
     </Box>
   );
 }

@@ -39,8 +39,7 @@ export function HabitsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t('nav.habits')}</h2>
+      <div className="mb-4 flex justify-end">
         <Segmented
           value={tab}
           onChange={setTab}
@@ -51,7 +50,7 @@ export function HabitsPage() {
         />
       </div>
       {tags.length > 0 && (
-        <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4">
+        <div className="no-scrollbar fade-x -mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4">
           {tags.map((x) => (
             <button key={x} onClick={() => setTag(tag === x ? null : x)} className={`chip shrink-0 ${tag === x ? 'border-habit bg-habit/10 text-habit' : ''}`}>
               #{x}
@@ -282,7 +281,7 @@ function HabitDetail({ habit, onClose, onEdit }: { habit: Habit | null; onClose:
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-surface p-2">
-      <div className="text-[11px] text-muted">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
   );

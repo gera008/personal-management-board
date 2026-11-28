@@ -150,7 +150,7 @@ function MonthWidget({ big }: { big?: boolean }) {
   const open = useOpenItem();
   return (
     <Card title={formatDate(today, 'MMMM yyyy')} to="/calendar">
-      <MonthGrid month={today} items={items} weekStartsOn={weekStartsOn} compact={!big} onSelect={() => navigate('/calendar')} onItem={open} />
+      <MonthGrid month={today} items={items} weekStartsOn={weekStartsOn} compact={!big} short onSelect={() => navigate('/calendar')} onItem={open} />
     </Card>
   );
 }
@@ -186,7 +186,7 @@ function TasksWidget() {
   const undatedHidden = undated.length - undatedShown.length;
   return (
     <Card title={t('nav.tasks')} to="/tasks">
-      <div className="-mx-1 mb-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <div className="no-scrollbar fade-x -mx-1 mb-1 flex gap-1 overflow-x-auto px-1 pb-1">
         {[{ id: 'today', name: t('tasks.today') }, { id: 'all', name: t('tasks.all') }, ...(lists.data ?? [])].map((l) => (
           <button key={l.id} onClick={() => setFilter(l.id)} className={`chip shrink-0 ${filter === l.id ? 'border-tasks bg-tasks/10 text-tasks' : ''}`}>
             {l.name}
@@ -204,7 +204,7 @@ function TasksWidget() {
       )}
       {undated.length > 0 && (
         <div className="mt-2">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
             {t('tasks.noDate')} <span className="font-normal">· {undated.length}</span>
           </h4>
           {undatedShown.length > 0 && (

@@ -135,7 +135,7 @@ export function GoogleCalendarSettings() {
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: c.color ?? 'rgb(var(--muted))' }} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm">{c.summary}</div>
-                    {!writable(c) && <div className="text-[11px] text-muted">{t('google.readOnlyCalendar')}</div>}
+                    {!writable(c) && <div className="text-xs text-muted">{t('google.readOnlyCalendar')}</div>}
                   </div>
                   <input
                     type="checkbox"

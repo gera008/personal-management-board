@@ -124,13 +124,13 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
   );
 }
 
-/** Floating "+" button in the accent color. (`accent` is kept for callers; the accent now comes from Settings.) */
+/** Floating "+" button in the accent color. On phones it sits in the bottom corner, beside the module dial. (`accent` is kept for callers; the accent now comes from Settings.) */
 export function Fab({ onClick, label }: { onClick: () => void; label: string; accent?: string }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 md:bottom-8 md:right-8"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-4 z-[32] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 md:bottom-8 md:right-8"
     >
       <Icon name="plus" size={26} />
     </button>

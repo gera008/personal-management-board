@@ -156,7 +156,7 @@ export function ImportExportPage() {
 function Count({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-surface p-2">
-      <dt className="text-[11px] text-muted">{label}</dt>
+      <dt className="text-xs text-muted">{label}</dt>
       <dd className="font-semibold">{value}</dd>
     </div>
   );

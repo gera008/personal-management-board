@@ -13,7 +13,9 @@ const stored = (() => {
 
 i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, es: { translation: es } },
-  lng: stored === 'es' ? 'es' : 'en',
+  // Until the profile loads, follow what was picked last on this device, else the device language
+  // (a fresh install, like the iPhone app, would otherwise start in English).
+  lng: (stored ?? (typeof navigator !== 'undefined' ? navigator.language : 'en')).toLowerCase().startsWith('es') ? 'es' : 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });

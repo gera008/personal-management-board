@@ -1,6 +1,6 @@
 import {
-  IconArrowDown,
-  IconArrowUp,
+  IconArrowDownLeft,
+  IconArrowUpRight,
   IconArrowsLeftRight,
   IconBell,
   IconBook,
@@ -83,8 +83,8 @@ const icons = {
   clock: IconClock,
   pin: IconMapPin,
   minus: IconMinus,
-  arrowUp: IconArrowUp,
-  arrowDown: IconArrowDown,
+  arrowUp: IconArrowUpRight,
+  arrowDown: IconArrowDownLeft,
   grip: IconGripVertical,
   sort: IconArrowsSort,
 } satisfies Record<string, TablerIcon>;

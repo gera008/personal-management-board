@@ -66,14 +66,15 @@ export function TasksPage() {
         <PageHeader
           title={t('nav.tasks')}
           right={
-            <button className="btn-round" onClick={() => setListSheet({})} aria-label={t('tasks.newList')} title={t('tasks.newList')}>
-              <Icon name="plus" size={20} />
+            // New category, labelled so it isn't mistaken for the + that adds a task.
+            <button className="btn-ghost px-3 py-1.5 text-[13px]" onClick={() => setListSheet({})} title={t('tasks.newList')}>
+              <Icon name="plus" size={16} /> {t('tasks.newList')}
             </button>
           }
         />
         <CategoryNav lists={allLists} view={view} counts={counts} onSelect={select} />
         {tags.length > 0 && (
-          <div className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
+          <div className="no-scrollbar fade-x -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
             {tags.map((tag) => (
               <button key={tag} onClick={() => setTagFilter(tagFilter === tag ? null : tag)} className={`chip shrink-0 ${tagFilter === tag ? 'border-tasks bg-tasks/10 text-tasks' : ''}`}>
                 #{tag}

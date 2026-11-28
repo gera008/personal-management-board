@@ -61,7 +61,7 @@ function Bar({ label, spent, limit, ratio }: { label: string; spent: number; lim
         </span>
       </div>
       <Progress ratio={Math.min(ratio, 1)} color={over ? 'bg-expense' : ratio > 0.85 ? 'bg-tasks' : 'bg-accent'} />
-      <div className="mt-0.5 text-[11px] text-muted">{over ? t('finance.overBy', { amount: money(spent - limit) }) : t('finance.left', { amount: money(limit - spent) })}</div>
+      <div className="mt-0.5 text-xs text-muted">{over ? t('finance.overBy', { amount: money(spent - limit) }) : t('finance.left', { amount: money(limit - spent) })}</div>
     </div>
   );
 }

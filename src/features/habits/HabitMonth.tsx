@@ -75,7 +75,7 @@ export function HabitMonth({ habit, month }: { habit: Habit; month: Date }) {
           ? t('habits.monthBad', { clean: summary.clean, slips: summary.slips, rate: Math.round(summary.rate * 100) })
           : t('habits.monthGood', { done: summary.done, missed: summary.missed, rate: Math.round(summary.rate * 100) })}
       </p>
-      <p className="mt-1 text-[11px] text-muted">{isBad ? t('habits.monthHintBad') : habit.type === 'numeric' ? t('habits.monthHintNumeric') : t('habits.monthHintGood')}</p>
+      <p className="mt-1 text-xs text-muted">{isBad ? t('habits.monthHintBad') : habit.type === 'numeric' ? t('habits.monthHintNumeric') : t('habits.monthHintGood')}</p>
     </div>
   );
 }
@@ -118,7 +118,7 @@ function DayCell({
       } ${missed ? 'border-expense/60 text-expense' : ''} ${isToday ? 'ring-1 ring-current ring-offset-1 ring-offset-bg' : ''} ${selected ? 'ring-2 ring-current' : ''}`}
       style={style}
     >
-      <span className={`absolute left-1 top-0.5 text-[10px] ${filled ? 'opacity-80' : 'text-muted'}`}>{day}</span>
+      <span className={`absolute left-1 top-0.5 text-[11px] ${filled ? 'opacity-80' : 'text-muted'}`}>{day}</span>
       {filled && !label && <Icon name="check" size={16} />}
       {missed && <Icon name="close" size={16} />}
       {label && <span className="text-sm font-semibold">{label}</span>}

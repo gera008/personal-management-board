@@ -49,6 +49,7 @@ export function MonthGrid({
   onSelect,
   onItem,
   compact,
+  short,
 }: {
   month: Date;
   items: CalItem[];
@@ -57,6 +58,8 @@ export function MonthGrid({
   onSelect?: (d: Date) => void;
   onItem?: (i: CalItem) => void;
   compact?: boolean;
+  /** Lower rows (the Overview's month card), so a quiet month doesn't fill the screen. */
+  short?: boolean;
 }) {
   const { from, to } = monthRange(month, weekStartsOn);
   const days = daysBetween(from, to);
@@ -77,7 +80,7 @@ export function MonthGrid({
             <div
               key={d.toISOString()}
               onClick={() => onSelect?.(d)}
-              className={`min-w-0 cursor-pointer bg-bg p-1 ${compact ? 'h-12' : 'min-h-[4.5rem] sm:min-h-[6rem]'} ${isSameMonth(d, month) ? '' : 'text-muted/60'} ${sel ? 'ring-2 ring-inset ring-accent' : ''}`}
+              className={`min-w-0 cursor-pointer bg-bg p-1 ${compact ? 'h-12' : short ? 'min-h-[4.5rem]' : 'min-h-[4.5rem] sm:min-h-[6rem]'} ${isSameMonth(d, month) ? '' : 'text-muted/60'} ${sel ? 'ring-2 ring-inset ring-accent' : ''}`}
             >
               <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${isToday(d) ? 'bg-accent font-semibold text-bg' : ''}`}>{formatDate(d, 'd')}</div>
               {compact ? (
@@ -91,7 +94,7 @@ export function MonthGrid({
                   {dayItems.slice(0, 3).map((i) => (
                     <ItemChip key={i.kind + i.id} item={i} compact onClick={() => onItem?.(i)} />
                   ))}
-                  {dayItems.length > 3 && <div className="px-1 text-[10px] text-muted">+{dayItems.length - 3}</div>}
+                  {dayItems.length > 3 && <div className="px-1 text-[11px] text-muted">+{dayItems.length - 3}</div>}
                 </div>
               )}
               {!compact && (
@@ -219,7 +222,7 @@ export function TimeGrid({
       )}
       {hasAllDay && (
         <div className={`flex border-t border-border ${GUTTER}`}>
-          <div className="w-12 shrink-0 py-1 pr-1 text-right text-[10px] uppercase leading-tight text-muted">{t('calendar.allDay')}</div>
+          <div className="w-12 shrink-0 py-1 pr-1 text-right text-[11px] uppercase leading-tight text-muted">{t('calendar.allDay')}</div>
           {columns.map(({ day, allDay }) => (
             <div key={day.toISOString()} className={`min-w-0 flex-1 space-y-1 p-1 ${multi ? 'border-l border-border' : ''}`}>
               {allDay.map((i) => (

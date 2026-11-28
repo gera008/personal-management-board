@@ -47,7 +47,8 @@ export function FinanceHome() {
                 <DayHeader day={day} onAdd={() => setSheet({ date: day })}>
                   {formatDate(day, 'EEEE d MMM yyyy')}
                 </DayHeader>
-                <span className={`text-xs ${net < 0 ? 'text-expense' : net > 0 ? 'text-income' : 'text-muted'}`}>{money(net, 'MXN', { sign: true })}</span>
+                {/* One movement: its row already shows the amount. */}
+                {list.length > 1 && <span className={`text-xs ${net < 0 ? 'text-expense' : net > 0 ? 'text-income' : 'text-muted'}`}>{money(net, 'MXN', { sign: true })}</span>}
               </div>
               <div className="card divide-y divide-border px-3 py-0">
                 {list.map((x) => (
@@ -148,8 +149,8 @@ export function TxRow({ tx, accById, cats, onOpen, showDate, other }: { tx: Tran
           {tx.type === 'expense' ? '−' : tx.type === 'income' ? '+' : ''}
           {money(amount, tx.currency)}
         </div>
-        {tx.currency !== 'MXN' && <div className="text-[11px] text-muted">{money(num(tx.base_amount_mxn))}</div>}
-        {tx.status === 'pending' && <div className="text-[11px] text-muted">{t('finance.pending')}</div>}
+        {tx.currency !== 'MXN' && <div className="text-xs text-muted">{money(num(tx.base_amount_mxn))}</div>}
+        {tx.status === 'pending' && <div className="text-xs text-muted">{t('finance.pending')}</div>}
       </div>
     </button>
   );

@@ -189,7 +189,7 @@ function Metric({ label, value, sub, children }: { label: string; value: string;
     <div className="min-w-0 rounded-xl border border-border bg-bg p-3">
       <div className="text-xs text-muted">{label}</div>
       <div className="mt-0.5 truncate text-lg font-semibold">{value}</div>
-      {sub && <div className="truncate text-[11px] text-muted">{sub}</div>}
+      {sub && <div className="truncate text-xs text-muted">{sub}</div>}
       {children}
     </div>
   );

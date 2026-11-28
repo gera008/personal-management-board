@@ -67,9 +67,9 @@ export function AccountsPage() {
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-semibold ${b + p < 0 ? 'text-expense' : ''}`}>{money(b + p, a.currency)}</div>
-                      {a.currency !== 'MXN' && <div className="text-[11px] text-muted">{money((b + p) * (rates[a.currency] ?? 0))}</div>}
+                      {a.currency !== 'MXN' && <div className="text-xs text-muted">{money((b + p) * (rates[a.currency] ?? 0))}</div>}
                       {Math.abs(p) >= 0.005 && (
-                        <div className="text-[11px] text-muted">
+                        <div className="text-xs text-muted">
                           {t('finance.today')}: {money(b, a.currency)}
                         </div>
                       )}
@@ -99,7 +99,7 @@ function InvestmentBadge({ detail }: { detail?: BalanceDetail }) {
   const gain = detail.balance - detail.book;
   const pct = detail.book > 0 ? (gain / detail.book) * 100 : null;
   return (
-    <div className="text-[11px]">
+    <div className="text-xs">
       {detail.lastValuedAt && pct != null && Math.abs(gain) >= 0.005 && (
         <span className={gain > 0 ? 'text-income' : 'text-expense'}>
           {gain > 0 ? '+' : ''}

@@ -17,7 +17,7 @@ export function SettingsPage() {
   const run = (p: Promise<unknown>) => p.then(() => setError(null)).catch(setError);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <PageHeader title={t('settings.title')} />
       <ErrorText error={error} />
 

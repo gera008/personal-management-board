@@ -28,7 +28,7 @@ const TOUCH_GAIN = 1.8;
 /** A turn this far (degrees) from where it started is enough to reach the next module. */
 const ADVANCE_DEG = 18;
 /** Idle size in pixels (pointer to the far edge), whatever the active size is. */
-const IDLE_EXTENT = 110;
+const IDLE_EXTENT = 88;
 
 export type DialSide = 'bottom' | 'left';
 

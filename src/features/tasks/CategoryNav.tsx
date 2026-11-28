@@ -32,7 +32,7 @@ export function CategoryNav({ lists, view, counts, onSelect }: Props) {
     <>
       {/* Phones */}
       <div className="md:hidden">
-        <nav className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
+        <nav className="no-scrollbar fade-x -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
           {[...smart, ...lists.map((l) => ({ id: l.id, name: l.name, color: l.color, icon: l.icon }))].map((l) => (
             <button
               key={l.id}

@@ -46,7 +46,7 @@ export function Heatmap({
   const width = weeks * (cell + gap);
   const height = 7 * (cell + gap) + 14;
   return (
-    <div className="-mx-1 overflow-x-auto px-1" dir="rtl">
+    <div className="no-scrollbar -mx-1 overflow-x-auto px-1" dir="rtl">
       <svg width={width} height={height} role="img" aria-label="Heatmap" style={{ direction: 'ltr' }}>
         {cols.map((col, w) => {
           const firstOfMonth = col.find((c) => c.key.endsWith('-01'));
