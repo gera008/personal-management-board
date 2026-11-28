@@ -422,7 +422,9 @@ export function ModuleDial({ side }: { side: DialSide }) {
                   borderRadius: `${g.hub}px ${g.hub}px 0 0`,
                   borderBottom: 0,
                   justifyContent: 'flex-end',
-                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+                  // Open, the label clears the home bar. Idle (scaled down) the whole home bar inset
+                  // would push the icon off the top of the half circle, so only part of it counts.
+                  paddingBottom: active ? 'calc(env(safe-area-inset-bottom) + 12px)' : 'calc(env(safe-area-inset-bottom) * 0.4 + 14px)',
                 }
               : {
                   left: 0,
@@ -448,7 +450,7 @@ export function ModuleDial({ side }: { side: DialSide }) {
             </>
           ) : (
             // Idle the dial is small: just the Overview icon.
-            <Icon name="home" size={Math.round(g.hub * 0.55)} className={bottom ? 'mb-1' : ''} />
+            <Icon name="home" size={Math.round(g.hub * (bottom ? 0.45 : 0.55))} />
           )}
         </button>
       </div>
