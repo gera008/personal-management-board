@@ -26,7 +26,7 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
       <div className="relative flex max-h-[92dvh] w-full flex-col rounded-t-3xl border border-border bg-card sm:max-w-lg sm:rounded-3xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-muted hover:text-fg" onClick={onClose} aria-label="Close">
+          <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-muted hover:text-fg" onClick={onClose} aria-label="Close">
             <Icon name="close" />
           </button>
         </div>
@@ -50,7 +50,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
   return (
     <div className={`inline-flex rounded-full border border-border bg-card p-1 ${className}`} role="tablist">
       {options.map((o) => (
-        <button
+        <button type="button"
           key={o.value}
           role="tab"
           aria-selected={value === o.value}
@@ -83,7 +83,7 @@ export function Collapsible({ title, storageKey, children, right }: { title: Rea
   return (
     <section className="card">
       <div className="flex items-center justify-between gap-2">
-        <button onClick={toggle} className="flex flex-1 items-center gap-1 text-left text-sm font-semibold" aria-expanded={open}>
+        <button type="button" onClick={toggle} className="flex flex-1 items-center gap-1 text-left text-sm font-semibold" aria-expanded={open}>
           <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} className="text-muted" />
           {title}
         </button>
@@ -127,7 +127,7 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
 /** Floating "+" button in the accent color. On phones it floats just above the tab bar. (`accent` is kept for callers; the accent now comes from Settings.) */
 export function Fab({ onClick, label }: { onClick: () => void; label: string; accent?: string }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       aria-label={label}
       className="fixed bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-4 z-[32] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 lg:bottom-8 lg:right-8"
@@ -220,17 +220,17 @@ export function MonthPicker({ month, onChange, className = '' }: { month: Date; 
   return (
     <div className={`flex justify-center ${className}`}>
       <div className="inline-flex items-center gap-1 rounded-full border border-border p-0.5">
-        <button className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, -1)))} aria-label={t('common.previous')}>
+        <button type="button" className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, -1)))} aria-label={t('common.previous')}>
           <Icon name="chevronLeft" size={16} />
         </button>
-        <button
+        <button type="button"
           className={`min-w-[8.5rem] px-1 text-center text-sm font-semibold capitalize ${isCurrent ? 'cursor-default' : 'hover:underline'}`}
           onClick={() => !isCurrent && onChange(startOfMonth(new Date()))}
           title={isCurrent ? undefined : t('finance.thisMonth')}
         >
           {formatDate(month, 'MMMM yyyy')}
         </button>
-        <button className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, 1)))} aria-label={t('common.next')}>
+        <button type="button" className={arrow} onClick={() => onChange(startOfMonth(addMonths(month, 1)))} aria-label={t('common.next')}>
           <Icon name="chevronRight" size={16} />
         </button>
       </div>
