@@ -2,10 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
-import { ColorDots, Empty, ErrorText, Fab, Group, Icon, PageHeader, SaveBar, Sheet, TitleInput } from '@/components/ui';
+import { ColorDots, Empty, ErrorText, Fab, Group, Icon, PageHeader, Progress, SaveBar, Sheet, TitleInput } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { PALETTE, type Task, type TaskList } from '@/domain/types';
-import { isUndatedTask } from '@/domain/tasks';
+import { isUndatedTask, taskBucket, type TaskBucket } from '@/domain/tasks';
 import { TaskRow, isTodayTask, useLists, useTasks } from './shared';
 import { TaskSheet } from './TaskSheet';
 import { CategoryNav } from './CategoryNav';
@@ -53,6 +53,15 @@ export function TasksPage() {
   }
 
 
+  // Open tasks grouped by how soon they're due (Today also brings the undated ones).
+  const ORDER: TaskBucket[] = ['overdue', 'today', 'week', 'later', 'undated'];
+  const grouped = new Map<TaskBucket, Task[]>();
+  for (const x of [...open, ...undated]) {
+    const b = taskBucket(x, today);
+    grouped.set(b, [...(grouped.get(b) ?? []), x]);
+  }
+  const sections = ORDER.filter((b) => grouped.has(b)).map((b) => [b, grouped.get(b)!] as const);
+
   const select = (id: string) => {
     params.set('list', id);
     setParams(params, { replace: true });
@@ -72,6 +81,7 @@ export function TasksPage() {
             </button>
           }
         />
+        <DayProgress tasks={all} today={today} />
         <CategoryNav lists={allLists} view={view} counts={counts} onSelect={select} />
         {tags.length > 0 && (
           <div className="no-scrollbar fade-x -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
@@ -85,46 +95,44 @@ export function TasksPage() {
       </aside>
 
       <section className="min-w-0 flex-1">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold" style={currentList ? { color: currentList.color } : undefined}>
-            {view === 'today' ? t('tasks.today') : view === 'all' ? t('tasks.all') : currentList?.name}
-          </h2>
+        <div className="mb-3 flex items-center gap-2">
+          {currentList && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: currentList.color }} />}
+          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{view === 'today' ? t('tasks.today') : view === 'all' ? t('tasks.all') : currentList?.name}</h2>
           {currentList && (
             <button className="btn-ghost px-2" onClick={() => setListSheet({ list: currentList })} aria-label={t('tasks.editList')}>
               <Icon name="edit" size={16} />
             </button>
           )}
         </div>
-        {open.length === 0 ? (
+        {open.length === 0 && undated.length === 0 ? (
           <Empty>{view === 'today' ? t('tasks.todayEmpty') : t('tasks.empty')}</Empty>
         ) : (
-          <div className="divide-y divide-border">
-            {open.map((x) => (
-              <TaskRow key={x.id} task={x} list={view === 'today' || view === 'all' ? listById.get(x.list_id) : undefined} onOpen={() => setTaskSheet({ task: x })} />
+          <div className="space-y-5">
+            {sections.map(([bucket, list]) => (
+              <TaskSection
+                key={bucket}
+                // Today with only today's tasks: the page heading already says it.
+                title={sections.length === 1 && bucket === 'today' ? null : bucket === 'undated' ? t('tasks.noDate') : t(`tasks.sections.${bucket}`)}
+                count={list.length}
+                tone={bucket === 'overdue' ? 'text-expense' : undefined}
+              >
+                {list.map((x) => (
+                  <TaskRow key={x.id} card task={x} list={listById.get(x.list_id)} onOpen={() => setTaskSheet({ task: x })} />
+                ))}
+              </TaskSection>
             ))}
           </div>
         )}
-        {undated.length > 0 && (
-          <div className="mt-6">
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              {t('tasks.noDate')} <span className="font-normal">· {undated.length}</span>
-            </h3>
-            <div className="divide-y divide-border">
-              {undated.map((x) => (
-                <TaskRow key={x.id} task={x} list={listById.get(x.list_id)} onOpen={() => setTaskSheet({ task: x })} />
-              ))}
-            </div>
-          </div>
-        )}
         {done.length > 0 && (
-          <div className="mt-4">
-            <button className="text-sm text-muted" onClick={() => setShowDone(!showDone)}>
-              {showDone ? t('tasks.hideCompleted') : t('tasks.showCompleted', { count: done.length })}
+          <div className="mt-5">
+            <button className="section-title flex items-center gap-1.5 hover:text-fg" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}>
+              <Icon name={showDone ? 'chevronDown' : 'chevronRight'} size={14} />
+              {t('tasks.completed')} · {done.length}
             </button>
             {showDone && (
-              <div className="divide-y divide-border">
+              <div className="space-y-1.5">
                 {done.map((x) => (
-                  <TaskRow key={x.id} task={x} onOpen={() => setTaskSheet({ task: x })} />
+                  <TaskRow key={x.id} card task={x} list={listById.get(x.list_id)} onOpen={() => setTaskSheet({ task: x })} />
                 ))}
               </div>
             )}
@@ -142,6 +150,37 @@ export function TasksPage() {
       />
       <ListSheet open={!!listSheet} list={listSheet?.list} position={allLists.length} onClose={() => setListSheet(null)} onDeleted={() => select('today')} />
     </div>
+  );
+}
+
+/** Today at a glance: what's left and how much is done, with a bar in the accent color. */
+function DayProgress({ tasks, today }: { tasks: Task[]; today: string }) {
+  const { t } = useTranslation();
+  const pending = tasks.filter((x) => isTodayTask(x, today)).length;
+  const done = tasks.filter((x) => x.completed_at && toDateKey(new Date(x.completed_at)) === today).length;
+  const total = pending + done;
+  return (
+    <div className="card mb-4 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[13px] text-muted">{t('tasks.dayTitle')}</span>
+        {total > 0 && <span className="text-xs text-muted">{t('tasks.dayProgress', { done, total })}</span>}
+      </div>
+      <div className="mt-1 text-[22px] font-semibold leading-tight tracking-tight">{pending > 0 ? t('tasks.pending', { count: pending }) : t('tasks.dayEmpty')}</div>
+      {total > 0 && <Progress ratio={done / total} color="bg-accent" className="mt-3" />}
+    </div>
+  );
+}
+
+/** A group of task cards under a small heading with its count. */
+function TaskSection({ title, count, tone, children }: { title: string | null; count: number; tone?: string; children: React.ReactNode }) {
+  return (
+    <section>
+      {title && <h3 className={`mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide ${tone ?? 'text-muted'}`}>
+        {title}
+        <span className="font-normal opacity-70">· {count}</span>
+      </h3>}
+      <div className="space-y-1.5">{children}</div>
+    </section>
   );
 }
 

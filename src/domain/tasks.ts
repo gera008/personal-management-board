@@ -31,3 +31,13 @@ export function staleDays(t: Task, now = Date.now()): number | null {
   const days = Math.floor((now - Date.parse(t.updated_at)) / 86_400_000);
   return days >= STALE_DAYS ? days : null;
 }
+
+export type TaskBucket = 'overdue' | 'today' | 'week' | 'later' | 'undated';
+
+/** Where an open task goes in the list: overdue, today, the next 7 days, later or without a date. */
+export function taskBucket(t: Task, today: string): TaskBucket {
+  if (!t.due_date) return 'undated';
+  if (t.due_date < today) return 'overdue';
+  if (t.due_date === today) return 'today';
+  return dayDiff(t.due_date, today) <= 7 ? 'week' : 'later';
+}

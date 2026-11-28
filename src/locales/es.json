@@ -7,9 +7,7 @@
     "habits": "Hábitos",
     "settings": "Ajustes",
     "health": "Salud",
-    "selector": "Selector de módulos",
-    "tapForOverview": "Toca aquí para ir al Resumen",
-    "clickForOverview": "Clic aquí para ir al Resumen"
+    "selector": "Módulos"
   },
   "common": {
     "add": "Agregar",
@@ -79,10 +77,11 @@
       "month": "Mes",
       "week": "Semana",
       "day": "Día",
-      "agenda": "Agenda"
+      "agenda": "Agenda",
+      "threeDays": "3 días"
     },
     "today": "Hoy",
-    "upcoming": "Próximos",
+    "upcoming": "Próximos 60 días",
     "nothing": "Nada programado",
     "agendaEmpty": "No hay eventos ni tareas en los próximos 60 días.",
     "allDay": "Todo el día",
@@ -153,7 +152,26 @@
     "staleMonths_other": "Sin tocar hace {{count}} meses",
     "staleHint": "Sin fecha y sin cambios en un buen rato. ¿Le pones fecha o la borras?",
     "moreUndated_one": "+{{count}} más sin fecha",
-    "moreUndated_other": "+{{count}} más sin fecha"
+    "moreUndated_other": "+{{count}} más sin fecha",
+    "sections": {
+      "overdue": "Vencidas",
+      "today": "Hoy",
+      "week": "Próximos 7 días",
+      "later": "Más adelante"
+    },
+    "dayTitle": "Tu día",
+    "dayProgress": "{{done}} de {{total}} hechas hoy",
+    "dayEmpty": "Nada pendiente para hoy",
+    "pending_one": "{{count}} pendiente",
+    "pending_other": "{{count}} pendientes",
+    "priorities": {
+      "1": "Baja",
+      "2": "Media",
+      "3": "Alta"
+    },
+    "completed": "Completadas",
+    "overdueBy_one": "Venció hace {{count}} día",
+    "overdueBy_other": "Venció hace {{count}} días"
   },
   "finance": {
     "tabs": {

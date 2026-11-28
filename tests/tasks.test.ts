@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isUndatedTask, nextTaskInstance, staleDays } from '../src/domain/tasks';
+import { isUndatedTask, nextTaskInstance, staleDays, taskBucket } from '../src/domain/tasks';
 import type { Task } from '../src/domain/types';
 
 const task = (p: Partial<Task>): Task => ({
@@ -63,5 +63,16 @@ describe('undated tasks', () => {
     expect(staleDays(task({ due_date: null, updated_at: '2026-11-15T12:00:00Z' }), now)).toBeNull();
     expect(staleDays(task({ due_date: null, updated_at: '2026-11-10T12:00:00Z' }), now)).toBe(14);
     expect(staleDays(task({ due_date: '2026-11-30', updated_at: '2026-01-01T00:00:00Z' }), now)).toBeNull();
+  });
+});
+
+describe('taskBucket', () => {
+  const today = '2026-11-28';
+  it('sorts open tasks by how soon they are due', () => {
+    expect(taskBucket(task({ due_date: null }), today)).toBe('undated');
+    expect(taskBucket(task({ due_date: '2026-11-27' }), today)).toBe('overdue');
+    expect(taskBucket(task({ due_date: today }), today)).toBe('today');
+    expect(taskBucket(task({ due_date: '2026-12-05' }), today)).toBe('week');
+    expect(taskBucket(task({ due_date: '2026-12-06' }), today)).toBe('later');
   });
 });

@@ -12,13 +12,10 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-/** Soft fill of a category color behind its icon. */
-const tile = (color: string) => ({ color, background: `color-mix(in srgb, ${color} 18%, transparent)` });
-
 /**
- * Tasks navigation. Wide screens: Today / All tiles and the categories as a
- * list you can reorder by dragging the grip. Phones: a row of chips, with a
- * "reorder" button that opens the same draggable list.
+ * Tasks navigation. Wide screens: Today and All on top of the categories, one
+ * list (categories reorder by dragging the grip). Phones: a row of chips, with
+ * a "reorder" button that opens the same draggable list.
  */
 export function CategoryNav({ lists, view, counts, onSelect }: Props) {
   const { t } = useTranslation();
@@ -68,23 +65,13 @@ export function CategoryNav({ lists, view, counts, onSelect }: Props) {
 
       {/* Wide screens */}
       <div className="hidden md:block">
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <ul className="mb-4 rounded-3xl border border-border bg-card p-1.5">
           {smart.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => onSelect(l.id)}
-              className={`rounded-3xl border p-3.5 text-left transition ${view === l.id ? 'border-line bg-surface' : 'border-border bg-card hover:bg-surface'}`}
-            >
-              <div className="flex items-start justify-between">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full" style={tile(l.color)}>
-                  <Icon name={l.icon} size={20} />
-                </span>
-                <span className="text-2xl font-semibold leading-none tracking-tight">{counts(l.id)}</span>
-              </div>
-              <div className="mt-3 text-[15px] font-medium">{l.name}</div>
-            </button>
+            <li key={l.id}>
+              <NavItem active={view === l.id} color={l.color} icon={l.icon} name={l.name} count={counts(l.id)} onClick={() => onSelect(l.id)} />
+            </li>
           ))}
-        </div>
+        </ul>
         {lists.length > 0 && (
           <>
             <h3 className="section-title px-1">{t('tasks.categories')}</h3>
@@ -93,6 +80,22 @@ export function CategoryNav({ lists, view, counts, onSelect }: Props) {
         )}
       </div>
     </>
+  );
+}
+
+/** A row of the wide-screen navigation: icon in its color, name and open count. The current one is inverted. */
+function NavItem({ active, color, icon, name, count, onClick }: { active: boolean; color: string; icon: string; name: string; count: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${active ? 'bg-fg text-bg' : 'hover:bg-surface'}`}
+    >
+      <span style={active ? undefined : { color }}>
+        <Icon name={icon} size={18} />
+      </span>
+      <span className={`min-w-0 flex-1 truncate text-[15px] ${active ? 'font-semibold' : 'font-medium'}`}>{name}</span>
+      {count > 0 && <span className={`text-xs tabular-nums ${active ? 'text-bg/70' : 'text-muted'}`}>{count}</span>}
+    </button>
   );
 }
 
@@ -159,17 +162,11 @@ function SortableLists({ lists, view, counts, onSelect }: Props) {
               if (el) rows.current.set(l.id, el);
               else rows.current.delete(l.id);
             }}
-            className={`flex items-center gap-1 rounded-2xl transition-shadow ${active ? 'bg-surface' : ''} ${
-              lifted ? 'relative z-10 bg-line shadow-[0_8px_24px_rgb(0_0_0/0.45)]' : ''
-            }`}
+            className={`flex items-center gap-1 rounded-2xl transition-shadow ${lifted ? 'relative z-10 bg-line shadow-[0_8px_24px_rgb(0_0_0/0.45)]' : ''}`}
           >
-            <button onClick={() => onSelect(l.id)} className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-2.5 text-left">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={tile(l.color)}>
-                <Icon name={l.icon} size={20} />
-              </span>
-              <span className={`min-w-0 flex-1 truncate text-[15px] ${active ? 'font-semibold' : 'font-medium'}`}>{l.name}</span>
-              {counts(l.id) > 0 && <span className="rounded-full bg-bg px-2 py-0.5 text-xs text-muted">{counts(l.id)}</span>}
-            </button>
+            <div className="min-w-0 flex-1">
+              <NavItem active={active && !lifted} color={l.color} icon={l.icon} name={l.name} count={counts(l.id)} onClick={() => onSelect(l.id)} />
+            </div>
             <span
               role="button"
               aria-label={t('tasks.dragToReorder', { name: l.name })}

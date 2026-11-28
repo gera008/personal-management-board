@@ -7,9 +7,7 @@
     "habits": "Habits",
     "settings": "Settings",
     "health": "Health",
-    "selector": "Module selector",
-    "tapForOverview": "Tap here for the Overview",
-    "clickForOverview": "Click here for the Overview"
+    "selector": "Modules"
   },
   "common": {
     "add": "Add",
@@ -79,10 +77,11 @@
       "month": "Month",
       "week": "Week",
       "day": "Day",
-      "agenda": "Agenda"
+      "agenda": "Agenda",
+      "threeDays": "3 days"
     },
     "today": "Today",
-    "upcoming": "Upcoming",
+    "upcoming": "Next 60 days",
     "nothing": "Nothing scheduled",
     "agendaEmpty": "No events or tasks in the next 60 days.",
     "allDay": "All day",
@@ -153,7 +152,26 @@
     "staleMonths_other": "Untouched for {{count}} months",
     "staleHint": "No date and no changes in a while. Give it a date or delete it?",
     "moreUndated_one": "+{{count}} more without a date",
-    "moreUndated_other": "+{{count}} more without a date"
+    "moreUndated_other": "+{{count}} more without a date",
+    "sections": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "week": "Next 7 days",
+      "later": "Later"
+    },
+    "dayTitle": "Your day",
+    "dayProgress": "{{done}} of {{total}} done today",
+    "dayEmpty": "Nothing left for today",
+    "pending_one": "{{count}} to do",
+    "pending_other": "{{count}} to do",
+    "priorities": {
+      "1": "Low",
+      "2": "Medium",
+      "3": "High"
+    },
+    "completed": "Completed",
+    "overdueBy_one": "{{count}} day overdue",
+    "overdueBy_other": "{{count}} days overdue"
   },
   "finance": {
     "tabs": {

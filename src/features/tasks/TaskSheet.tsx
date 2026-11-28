@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useRemove, useSave } from '@/lib/data';
 import { supabase, unwrap } from '@/lib/supabase';
 import { addDays } from 'date-fns';
-import { ErrorText, Group, Icon, Row, SaveBar, Sheet, Switch, TagInput, TimeSelect } from '@/components/ui';
+import { DateField, ErrorText, Group, Icon, Row, SaveBar, Sheet, Switch, TagInput, TimeSelect } from '@/components/ui';
 import { toDateKey } from '@/domain/dates';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import type { Task, TaskList } from '@/domain/types';
-import { PRIORITY_FLAGS } from './shared';
+import { PriorityBars } from './shared';
 
 interface SubDraft {
   id?: string;
@@ -129,7 +129,7 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
           />
         </div>
 
-        <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('tasks.list')}>
+        <div className="no-scrollbar fade-x -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('tasks.list')}>
           {lists.map((l) => {
             const on = f.list_id === l.id;
             return (
@@ -151,15 +151,15 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
         <Group>
           <div>
             <Row icon="calendar" label={t('tasks.dueDate')}>
-              <input type="date" className="pill" aria-label={t('tasks.dueDate')} value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} />
+              <DateField label={t('tasks.dueDate')} placeholder={t('tasks.noDate')} value={f.due_date} onChange={(due_date) => setF({ ...f, due_date })} />
             </Row>
-            <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-3">
+            <div className="no-scrollbar fade-x flex gap-1.5 overflow-x-auto px-4 pb-3">
               {quickDates.map((q) => (
                 <button
                   key={q.label}
                   type="button"
                   onClick={() => setF({ ...f, due_date: q.value })}
-                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${f.due_date === q.value ? 'bg-tasks text-bg' : 'bg-surface text-muted hover:text-fg'}`}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${f.due_date === q.value ? 'bg-accent font-medium text-bg' : 'bg-surface text-muted hover:text-fg'}`}
                 >
                   {q.label}
                 </button>
@@ -188,11 +188,16 @@ export function TaskSheet({ open, onClose, task, lists, defaultListId }: { open:
                   key={p}
                   role="radio"
                   aria-checked={f.priority === p}
-                  aria-label={p === 0 ? t('tasks.none') : PRIORITY_FLAGS[p]}
+                  aria-label={p === 0 ? t('tasks.none') : t(`tasks.priorities.${p}`)}
                   onClick={() => setF({ ...f, priority: p })}
-                  className={`h-8 min-w-[2.5rem] rounded-full px-2 text-sm font-semibold transition ${f.priority === p ? 'bg-tasks text-bg' : 'text-muted hover:text-fg'}`}
+                  className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] transition ${f.priority === p ? 'bg-fg font-medium text-bg' : 'text-muted hover:text-fg'}`}
                 >
-                  {p === 0 ? '–' : PRIORITY_FLAGS[p]}
+                  {p === 0 ? '–' : (
+                    <>
+                      <PriorityBars level={p} />
+                      <span className="hidden sm:inline">{t(`tasks.priorities.${p}`)}</span>
+                    </>
+                  )}
                 </button>
               ))}
             </div>

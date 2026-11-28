@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui';
 import { useAmountsHidden } from '@/lib/privacy';
 import { useIsDemo } from '@/lib/demo';
 import { useIdleHome } from '@/lib/idleHome';
-import { MODULES, ModuleDial } from './ModuleDial';
+import { NAV_ITEMS } from './modules';
 
 function PrivacyToggle() {
   const { t } = useTranslation();
@@ -18,7 +18,7 @@ function PrivacyToggle() {
   );
 }
 
-/** From 1024px a side bar replaces the dial; below that the dial sits at the bottom. */
+/** From 1024px the modules sit in a side bar; below that in a tab bar at the bottom. */
 function useWide() {
   const query = '(min-width: 1024px)';
   const [wide, setWide] = useState(() => window.matchMedia(query).matches);
@@ -31,24 +31,40 @@ function useWide() {
   return wide;
 }
 
-/** Desktop navigation: Overview and the four modules, always in view on the left. */
-function SideNav() {
+/**
+ * Module navigation. Wide screens: a bar down the left edge. Phones: a tab bar
+ * along the bottom, above the home indicator.
+ */
+function ModuleNav({ side }: { side: 'left' | 'bottom' }) {
   const { t } = useTranslation();
-  const items = [{ to: '/', icon: 'home' as const, key: 'nav.home', end: true }, ...MODULES.map((m) => ({ ...m, end: false }))];
+  const left = side === 'left';
   return (
-    <nav aria-label={t('nav.selector')} className="fixed inset-y-0 left-0 z-30 flex w-24 flex-col items-center gap-2 border-r border-border bg-bg pt-24">
-      {items.map((m) => (
-        <NavLink key={m.to} to={m.to} end={m.end} className="group flex w-20 flex-col items-center gap-1 py-1.5 text-xs">
+    <nav
+      aria-label={t('nav.selector')}
+      data-tabbar={left ? undefined : ''}
+      className={
+        left
+          ? 'fixed inset-y-0 left-0 z-30 flex w-24 flex-col items-center gap-2 border-r border-border bg-bg pt-24'
+          : 'fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-bg/90 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl'
+      }
+    >
+      {NAV_ITEMS.map((m) => (
+        <NavLink
+          key={m.to}
+          to={m.to}
+          end={m.end}
+          className={`group flex flex-col items-center gap-1 text-xs ${left ? 'w-20 py-1.5' : 'min-w-0 flex-1 pb-1.5 pt-2 text-[11px]'}`}
+        >
           {({ isActive }) => (
             <>
               <span
-                className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${
-                  isActive ? 'bg-accent text-bg' : 'text-muted group-hover:bg-surface group-hover:text-fg'
+                className={`flex items-center justify-center rounded-2xl transition ${left ? 'h-11 w-11' : 'h-8 w-12'} ${
+                  isActive ? 'bg-accent text-bg' : 'text-muted group-hover:text-fg'
                 }`}
               >
-                <Icon name={m.icon} size={22} />
+                <Icon name={m.icon} size={left ? 22 : 20} />
               </span>
-              <span className={isActive ? 'font-medium text-fg' : 'text-muted group-hover:text-fg'}>{t(m.key)}</span>
+              <span className={`max-w-full truncate ${isActive ? 'font-medium text-fg' : 'text-muted'}`}>{t(m.key)}</span>
             </>
           )}
         </NavLink>
@@ -98,7 +114,7 @@ export function Layout() {
   const scrolledTitle = useScrolledTitle();
   return (
     <div className="min-h-dvh">
-      {wide && <SideNav />}
+      {wide && <ModuleNav side="left" />}
       <div className="lg:pl-24">
         {demo && <div className="truncate border-b border-border bg-card px-4 py-1 text-center text-xs text-muted">{t('auth.demoBanner')}</div>}
         <header className="sticky top-0 z-20 bg-bg/85 backdrop-blur">
@@ -122,17 +138,11 @@ export function Layout() {
             </div>
           </div>
         </header>
-        <main className="pb-dial mx-auto w-full max-w-5xl px-4 pt-1 md:px-8 xl:max-w-6xl">
+        <main className="pb-nav mx-auto w-full max-w-5xl px-4 pt-1 md:px-8 xl:max-w-6xl">
           <Outlet />
         </main>
       </div>
-      {!wide && (
-        <>
-          {/* Fade the page out behind the dial at the bottom. */}
-          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-24 bg-gradient-to-t from-bg via-bg/80 to-transparent" />
-          <ModuleDial side="bottom" />
-        </>
-      )}
+      {!wide && <ModuleNav side="bottom" />}
     </div>
   );
 }

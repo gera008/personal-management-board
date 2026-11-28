@@ -124,13 +124,13 @@ export function PageHeader({ title, right, children }: { title: string; right?: 
   );
 }
 
-/** Floating "+" button in the accent color. On phones it sits in the bottom corner, beside the module dial. (`accent` is kept for callers; the accent now comes from Settings.) */
+/** Floating "+" button in the accent color. On phones it floats just above the tab bar. (`accent` is kept for callers; the accent now comes from Settings.) */
 export function Fab({ onClick, label }: { onClick: () => void; label: string; accent?: string }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-4 z-[32] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 md:bottom-8 md:right-8"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-4 z-[32] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-[0_0_0_6px_rgb(var(--accent)/0.12)] transition active:scale-95 lg:bottom-8 lg:right-8"
     >
       <Icon name="plus" size={26} />
     </button>
@@ -359,5 +359,27 @@ export function ColorDots({ colors, value, onChange }: { colors: readonly string
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * A date as the app writes it ("sáb 28 nov 2026"), styled like the time picker.
+ * The system date picker sits invisibly on top and opens on tap. Empty shows
+ * `placeholder` (or the label).
+ */
+export function DateField({ label, value, min, onChange, required, placeholder }: { label: string; value: string; min?: string; onChange: (d: string) => void; required?: boolean; placeholder?: string }) {
+  return (
+    <label className={`pill relative min-w-0 cursor-pointer ${value ? 'capitalize' : 'text-muted'}`}>
+      {value ? formatDate(`${value}T00:00`, 'EEE d MMM yyyy') : (placeholder ?? label)}
+      <input
+        type="date"
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        required={required}
+        min={min}
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
   );
 }

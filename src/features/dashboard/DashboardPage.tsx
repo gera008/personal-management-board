@@ -188,7 +188,7 @@ function TasksWidget() {
     <Card title={t('nav.tasks')} to="/tasks">
       <div className="no-scrollbar fade-x -mx-1 mb-1 flex gap-1 overflow-x-auto px-1 pb-1">
         {[{ id: 'today', name: t('tasks.today') }, { id: 'all', name: t('tasks.all') }, ...(lists.data ?? [])].map((l) => (
-          <button key={l.id} onClick={() => setFilter(l.id)} className={`chip shrink-0 ${filter === l.id ? 'border-tasks bg-tasks/10 text-tasks' : ''}`}>
+          <button key={l.id} onClick={() => setFilter(l.id)} className={`chip shrink-0 ${filter === l.id ? 'border-transparent bg-fg font-medium text-bg' : ''}`}>
             {l.name}
           </button>
         ))}

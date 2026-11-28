@@ -119,12 +119,12 @@ body {
   }
 }
 
-/* Room under the content for the idle module dial and the + button at the bottom (phones/tablets). */
-.pb-dial {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 7rem);
+/* Room under the content for the tab bar and the + button above it (phones/tablets). */
+.pb-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 9rem);
 }
 @media (min-width: 1024px) {
-  .pb-dial {
+  .pb-nav {
     padding-bottom: 3rem;
   }
 }

@@ -4,7 +4,7 @@ import { addHours, addMinutes, differenceInMinutes, endOfDay, format, startOfDay
 import { supabase, unwrap } from '@/lib/supabase';
 import { useInvalidate } from '@/lib/data';
 import { syncGoogleSoon } from '@/lib/google';
-import { ErrorText, Group, Row, SaveBar, Sheet, Switch, TimeSelect } from '@/components/ui';
+import { DateField, ErrorText, Group, Row, SaveBar, Sheet, Switch, TimeSelect } from '@/components/ui';
 import { RecurrencePicker } from '@/components/RecurrencePicker';
 import { cleanRule, type Recurrence } from '@shared/recurrence';
 import { planSeriesDelete, planSeriesEdit, type EventFields, type SeriesPlan, type SeriesScope } from '@/domain/eventSeries';
@@ -200,7 +200,7 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
             onChange={(e) => setF({ ...f, title: e.target.value })}
           />
 
-          <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('calendar.category')}>
+          <div className="no-scrollbar fade-x -mx-5 mb-4 flex gap-2 overflow-x-auto px-5" role="radiogroup" aria-label={t('calendar.category')}>
             {[{ id: null, name: t('calendar.noCategory'), color: DEFAULT_EVENT_COLOR }, ...lists].map((l) => (
               <button
                 key={l.id ?? 'none'}
@@ -227,19 +227,19 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
               <div key={r.label} className="flex min-h-[3.25rem] items-center gap-2 px-4 py-2">
                 <span className="w-12 shrink-0 text-[15px] text-muted">{r.label}</span>
                 <div className="flex min-w-0 flex-1 justify-end gap-2">
-                  <input type="date" className="pill min-w-0 flex-1 px-3 sm:max-w-[11rem] sm:flex-none" required min={r.min} aria-label={r.label} value={r.date} onChange={(e) => e.target.value && r.onDate(e.target.value)} />
+                  <DateField label={r.label} min={r.min} value={r.date} onChange={(d) => d && r.onDate(d)} required />
                   {!f.all_day && <TimeSelect value={r.time} onChange={(v) => v && r.onTime(v)} aria-label={r.timeLabel} />}
                 </div>
               </div>
             ))}
             {!f.all_day && (
-              <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 py-2.5">
+              <div className="no-scrollbar fade-x flex gap-1.5 overflow-x-auto px-4 py-2.5">
                 {DURATIONS.map((m) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => setF({ ...f, end: local(addMinutes(new Date(f.start), m)) })}
-                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${duration === m ? 'bg-calendar text-bg' : 'bg-surface text-muted hover:text-fg'}`}
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[13px] transition ${duration === m ? 'bg-accent font-medium text-bg' : 'bg-surface text-muted hover:text-fg'}`}
                   >
                     {durationLabel(m)}
                   </button>
@@ -279,3 +279,4 @@ export function EventSheet({ open, onClose, target }: { open: boolean; onClose: 
     </Sheet>
   );
 }
+

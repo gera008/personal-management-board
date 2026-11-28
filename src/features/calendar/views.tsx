@@ -1,5 +1,5 @@
 import { addDays, endOfMonth, endOfWeek, isSameDay, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/lib/format';
 import { Empty } from '@/components/ui';
@@ -33,10 +33,60 @@ export function ItemChip({ item, onClick, compact }: { item: CalItem; onClick?: 
       }`}
       style={tint(item, 26)}
     >
-      {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-full border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
+      {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-[3px] border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
       {!compact && !item.allDay && <span className="shrink-0 text-muted">{timeLabel(item.start)}</span>}
       <span className="truncate">{item.title}</span>
     </button>
+  );
+}
+
+/** Readable card for one item: color edge (a ring for tasks), title, time and place. */
+export function ItemCard({ item, onClick }: { item: CalItem; onClick: () => void }) {
+  const { t } = useTranslation();
+  const isTask = item.kind === 'task';
+  return (
+    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 text-left transition hover:bg-surface">
+      {isTask ? (
+        <span className="h-4 w-4 shrink-0 rounded-[5px] border-2" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />
+      ) : (
+        <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: itemColor(item) }} />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className={`truncate text-[15px] font-medium ${item.done ? 'text-muted line-through' : ''}`}>{item.title}</div>
+        <div className="truncate text-xs text-muted">
+          {item.allDay ? t('calendar.allDay') : isTask ? timeLabel(item.start) : `${timeLabel(item.start)} – ${timeLabel(item.end)}`}
+          {item.event?.location ? ` · ${item.event.location}` : ''}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/** The week around `selected` as a row of days with dots; tapping one selects it. */
+export function WeekStrip({ selected, items, weekStartsOn, onSelect }: { selected: Date; items: CalItem[]; weekStartsOn: 0 | 1; onSelect: (d: Date) => void }) {
+  const { from, to } = weekRange(selected, weekStartsOn);
+  return (
+    <div className="mb-3 grid grid-cols-7 gap-1">
+      {daysBetween(from, to).map((d) => {
+        const sel = isSameDay(d, selected);
+        const dots = itemsForDay(items, d).slice(0, 3);
+        return (
+          <button
+            key={d.toISOString()}
+            onClick={() => onSelect(d)}
+            className={`flex flex-col items-center gap-0.5 rounded-2xl py-1.5 transition ${sel ? 'bg-fg text-bg' : 'hover:bg-surface'}`}
+          >
+            <span className={`text-[11px] uppercase ${sel ? 'text-bg/70' : 'text-muted'}`}>{formatDate(d, 'EEEEE')}</span>
+            <span className={`text-[17px] font-semibold leading-tight ${!sel && isToday(d) ? 'text-accent' : ''}`}>{formatDate(d, 'd')}</span>
+            <span className="flex h-1.5 gap-0.5">
+              {dots.map((i) => (
+                <span key={i.kind + i.id} className="h-1.5 w-1.5 rounded-full" style={{ background: itemColor(i) }} />
+              ))}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -151,7 +201,7 @@ function TimedBlock({ item, short, narrow, onClick }: { item: CalItem; short: bo
       style={tint(item, 32)}
     >
       <span className="flex min-w-0 items-center gap-1.5">
-        {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-full border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
+        {isTask && <span className="h-2.5 w-2.5 shrink-0 rounded-[3px] border" style={{ borderColor: item.color, background: item.done ? item.color : undefined }} />}
         {/* Narrow week columns wrap the title over the block's height instead of cutting it to one line. */}
         <span className={`font-medium ${narrow && !short ? '[overflow-wrap:anywhere]' : 'truncate'}`}>{item.title}</span>
       </span>
@@ -195,16 +245,33 @@ export function TimeGrid({
   const multi = days.length > 1;
   const px = (minutes: number) => (minutes / 60) * HOUR_PX;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  // Open on the morning rather than at midnight.
+  // The grid is the page's only scroller: as tall as the screen allows above the tab bar.
+  const [height, setHeight] = useState<number>();
+  // Open an hour before now when today is shown, else on the morning.
   const scroller = useRef<HTMLDivElement>(null);
+  const showsToday = days.some((d) => isSameDay(d, now));
   useEffect(() => {
-    if (scroller.current) scroller.current.scrollTop = FIRST_VISIBLE_HOUR * HOUR_PX;
-  }, []);
+    if (scroller.current) scroller.current.scrollTop = (showsToday ? Math.max(0, now.getHours() - 1) : FIRST_VISIBLE_HOUR) * HOUR_PX;
+    // Once its height is known: before that the grid isn't a scroller yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showsToday, height === undefined]);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = scroller.current;
+      if (!el) return;
+      const tabBar = document.querySelector('[data-tabbar]')?.getBoundingClientRect().height ?? 0;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      setHeight(Math.max(280, window.innerHeight - top - tabBar - 16));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [hasAllDay, multi]);
 
   return (
     <div>
       {multi && (
-        <div className={`flex ${GUTTER}`}>
+        <div className="flex">
           <div className="w-12 shrink-0" />
           {columns.map(({ day }) => (
             <button key={day.toISOString()} onClick={() => onDay?.(day)} className="min-w-0 flex-1 pb-2 text-center">
@@ -221,7 +288,7 @@ export function TimeGrid({
         </div>
       )}
       {hasAllDay && (
-        <div className={`flex border-t border-border ${GUTTER}`}>
+        <div className="flex border-t border-border">
           <div className="w-12 shrink-0 py-1 pr-1 text-right text-[11px] uppercase leading-tight text-muted">{t('calendar.allDay')}</div>
           {columns.map(({ day, allDay }) => (
             <div key={day.toISOString()} className={`min-w-0 flex-1 space-y-1 p-1 ${multi ? 'border-l border-border' : ''}`}>
@@ -232,7 +299,7 @@ export function TimeGrid({
           ))}
         </div>
       )}
-      <div ref={scroller} className="flex max-h-[calc(100dvh-15rem)] overflow-y-auto [scrollbar-gutter:stable] border-t border-border md:max-h-[calc(100dvh-12rem)]">
+      <div ref={scroller} className="no-scrollbar flex overflow-y-auto border-t border-border" style={{ height }}>
         <div className="w-12 shrink-0">
           {Array.from({ length: 24 }, (_, h) => (
             <div key={h} className="pr-1 pt-1 text-right text-[11px] text-muted" style={{ height: HOUR_PX }}>
@@ -271,8 +338,6 @@ export function TimeGrid({
 }
 
 const FIRST_VISIBLE_HOUR = 7;
-/** Rows above the scrolling grid reserve the same scrollbar space so columns line up. */
-const GUTTER = 'overflow-y-hidden [scrollbar-gutter:stable]';
 
 /**
  * Horizontal placement of an overlapping item. A full-width day splits the
@@ -306,19 +371,10 @@ export function AgendaView({ from, to, items, onItem }: { from: Date; to: Date; 
     <div className="space-y-4">
       {days.map(({ d, list }) => (
         <section key={d.toISOString()}>
-          <h3 className={`section-title ${isToday(d) ? 'text-accent' : ''}`}>{formatDate(d, 'EEEE d MMMM')}</h3>
-          <div className="space-y-1">
+          <h3 className={`section-title capitalize ${isToday(d) ? 'text-accent' : ''}`}>{formatDate(d, 'EEEE d MMMM')}</h3>
+          <div className="space-y-1.5">
             {list.map((i) => (
-              <button key={i.kind + i.id} onClick={() => onItem(i)} className="flex w-full items-center gap-3 rounded-lg border border-border px-3 py-2 text-left">
-                <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: itemColor(i) }} />
-                <div className="min-w-0 flex-1">
-                  <div className={`truncate text-sm font-medium ${i.done ? 'text-muted line-through' : ''}`}>{i.title}</div>
-                  <div className="text-xs text-muted">
-                    {i.allDay ? t('calendar.allDay') : i.kind === 'task' ? timeLabel(i.start) : `${timeLabel(i.start)} – ${timeLabel(i.end)}`}
-                    {i.event?.location ? ` · ${i.event.location}` : ''}
-                  </div>
-                </div>
-              </button>
+              <ItemCard key={i.kind + i.id} item={i} onClick={() => onItem(i)} />
             ))}
           </div>
         </section>
