@@ -10,7 +10,7 @@ import { bezelClick, caseClose, unlockBezel } from '@/lib/bezelSound';
  * Wide screens: half circle on the left edge, pointer at 3 o'clock.
  * Idle it shrinks into the background; touching, dragging, scrolling or
  * using the arrow keys brings it forward
- * until it rests again. The hub in the middle opens the Overview.
+ * until it rests again. The empty hub in the middle opens the Overview.
  */
 export const MODULES = [
   { to: '/calendar', icon: 'calendar', key: 'nav.calendar' },
@@ -310,7 +310,6 @@ export function ModuleDial({ side }: { side: DialSide }) {
 
   const bottom = side === 'bottom';
   const name = t(MODULES[current].key);
-  const finePointer = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
   // On the Overview (or Settings) no module is lit until you start turning.
   const highlighted = active || routeIndex >= 0 ? current : -1;
   const hubLit = onOverview && !active;
@@ -403,14 +402,12 @@ export function ModuleDial({ side }: { side: DialSide }) {
             </button>
           ))}
         </div>
-        {/* Hub: the module's name while turning; a tap opens the Overview. */}
+        {/* Hub: an empty half circle; a tap opens the Overview. */}
         <button
           data-hub
           tabIndex={-1}
           aria-label={t('nav.home')}
-          className={`absolute flex flex-col items-center border text-center transition-colors ${
-            hubLit ? 'border-transparent bg-accent text-bg' : 'border-border bg-bg text-fg hover:bg-card'
-          }`}
+          className={`absolute border transition-colors ${hubLit ? 'border-transparent bg-accent' : 'border-border bg-bg hover:bg-card'}`}
           style={
             bottom
               ? {
@@ -421,10 +418,6 @@ export function ModuleDial({ side }: { side: DialSide }) {
                   marginLeft: -g.hub,
                   borderRadius: `${g.hub}px ${g.hub}px 0 0`,
                   borderBottom: 0,
-                  justifyContent: 'flex-end',
-                  // Open, the label clears the home bar. Idle (scaled down) the whole home bar inset
-                  // would push the icon off the top of the half circle, so only part of it counts.
-                  paddingBottom: active ? 'calc(env(safe-area-inset-bottom) + 12px)' : 'calc(env(safe-area-inset-bottom) * 0.4 + 14px)',
                 }
               : {
                   left: 0,
@@ -434,25 +427,9 @@ export function ModuleDial({ side }: { side: DialSide }) {
                   marginTop: -g.hub,
                   borderRadius: `0 ${g.hub}px ${g.hub}px 0`,
                   borderLeft: 0,
-                  justifyContent: 'center',
-                  // Keep the label clear of the curved edge and the module buttons.
-                  paddingLeft: Math.round(g.hub * 0.08),
-                  paddingRight: Math.round(g.hub * 0.2),
                 }
           }
-        >
-          {active ? (
-            <>
-              <b className="max-w-full truncate text-[15px] font-semibold leading-tight">{name}</b>
-              <small className="mt-1 text-[10.5px] leading-snug text-muted [text-wrap:balance]" style={{ maxWidth: bottom ? g.hub * 1.3 : g.hub * 0.72 }}>
-                {finePointer ? t('nav.clickForOverview') : t('nav.tapForOverview')}
-              </small>
-            </>
-          ) : (
-            // Idle the dial is small: just the Overview icon.
-            <Icon name="home" size={Math.round(g.hub * (bottom ? 0.45 : 0.55))} />
-          )}
-        </button>
+        />
       </div>
     </>
   );
